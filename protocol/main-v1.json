@@ -3,10 +3,10 @@
  "frozenOn": "2026-10-30",
  "adr": "docs/adr/0011-main-protocol-freeze.md",
  "code": {
-  "generatedAtCommit": "ed0e6ea1c847918624a0bd3f905b2fa2b4a184e1",
+  "generatedAtCommit": "4c8a89aefb4bb11e87879424af2ae2a6edc61755",
   "upstageCli": "802cddd1cbc40f1f3436b73fc0d1875b6aaaa356",
   "trees": {
-   "harness": "fe4ff5c927e9a6cac04a5beefbc67eaaa01a1050",
+   "harness": "ee8baec7a10609c123c59d649a7d12df6e3c57e0",
    "benchmarks": "9b01649d1aee1a29e93aae9b818e97daa8bae2ef",
    "models/serving": "187211621eca69e6b0f97cd6366c649a0da978fa"
   }

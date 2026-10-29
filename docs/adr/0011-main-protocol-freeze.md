@@ -34,7 +34,15 @@ model-specific settings.
    every SWE-bench attempt. EXAONE thinking-off is not run. **Solar Open 2 is
    a separately constrained arm** (half the context of the others, an
    unofficial quantization, a different serving runtime); it is in the same
-   tables but every comparison involving it is labelled so.
+   tables but every comparison involving it is labelled so. Known before the
+   freeze (pilot r4): with its 4,096-token output reservation and the 5%
+   margin, Solar's SWE-bench input budget is 3,686 tokens, of which the
+   system prompt, tool schemas and task take about 3,300; the agent
+   therefore runs under continual compaction and can end `context_exhausted`
+   within a few turns (pilot: one instance after 2 tool calls, the other
+   reached the 30-turn limit with a patch). This is a property of the
+   validated 8K serving profile, not a harness defect, and Solar's settings
+   are not changed to work around it.
 3. **BFCL** (official track, no upstage-cli): BFCL's own FC handler through
    `benchmarks/bfcl/kab_bfcl.py`, temperature 0.001, **no `max_tokens`**
    (upstream semantics), 8 threads, scored by `bfcl evaluate --partial-eval`.
