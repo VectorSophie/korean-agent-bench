@@ -65,8 +65,9 @@ def main():
             def trees_at(commit, _c={}):
                 if commit not in _c:
                     _c[commit] = {k: subprocess.run(["git", "rev-parse", f"{commit}:{k}"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
-                                  for k in proto["code"]["trees"]}
+                                  for k in [*proto["code"]["trees"], "vendor/upstage-cli"]}
                 return _c[commit]
+            frozen = {**proto["code"]["trees"], "vendor/upstage-cli": proto["code"]["upstageCli"]}
             for m in spec["models"]:
                 commits = set()
                 rp = d / m / "bfcl" / "run.json"
@@ -76,8 +77,10 @@ def main():
                     a_ = json.loads(ap_.read_text())
                     if a_.get("run"):
                         commits.add(json.loads((d / a_["run"]).read_text())["provenance"]["harness"]["commit"])
-                bad = sorted(c for c in commits if trees_at(c) != proto["code"]["trees"])
-                check(f"protocol: {m} ran on the frozen code", commits and not bad, f"{len(commits)} commits, mismatched {bad}")
+                if not commits:
+                    continue  # not executed: covered by the "reported as not executed" checks
+                bad = sorted(c for c in commits if trees_at(c) != frozen)
+                check(f"protocol: {m} ran on the frozen code", not bad, f"{len(commits)} commits, mismatched {bad}")
 
     # ── BFCL ──
     wanted = {i for ids in spec["bfcl"]["ids"].values() for i in ids}
