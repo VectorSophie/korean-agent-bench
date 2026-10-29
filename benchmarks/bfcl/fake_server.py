@@ -23,6 +23,8 @@ PLAN = json.loads(open(sys.argv[1]).read())
 PORT = int(sys.argv[2])
 LOG = sys.argv[3]
 LOCK = threading.Lock()
+# Fault injection for retry tests only: the first N chat requests get HTTP 503.
+FAIL_FIRST = [int(__import__("os").environ.get("KAB_FAKE_FAIL_FIRST", "0"))]
 WRONG = "__kab_invalid_value__"
 
 
@@ -87,6 +89,12 @@ class Handler(BaseHTTPRequestHandler):
             f.write(json.dumps(body) + "\n")
         if not self.path.rstrip("/").endswith("/chat/completions"):
             return self._send({"error": "not found"}, 404)
+        with LOCK:
+            fail = FAIL_FIRST[0] > 0
+            if fail:
+                FAIL_FIRST[0] -= 1
+        if fail:
+            return self._send({"error": {"message": "injected 503 (retry test)"}}, 503)
         message = respond(body)
         finish = "tool_calls" if message.get("tool_calls") else "stop"
         self._send({"id": "kab-mock", "object": "chat.completion", "created": 0, "model": body.get("model"),

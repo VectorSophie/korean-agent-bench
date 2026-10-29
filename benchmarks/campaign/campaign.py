@@ -97,7 +97,9 @@ def git_state():
 def config_hash(spec, model, benchmark):
     """Everything that defines an attempt except time: model config, benchmark
     definition, protocol hash, code revisions."""
-    cfg = local_models()[model]
+    # The endpoint URL is excluded: it is env-dependent and the served
+    # identity is verified by the preflight, not by where it listens.
+    cfg = {k: v for k, v in local_models()[model].items() if k != "baseUrl"}
     g = git_state()
     payload = {"model": cfg, "benchmark": benchmark, "protocolSha256": spec.get("protocolSha256"),
                "upstageCli": g["upstageCli"], "benchmarkSpec": spec[benchmark]}
@@ -296,7 +298,15 @@ def swebench_attempt(d, spec, model, iid, h):
     runs_dir = base / f"runs-{n}"
     t0 = time.time()
     started = now()
-    r = sh(["node", str(NODE_CLI), "swebench", "run", "--instance", iid, "--agent", model, "--preflight", "--runs-dir", str(runs_dir)])
+    # Per-run preflight is mandatory; only a "dryrun" campaign (fake model, never
+    # analyzed) may skip it.
+    pre = [] if spec.get("kind") == "dryrun" else ["--preflight"]
+    r = sh(["node", str(NODE_CLI), "swebench", "run", "--instance", iid, "--agent", model, *pre, "--runs-dir", str(runs_dir)])
+    if r.returncode == 3:
+        # Preflight blocked: the serving setup is wrong. Halt the campaign; no
+        # attempt is recorded, so a later resume runs this instance normally.
+        shutil.rmtree(runs_dir, ignore_errors=True)
+        raise SystemExit(f"preflight BLOCKED on {iid}; campaign halted:\n{r.stdout[-1500:]}")
     runs = sorted(runs_dir.glob("run_*.json")) if runs_dir.exists() else []
     if not runs:
         # no run record at all: harness/preflight refused before running
