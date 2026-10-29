@@ -48,7 +48,8 @@ No harness behavior, task, fixture, evaluator or scoring logic was changed.
 ## PR #12
 
 Not merged upstream and not merged here. Its content is on branch
-`import/upstage-cli-pr-12` for review as its own pull request. Excluded,
+`import/upstage-cli-pr-12`, open for review as draft
+[#1](https://github.com/VectorSophie/korean-agent-bench/pull/1). Excluded,
 per ADR 0004:
 
 - `harness/benchmarks/v1/holdout-pack.public.json`;
@@ -74,6 +75,7 @@ Baseline first: the same commands on a fresh upstage-cli clone at
 | `npm run smoke` (mock agent) | pass | pass | pass |
 | `benchmark:validate` | — | OK, 14 tasks (14 unpinned-image warnings, as upstream) | OK, 28 tasks, 0 warnings |
 | `benchmark:qa` (Docker, reference solutions) | — | — | 28/28 |
+| GitHub CI, Node 22 | — | green: unit 361/361, Docker 35/35 (run 40829975387) | green |
 
 Mutation checks: `h24` fails when the old `../../../src/` import is restored;
 `h25` fails when a synthetic set is marked `candidate` and when an
@@ -85,8 +87,8 @@ verify`/`pack qa` against the private held-out pack.
 
 ## upstage-cli cleanup
 
-A separate upstage-cli PR removes what moved — **only after this
-repository's verification above is recorded and its CI is green**:
+[upstage-cli#13](https://github.com/VectorSophie/upstage-cli/pull/13)
+(draft, opened after this repository's CI was green) removes what moved:
 
 - delete `harness/` and `HARNESS.md`;
 - delete the `harness` job from `.github/workflows/ci.yml` and the harness
@@ -97,6 +99,10 @@ repository's verification above is recorded and its CI is green**:
 Kept in upstage-cli: everything under `src/`, including
 `model/local-openai-adapter.mjs` (ADR 0006) and
 `sandbox/docker-flags.mjs`, which this repository depends on.
+
+Its upstage-cli test suite passes except one **pre-existing** intermittent
+failure (`m9-improvements` › "session list uses persisted index metadata"),
+which failed 2 of 4 runs on unmodified master as well.
 
 That PR must not be merged while PR #12 is open there, or PR #12's branch
 will conflict; the owner decides PR #12's fate first (close it in favor of

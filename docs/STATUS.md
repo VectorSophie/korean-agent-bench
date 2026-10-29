@@ -31,8 +31,9 @@ Commands in [`VERIFY.md`](VERIFY.md); full table and baseline comparison in
 On `import/upstage-cli-pr-12`: unit 379/379, Docker 35/35, `benchmark:qa`
 28/28. Not run: any GPU workload, model server or live inference.
 
-CI (`.github/workflows/ci.yml`) has **not yet run** on GitHub at the time of
-this snapshot.
+GitHub CI (Node 22) is green on `main` (unit 361/361, Docker 35/35, evidence
+checksums; run 40829975387) and on the PR #12 import
+([#1](https://github.com/VectorSophie/korean-agent-bench/pull/1)).
 
 ## Not yet established (blocking a main comparison)
 
@@ -82,6 +83,10 @@ this snapshot.
 - **Held-out candidates are disclosed.** Upstage-cli PR #12's public branch
   describes three built and five designed held-out tasks (ADR 0004). Decide
   whether to delete that branch / close PR #12, and retire those candidates.
-- **PR #12 here.** Review and merge (or not) `import/upstage-cli-pr-12`.
-- **upstage-cli cleanup PR.** Merge only after this repository's CI is green
-  and PR #12's fate is decided (`MIGRATION.md`, "upstage-cli cleanup").
+- **PR #12 here.** Review and merge (or not)
+  [korean-agent-bench#1](https://github.com/VectorSophie/korean-agent-bench/pull/1)
+  (draft).
+- **upstage-cli cleanup PR.**
+  [upstage-cli#13](https://github.com/VectorSophie/upstage-cli/pull/13)
+  (draft). This repository's CI is green; merge after PR #12's fate is
+  decided (`MIGRATION.md`, "upstage-cli cleanup").
