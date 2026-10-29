@@ -20,7 +20,7 @@ Snapshot as of 2026-10-29. Harness agent id: **`kanana`**.
 |---|---|
 | Runtime | vLLM v0.32.0, CUDA 13.0.2 |
 | Image | `vllm/vllm-openai@sha256:6ee133356d49ed24cee03dd0cda3d3980279a11c107ce3e752c89e76540f41c9` |
-| Launcher | `models/serving-records/kserve.sh start kanana` (port 8101) |
+| Launcher | `models/serving/kserve.sh start kanana` (port 8101); container `kserve-kanana` |
 | Tensor parallel | 1 (GPU 0 by default; `KSERVE_DEV` overrides) |
 | `--max-model-len` | 16384 (launcher default) |
 | Reasoning parser | `deepseek_r1` |

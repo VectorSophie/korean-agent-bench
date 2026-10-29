@@ -4,20 +4,27 @@
 #   different image (upstage/vllm-solar-open2), different port (8102), different
 #   compile cache (/data/jackb/lil-cache-solar). Never touches GLM/MiMo/Sinsan or
 #   the karmic-kraken image. TP2 over PCIe (no NVLink); both GPUs required.
-#   ./kserve-solar.sh start [maxlen]   # default 4096 (conservative first run)
+#   ./kserve-solar.sh start [maxlen]   # default 8192 = the harness's validated contextLimit
 #   ./kserve-solar.sh stop
 #   ./kserve-solar.sh logs [-f]
 #   ./kserve-solar.sh wait
+#   ./kserve-solar.sh print-config [maxlen]   # no side effects: image + args that start would use
 # Env: KSERVE_GPU_UTIL (default 0.92), KSERVE_MIN_FREE_MIB (default 85000 per GPU),
 #      KSERVE_ALLOW_FOREIGN_MIB (default 2048 — tolerate Sinsan ~1GB), KSERVE_DEV (default 0,1),
-#      SOLAR_IMG (default upstage/vllm-solar-open2:1.0.0), SOLAR_EXTRA (extra vllm args).
+#      SOLAR_IMG (default: the pinned digest below), SOLAR_EXTRA (extra vllm args),
+#      SOLAR_ALLOW_UNPINNED=1 to start an image that does not resolve to the pinned digest.
+# Changed from models/serving-records/kserve-solar.sh (2026-10-29, ADR 0008):
+#   default maxlen 4096 -> 8192 (4096 under-served the harness: pilot context_length error);
+#   image by digest, not tag, and an override must resolve to the pinned digest.
 set -uo pipefail
 
 PORT=8102
 HUB=/data/jackb/krasis/huggingface/hub
 CACHE=/data/jackb/lil-cache-solar
 SNAP=models--nota-ai--Solar-Open2-250B-Nota-NVFP4/snapshots/3cc673335f4c2f41181e05a98fc2b8324d586a64
-IMG=${SOLAR_IMG:-upstage/vllm-solar-open2:1.0.0}
+# Pinned digest = provenance.servingImage in harness/src/agent/local-models.mjs.
+PINNED_IMG="upstage/vllm-solar-open2@sha256:b34b7dd42d986bafb8dcfb285758de2fbfd55e7cf28a1b5ba6b858e6b2b7c8c3"
+IMG=${SOLAR_IMG:-$PINNED_IMG}
 NAME=kserve-solar
 SERVED=solar-open2-250b
 
@@ -26,9 +33,35 @@ GPU_UTIL=${KSERVE_GPU_UTIL:-0.92}
 MIN_FREE=${KSERVE_MIN_FREE_MIB:-85000}       # TP2 needs ~77GB weights + overhead per GPU
 ALLOW_FOREIGN=${KSERVE_ALLOW_FOREIGN_MIB:-2048}
 
-usage(){ echo "usage: $0 {start|stop|logs|wait} [maxlen]"; exit 2; }
+usage(){ echo "usage: $0 {start|stop|logs|wait|print-config} [maxlen]"; exit 2; }
 [ $# -ge 1 ] || usage
-ACTION=$1; MAXLEN=${2:-4096}
+ACTION=$1; MAXLEN=${2:-8192}
+
+serve_args(){
+  args=( "/hf/$SNAP" --served-model-name "$SERVED"
+         --tensor-parallel-size 2 --max-model-len "$MAXLEN" --max-num-seqs "${SOLAR_MAX_SEQS:-256}"
+         --gpu-memory-utilization "$GPU_UTIL" --trust-remote-code
+         --default-chat-template-kwargs '{"think_render_option":"preserved"}'
+         --reasoning-parser solar_open2 --tool-call-parser solar_open2 --enable-auto-tool-choice
+         --logits-processors vllm.v1.sample.logits_processor.solar_open2:SolarOpen2TemplateLogitsProcessor
+         --port "$PORT" )
+  # SOLAR_EXTRA lets us drop/adjust args (e.g. remove the logits-processor) without editing the script.
+  [ -n "${SOLAR_EXTRA:-}" ] && args+=( ${SOLAR_EXTRA} )
+  return 0
+}
+
+image_digest_check(){ # refuse an image that does not resolve to the pinned digest
+  local digests
+  digests=$(docker image inspect --format '{{join .RepoDigests " "}}' "$IMG" 2>/dev/null) || { echo "ABORT: image $IMG not present locally (pull not finished?)."; return 1; }
+  if [[ " $digests " != *" $PINNED_IMG "* ]]; then
+    if [ "${SOLAR_ALLOW_UNPINNED:-0}" = "1" ]; then
+      echo "WARNING: $IMG does not resolve to the pinned digest (SOLAR_ALLOW_UNPINNED=1): $digests"
+    else
+      echo "ABORT: $IMG does not resolve to the pinned digest $PINNED_IMG (got: ${digests:-none}). Set SOLAR_ALLOW_UNPINNED=1 to override; runs will not pass preflight."; return 1
+    fi
+  fi
+  return 0
+}
 
 gpu_free_check(){
   local busy=0
@@ -50,26 +83,17 @@ gpu_free_check(){
 case "$ACTION" in
  start)
   echo "[kserve-solar] image=$IMG tp=2 devices=$DEVS maxlen=$MAXLEN util=$GPU_UTIL port=$PORT"
-  docker image inspect "$IMG" >/dev/null 2>&1 || { echo "ABORT: image $IMG not present locally (pull not finished?)."; exit 1; }
+  image_digest_check || exit 1
   [ -f "$HUB/$SNAP/config.json" ] || { echo "ABORT: snapshot missing at $HUB/$SNAP"; exit 1; }
   if docker ps --format '{{.Names}}' | grep -q "^${NAME}$"; then echo "already running: $NAME"; exit 0; fi
   other=$(docker ps --format '{{.Names}}' | grep '^kserve-' | grep -v "^${NAME}$" || true)
   [ -n "$other" ] && { echo "ABORT: another kserve server is up ($other). Stop it first (serve one at a time)."; exit 1; }
   gpu_free_check || exit 1
   docker rm -f "$NAME" >/dev/null 2>&1 || true
-  MODEL="/hf/$SNAP"
   # Vendor-documented Solar Open 2 serving args. NVFP4 = compressed-tensors -> NO --quantization flag.
   # Solar Open 2 is a HYBRID attention+Mamba MoE: each decode seq needs a Mamba cache block,
   # so max_num_seqs must be <= available Mamba blocks (was 401 at util 0.90). 256 is ample for a benchmark.
-  args=( "$MODEL" --served-model-name "$SERVED"
-         --tensor-parallel-size 2 --max-model-len "$MAXLEN" --max-num-seqs "${SOLAR_MAX_SEQS:-256}"
-         --gpu-memory-utilization "$GPU_UTIL" --trust-remote-code
-         --default-chat-template-kwargs '{"think_render_option":"preserved"}'
-         --reasoning-parser solar_open2 --tool-call-parser solar_open2 --enable-auto-tool-choice
-         --logits-processors vllm.v1.sample.logits_processor.solar_open2:SolarOpen2TemplateLogitsProcessor
-         --port "$PORT" )
-  # SOLAR_EXTRA lets us drop/adjust args (e.g. remove the logits-processor) without editing the script.
-  [ -n "${SOLAR_EXTRA:-}" ] && args+=( ${SOLAR_EXTRA} )
+  serve_args
   set -x
   docker run -d --name "$NAME" \
     --runtime nvidia -e NVIDIA_VISIBLE_DEVICES="$DEVS" -e NVIDIA_DRIVER_CAPABILITIES=all \
@@ -92,6 +116,11 @@ case "$ACTION" in
     echo -n "."; sleep 10
   done
   echo " TIMEOUT"; exit 1
+  ;;
+ print-config)
+  serve_args
+  printf 'image=%s\n' "$IMG"
+  printf 'arg=%s\n' "${args[@]}"
   ;;
  *) usage;;
 esac

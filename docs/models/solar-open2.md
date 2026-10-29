@@ -25,9 +25,9 @@ Snapshot as of 2026-10-29. Harness agent id: **`solar-open2`**.
 |---|---|
 | Runtime | Upstage vLLM fork `v0.22.0-solar-open2`, CUDA 12.9.1. Upstream vLLM cannot load this architecture. |
 | Image | `upstage/vllm-solar-open2@sha256:b34b7dd42d986bafb8dcfb285758de2fbfd55e7cf28a1b5ba6b858e6b2b7c8c3` |
-| Launcher | `models/serving-records/kserve-solar.sh start 8192` (port 8102) |
+| Launcher | `models/serving/kserve-solar.sh start` (port 8102); container `kserve-solar` |
 | Tensor parallel | **2 (required)** |
-| `--max-model-len` | **8192 — must be passed explicitly** (launcher default is 4096) |
+| `--max-model-len` | **8192** (maintained launcher default since 2026-10-29; the recorded original defaulted to 4096) |
 | `--max-num-seqs` | **256 (required)**: hybrid Mamba; the default 1024 exceeds the 401 Mamba cache blocks and crashes engine init |
 | Logits processor | `SolarOpen2TemplateLogitsProcessor` |
 | Chat template kwargs (server default) | `{"think_render_option": "preserved"}` |
@@ -67,11 +67,12 @@ end by exhausting the turn budget (`budget_exhausted`), not by finishing. `harne
 - **8K context ceiling** on this hardware, half the other three models'
   16K. External tasks with long prompts (e.g. SWE-bench) may not fit — see
   ADR 0003; this must be reported as infeasibility, not filtered silently.
-- **Launcher runs by tag**, not digest (`upstage/vllm-solar-open2:1.0.0`).
-  On 2026-10-29 `docker image inspect` on the reference machine showed that
-  tag resolving to the recorded digest; a re-pulled tag could differ.
-- **Launcher default context (4096) is wrong for the harness.** Serving at
-  4096 caused the pilot's `context_length` error. Always start with
-  `kserve-solar.sh start 8192`.
+- **Launcher fixed 2026-10-29, not yet run live.** The original launcher
+  (`models/serving-records/kserve-solar.sh`) started by tag and defaulted to
+  4096, which caused the pilot's `context_length` error. The maintained
+  launcher (`models/serving/kserve-solar.sh`) starts by the pinned digest,
+  refuses an image that does not resolve to it, and defaults to 8192
+  (ADR 0008; `harness/tests/h27`). The tag resolved to the pinned digest on
+  the reference machine on 2026-10-29 (`docker image inspect`).
 - Provider reasoning-token counts are unavailable (`null`); `reasoningChars`
   is recorded.

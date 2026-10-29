@@ -26,28 +26,27 @@ fairness in detail.
    allowance; the launchers refuse in that case — do not bypass the guard.
 2. **One evaluation model at a time.** Stop and remove the previous
    `kserve-*` container (only containers this workstream created).
-3. Start with the recorded launcher and **the context the harness config
-   pins**:
-   - `models/serving-records/kserve.sh start <kanana|exaone|ax>` (16K)
-   - `models/serving-records/kserve-solar.sh start 8192` — the default 4096
-     is wrong for the harness (pilot "Solar context-budget finding").
+3. Start with the maintained launcher (`models/serving/`, ADR 0008), whose
+   defaults match the harness config:
+   - `models/serving/kserve.sh start <kanana|exaone|ax>` (16K)
+   - `models/serving/kserve-solar.sh start` (8192, pinned digest). Never use
+     the recorded original in `models/serving-records/` (defaults to 4096,
+     starts by tag).
 4. Wait for readiness (`kserve*.sh wait`).
 
-## 3. Pre-run checks (operator; not yet automated)
+## 3. Serving preflight (required)
 
-The harness records serving configuration *as declared* in
-`local-models.mjs`, not as observed (`docs/models/README.md`). Before a run,
-confirm and write down:
+`harness preflight --agent <model> --json` compares the declared
+configuration with the live server, container and git state (ADR 0008).
+Every field is `verified`, `declared_only`, `mismatch` or `unavailable`; a
+mismatch or an unavailable critical field blocks the run. Reportable runs
+use `harness run ... --preflight`, which refuses to start when blocked and
+stores the result in `provenance.preflight` of each run record.
 
-- `GET /v1/models` → served model name and `max_model_len` match the card.
-- `docker inspect <container> --format '{{.Image}}'` → image digest matches
-  the card.
-- The `vendor/upstage-cli` checkout matches its pin
-  (`git submodule status` shows no `+`), and the harness tree is clean. Every
-  run records this as `provenance.harness.upstageCli.matchesPin` / `.dirty`
-  and `provenance.harness.dirty`; a run with either mismatch is not a
-  reportable run.
-- `GPU_CONTENDED=true|false` is set so the run records it.
+Still manual: set `GPU_CONTENDED=true|false` so the run records it, and keep
+the preflight output with the run's records. Not covered by preflight:
+sampling and quantization (`declared_only`), file-level checkpoint
+integrity, free GPU memory at run time.
 
 ## 4. Running
 

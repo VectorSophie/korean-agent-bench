@@ -5,7 +5,7 @@ OpenAI-compatible endpoints, through the **same** TaskRunner / agent loop / tool
 registry / Docker isolation / scoring / provenance pipeline every other agent
 uses. Model-specific serving differences live entirely in **configuration**
 (`harness/src/agent/local-models.mjs`) and the **server launchers**
-(`models/serving-records/kserve.sh`, `kserve-solar.sh`, copied from `model-prep`) — not in
+(`models/serving/kserve.sh`, `kserve-solar.sh`; originals copied from `model-prep` in `models/serving-records/`) — not in
 generic harness or scoring code.
 
 ## Architecture (what was reused vs. added)
@@ -53,11 +53,11 @@ at a time**. Solar runs on its separate Upstage-fork server on **:8102**. These 
 **not** simultaneously available endpoints.
 
 ```bash
-# in models/serving-records/ — see GPU safety below; one model at a time
+# in models/serving/ — see GPU safety below; one model at a time
 ./kserve.sh start kanana   && ./kserve.sh wait kanana      # :8101, TP1
 ./kserve.sh start exaone   && ./kserve.sh wait exaone      # :8101, TP1
 ./kserve.sh start ax       && ./kserve.sh wait ax          # :8101, TP2
-./kserve-solar.sh start 8192 && ./kserve-solar.sh wait     # :8102, TP2
+./kserve-solar.sh start && ./kserve-solar.sh wait          # :8102, TP2, 8192 by default
 # stop when done:
 ./kserve.sh stop <model>    /   ./kserve-solar.sh stop
 ```
