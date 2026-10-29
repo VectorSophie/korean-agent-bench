@@ -5,7 +5,7 @@ OpenAI-compatible endpoints, through the **same** TaskRunner / agent loop / tool
 registry / Docker isolation / scoring / provenance pipeline every other agent
 uses. Model-specific serving differences live entirely in **configuration**
 (`harness/src/agent/local-models.mjs`) and the **server launchers**
-(`/home/jackb/workspace/model-prep/kserve.sh`, `kserve-solar.sh`) — not in
+(`models/serving-records/kserve.sh`, `kserve-solar.sh`, copied from `model-prep`) — not in
 generic harness or scoring code.
 
 ## Architecture (what was reused vs. added)
@@ -53,7 +53,7 @@ at a time**. Solar runs on its separate Upstage-fork server on **:8102**. These 
 **not** simultaneously available endpoints.
 
 ```bash
-# in /home/jackb/workspace/model-prep — see GPU safety below; one model at a time
+# in models/serving-records/ — see GPU safety below; one model at a time
 ./kserve.sh start kanana   && ./kserve.sh wait kanana      # :8101, TP1
 ./kserve.sh start exaone   && ./kserve.sh wait exaone      # :8101, TP1
 ./kserve.sh start ax       && ./kserve.sh wait ax          # :8101, TP2
@@ -155,7 +155,7 @@ merged into the scored `content`. Three signals are kept separate and reported i
 
 - **`serving_ready`** — the model serves and passes local *serving* smoke tests
   (generation, tool call, reasoning separation). Established in
-  `model-prep/smoke-test-results.md`. All four are `serving_ready`.
+  `models/serving-records/smoke-test-results.md`. All four are `serving_ready`.
 - **`harness_integrated`** — the model runs end-to-end through *this* harness
   pipeline (real registry, sandbox, checks, scoring, provenance) under mocked and
   (where resources permit) live conditions. Covered by the h14/h15 tests; live

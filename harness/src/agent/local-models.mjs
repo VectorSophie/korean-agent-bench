@@ -1,5 +1,5 @@
 // Registry of the four locally served Korean models, with the EXACT serving
-// configuration validated in /home/jackb/workspace/model-prep (models-manifest.json,
+// configuration validated in model-prep, versioned at models/serving-records/ (models-manifest.json,
 // serving-readiness.json, kserve.sh, kserve-solar.sh, smoke-test-results.md).
 //
 // Nothing here is invented: ids, HF repos, pinned revisions, quantization,

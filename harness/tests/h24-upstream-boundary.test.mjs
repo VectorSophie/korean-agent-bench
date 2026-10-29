@@ -52,6 +52,28 @@ describe("upstream boundary", () => {
     assert.deepEqual(offenders, []);
   });
 
+  it("run provenance records the checked-out and pinned upstage-cli commits", async () => {
+    const { TaskRunner } = await import("../src/task/runner.mjs");
+    const { MockAgent } = await import("../src/agent/adapters/mock.mjs");
+    const run = await new TaskRunner().run(
+      {
+        id: "h24-provenance",
+        version: 1,
+        repo: join(HARNESS_DIR, "fixtures", "flaky-test"),
+        prompt: "noop",
+        sandbox: { type: "native", timeout: 60 },
+        agent: { maxTurns: 1 },
+        checks: { fail_to_pass: [], pass_to_pass: [{ id: "true", command: "node -e 0", timeout: 30 }], custom: [] }
+      },
+      new MockAgent()
+    );
+    const cli = run.provenance.harness.upstageCli;
+    assert.match(cli.commit, /^[0-9a-f]{40}$/);
+    assert.match(cli.pinnedCommit, /^[0-9a-f]{40}$/);
+    assert.equal(cli.matchesPin, cli.commit === cli.pinnedCommit);
+    assert.equal(typeof cli.dirty, "boolean");
+  });
+
   it("no source reaches the CLI except through upstream.mjs or a vendor/upstage-cli/src path", () => {
     const offenders = SOURCES.filter((f) => /\bCLI_ROOT\s*=/.test(readFileSync(f, "utf8")))
       .map((f) => relative(HARNESS_DIR, f))

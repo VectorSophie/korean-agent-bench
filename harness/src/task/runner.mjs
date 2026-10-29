@@ -14,6 +14,7 @@ import { PatchTracker } from "../tracking/patch-tracker.mjs";
 import { AuditLog } from "../tracking/audit-log.mjs";
 import { CostTracker } from "../tracking/cost-tracker.mjs";
 import { writeReport } from "../report/generator.mjs";
+import { CLI_ROOT } from "../upstream.mjs";
 
 const HARNESS_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -63,9 +64,9 @@ export function makeRunId(taskId, agentId) {
 let harnessInfo = null;
 function getHarnessInfo() {
   if (harnessInfo) return harnessInfo;
-  const git = (args) => {
+  const git = (args, cwd = HARNESS_DIR) => {
     try {
-      return execFileSync("git", args, { cwd: HARNESS_DIR, stdio: "pipe" }).toString("utf8").trim();
+      return execFileSync("git", args, { cwd, stdio: "pipe" }).toString("utf8").trim();
     } catch {
       return null;
     }
@@ -75,10 +76,22 @@ function getHarnessInfo() {
     version = JSON.parse(readFileSync(join(HARNESS_DIR, "package.json"), "utf8")).version;
   } catch { /* unknown */ }
   const status = git(["status", "--porcelain", "--", "."]);
+  // The agent under test is the upstage-cli submodule (ADR 0002). `commit`
+  // above only implies its revision if the checkout matches the pin, so the
+  // checked-out commit, the pinned commit and its dirtiness are recorded.
+  const cliStatus = git(["status", "--porcelain"], CLI_ROOT);
+  const cliCommit = git(["rev-parse", "HEAD"], CLI_ROOT);
+  const pinnedCliCommit = git(["ls-tree", "HEAD", "--", CLI_ROOT])?.split(/\s+/)[2] ?? null;
   harnessInfo = {
     version,
     commit: git(["rev-parse", "HEAD"]),
     dirty: status === null ? null : status.length > 0,
+    upstageCli: {
+      commit: cliCommit,
+      pinnedCommit: pinnedCliCommit,
+      matchesPin: cliCommit && pinnedCliCommit ? cliCommit === pinnedCliCommit : null,
+      dirty: cliStatus === null ? null : cliStatus.length > 0
+    },
     node: process.version,
     platform: `${process.platform}-${process.arch}`
   };
