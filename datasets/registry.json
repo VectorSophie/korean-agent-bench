@@ -10,8 +10,8 @@
       "locations": ["harness/tasks/benchmark-v1", "harness/fixtures/benchmark-v1", "harness/benchmarks/v1"],
       "mainComparison": "excluded",
       "allowedUses": ["harness development", "evaluator QA", "calibration", "infrastructure pilots"],
-      "provenance": "upstage-cli PR #11 (merged 2026-10-29); authored with an AI coding assistant, then audited (harness/docs/BENCHMARK_V1_SEMANTIC_AUDIT.md). No independent human review.",
-      "notes": "14 rows / small number of families; see BENCHMARK_V1_PROTOCOL.md and BENCHMARK_V1_STATISTICS.md."
+      "provenance": "Tranche v1-initial: upstage-cli PR #11 (merged 2026-10-29). Tranche v1-dataset: upstage-cli PR #12 (unmerged; imported 2026-10-29 with held-out material excluded, ADR 0004). Authored with an AI coding assistant, then audited (harness/docs/BENCHMARK_V1_SEMANTIC_AUDIT.md, BENCHMARK_V1_DATASET.md). No independent human review.",
+      "notes": "28 rows (14 + 14) / 23 families / 4 language pairs per BENCHMARK_V1_DATASET.md; independence is counted on families. See BENCHMARK_V1_PROTOCOL.md and BENCHMARK_V1_STATISTICS.md."
     },
     {
       "id": "harness-pilot-tasks",
