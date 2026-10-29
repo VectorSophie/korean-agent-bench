@@ -8,7 +8,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync, readFileSync, cpSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { buildTask, buildPrompt, toPrediction, ReplayPatchAgent, PROMPT_TEMPLATE_SHA256, ENVELOPE } from "../src/benchmarks/swebench.mjs";
+import { buildTask, buildPrompt, toPrediction, ReplayPatchAgent, PROMPT_TEMPLATE_SHA256, ENVELOPE, prepareSnapshot } from "../src/benchmarks/swebench.mjs";
 import { TaskRunner } from "../src/task/runner.mjs";
 import { validate } from "../src/task/schema.mjs";
 
@@ -42,7 +42,8 @@ describe("SWE-bench task construction", () => {
     assert.ok(!t.prompt.includes("SECRET HINT TEXT"));
     assert.equal(t.prompt, buildPrompt(instance()));
     assert.deepEqual(t.checks, { fail_to_pass: [], pass_to_pass: [], custom: [] });
-    assert.equal(t.commit, base);
+    assert.equal(t.commit, undefined, "the snapshot's own HEAD is the diff base");
+    assert.equal(t._meta.base_commit, base);
     assert.equal(t.sandbox.image, "example/image:latest");
     assert.equal(t.sandbox.network, "none");
     assert.equal(t._meta.promptTemplateSha256, PROMPT_TEMPLATE_SHA256);
@@ -79,5 +80,34 @@ describe("run → prediction", () => {
 
   it("rejects records that are not SWE-bench runs", () => {
     assert.throws(() => toPrediction({ id: "x", provenance: { task: {} } }, "m"));
+  });
+});
+
+describe("workspace snapshot (no access to future commits)", () => {
+  it("has exactly one commit with base_commit's tree; the later fix is unreachable; the cache clone is untouched", () => {
+    // cache clone layout: <cacheDir>/<owner>__<name>
+    const cacheDir = join(dir, "cache");
+    const clone = join(cacheDir, "org__proj");
+    cpSync(repo, clone, { recursive: true });
+    writeFileSync(join(clone, ".gitignore"), "build/\n");
+    execFileSync("mkdir", ["-p", join(clone, "build")]);
+    writeFileSync(join(clone, "build", "tracked.txt"), "tracked despite .gitignore\n");
+    git(["add", "-f", "."], clone);
+    git(["commit", "-q", "-m", "base with ignored-but-tracked file"], clone);
+    const baseSha = git(["rev-parse", "HEAD"], clone).trim();
+    writeFileSync(join(clone, "mod.py"), "def f():\n    return 2  # GOLD FIX\n\n");
+    git(["commit", "-qam", "the future fix"], clone);
+    const statusBefore = git(["status", "--porcelain"], clone);
+
+    const snap = prepareSnapshot({ instance_id: "org__proj-1", repo: "org/proj", base_commit: baseSha }, { cacheDir, snapDir: join(dir, "snaps") });
+    assert.equal(git(["rev-list", "--all"], snap).trim().split("\n").length, 1);
+    assert.equal(git(["rev-parse", "HEAD^{tree}"], snap).trim(), git(["rev-parse", `${baseSha}^{tree}`], clone).trim());
+    assert.ok(!git(["log", "--all", "-p"], snap).includes("GOLD FIX"));
+    assert.equal(git(["fsck", "--unreachable", "--no-reflogs"], snap).trim(), "");
+    assert.ok(readFileSync(join(snap, "build", "tracked.txt"), "utf8").includes("tracked"));
+    assert.equal(git(["status", "--porcelain"], clone), statusBefore, "cache clone not modified");
+    // idempotent; refuses a different base
+    assert.equal(prepareSnapshot({ instance_id: "org__proj-1", repo: "org/proj", base_commit: baseSha }, { cacheDir, snapDir: join(dir, "snaps") }), snap);
+    assert.throws(() => prepareSnapshot({ instance_id: "org__proj-1", repo: "org/proj", base_commit: base }, { cacheDir, snapDir: join(dir, "snaps") }));
   });
 });

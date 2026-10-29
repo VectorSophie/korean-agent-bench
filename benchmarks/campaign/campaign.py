@@ -10,6 +10,7 @@ every attempt on disk (atomic writes, safe resume). ADR 0011.
     python3 benchmarks/campaign/campaign.py swebench <campaign> <model> [--concurrency N]
     python3 benchmarks/campaign/campaign.py swebench-eval <campaign> <model> [--workers N]
     python3 benchmarks/campaign/campaign.py pull-images <campaign>
+    python3 benchmarks/campaign/campaign.py prepare <campaign>     (clones + single-commit snapshots, serial)
 
 <campaign> is a directory name under .cache/campaigns/ (raw, local) that holds
 campaign.json (written by freeze tooling): models, BFCL ids, SWE-bench ids,
@@ -26,6 +27,7 @@ Rules enforced here (frozen in the protocol):
 """
 import argparse
 import datetime
+import fcntl
 import hashlib
 import json
 import os
@@ -94,16 +96,78 @@ def git_state():
     return {"commit": head, "dirty": dirty, "upstageCli": sub, "upstageCliDirty": sub_dirty}
 
 
+def tree(path):
+    return sh(["git", "rev-parse", f"HEAD:{path}"]).stdout.strip()
+
+
+def tool_versions():
+    v = {}
+    for name, py, dist in (("bfcl-eval", VENV_BFCL, "bfcl-eval"), ("swebench", VENV_SWE, "swebench")):
+        r = sh([str(py), "-c", f"import importlib.metadata as m; print(m.version('{dist}'))"])
+        v[name] = r.stdout.strip() or None
+    return v
+
+
+def prompt_template_sha():
+    js = "import('./harness/src/benchmarks/swebench.mjs').then(m => console.log(m.PROMPT_TEMPLATE_SHA256))"
+    return sh(["node", "-e", js]).stdout.strip()
+
+
 def config_hash(spec, model, benchmark):
-    """Everything that defines an attempt except time: model config, benchmark
-    definition, protocol hash, code revisions."""
+    """Everything that defines an attempt except time and endpoint: the model's
+    declared configuration, the benchmark definition, the protocol hash, the
+    content of the code that runs it (git trees, so docs commits do not change
+    it), the official tool versions and the SWE-bench prompt template."""
     # The endpoint URL is excluded: it is env-dependent and the served
     # identity is verified by the preflight, not by where it listens.
     cfg = {k: v for k, v in local_models()[model].items() if k != "baseUrl"}
-    g = git_state()
     payload = {"model": cfg, "benchmark": benchmark, "protocolSha256": spec.get("protocolSha256"),
-               "upstageCli": g["upstageCli"], "benchmarkSpec": spec[benchmark]}
+               "benchmarkSpec": spec[benchmark],
+               "trees": {p: tree(p) for p in ("harness", "benchmarks", "models/serving", "vendor/upstage-cli")},
+               "toolVersions": tool_versions(), "promptTemplateSha256": prompt_template_sha(),
+               "bfclTemperature": 0.001}
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+
+
+def require_clean(spec):
+    if spec.get("kind") == "dryrun":
+        return
+    g = git_state()
+    if g["dirty"] or g["upstageCliDirty"]:
+        sys.exit(f"working tree not clean ({g}); commit before running a {spec.get('kind')} campaign")
+
+
+class Lock:
+    """One process per (campaign, model, benchmark)."""
+    def __init__(self, path):
+        self.path = pathlib.Path(path)
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+
+    def __enter__(self):
+        self.f = open(self.path, "w")
+        try:
+            fcntl.flock(self.f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            sys.exit(f"another campaign process holds {self.path}")
+        return self
+
+    def __exit__(self, *a):
+        fcntl.flock(self.f, fcntl.LOCK_UN)
+        self.f.close()
+
+
+def run_preflight(d, model):
+    pf = sh(["node", str(NODE_CLI), "preflight", "--agent", model, "--json"], timeout=120)
+    path = d / model / "runtime" / f"preflight-{int(time.time())}.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(pf.stdout)
+    try:
+        result = json.loads(pf.stdout)
+    except json.JSONDecodeError:
+        sys.exit(f"preflight produced no JSON: {pf.stderr[-500:]}")
+    if not result["reportable"]:
+        sys.exit(f"preflight BLOCKED: {result['blocking']} ({path})")
+    return path
 
 
 # ── runtime inspection / serving ────────────────────────────────────────────
@@ -161,14 +225,9 @@ def serve(name, model):
     if w.returncode != 0:
         sys.exit(f"server did not become healthy; see logs in {log.parent}")
     load_s = round(time.time() - t0, 1)
-    pf = sh(["node", str(NODE_CLI), "preflight", "--agent", model, "--json"])
-    path = d / model / "runtime" / f"preflight-{int(time.time())}.json"
-    path.write_text(pf.stdout)
-    result = json.loads(pf.stdout)
+    path = run_preflight(d, model)  # exits (server left running for inspection) if BLOCKED
     atomic_write(d / model / "runtime" / "session.json", {"servedAt": now(), "loadSeconds": load_s, "container": container,
-                                                          "preflight": str(path.relative_to(d)), "reportable": result["reportable"]})
-    if not result["reportable"]:
-        sys.exit(f"preflight BLOCKED: {result['blocking']} (server left running for inspection; stop it with `stop`)")
+                                                          "preflight": str(path.relative_to(d)), "reportable": True})
     print(f"{model}: serving, preflight REPORTABLE (load {load_s}s)")
 
 
@@ -188,16 +247,25 @@ def require_session(d, model):
 
 # ── BFCL ────────────────────────────────────────────────────────────────────
 
-INFRA_PATTERNS = re.compile(r"APIConnectionError|APITimeoutError|InternalServerError|ConnectionError|ConnectError|ReadTimeout|RemoteDisconnected|ServiceUnavailable|502|503|504")
-CONTEXT_PATTERNS = re.compile(r"maximum context length|context_length_exceeded|too many tokens|is longer than the model's context", re.I)
+CONTEXT_PATTERNS = re.compile(r"maximum context length|context_length_exceeded|too many tokens|is longer than the model's context|max_model_len", re.I)
+# Matched on the exception type / HTTP status in BFCL's stored traceback, never
+# on free text (ids such as live_multiple_503-1-2 must not match).
+TRANSIENT = re.compile(r"openai\.(APIConnectionError|APITimeoutError|InternalServerError|RateLimitError)\b|Error code: 5\d\d\b|httpx\.(ConnectError|ReadTimeout|RemoteProtocolError)\b")
+CONFIG = re.compile(r"openai\.(NotFoundError|AuthenticationError|PermissionDeniedError|BadRequestError|UnprocessableEntityError)\b|Error code: 4\d\d\b")
 
 
 def classify_bfcl_error(entry):
-    tb = json.dumps(entry.get("traceback") or entry.get("metadata") or "") + str(entry.get("result"))
+    """context: the request did not fit; infrastructure: transient serving
+    fault (retried); configuration: the server rejected the request (wrong
+    model id, missing parser flag, ...) — the run is aborted, never scored;
+    model: anything else BFCL caught while handling the model's response."""
+    tb = str(entry.get("traceback") or "") + " " + str(entry.get("result") or "")
     if CONTEXT_PATTERNS.search(tb):
         return "context"
-    if INFRA_PATTERNS.search(tb):
+    if TRANSIENT.search(tb):
         return "infrastructure"
+    if CONFIG.search(tb):
+        return "configuration"
     return "model"
 
 
@@ -218,6 +286,12 @@ def bfcl_errors(proj, registry):
 def bfcl(name, model, threads):
     d, spec = campaign(name)
     require_session(d, model)
+    require_clean(spec)
+    with Lock(d / model / "bfcl.lock"):
+        return _bfcl(d, spec, name, model, threads)
+
+
+def _bfcl(d, spec, name, model, threads):
     registry = f"kab-{model}-FC"
     proj = d / model / "bfcl"
     proj.mkdir(parents=True, exist_ok=True)
@@ -232,8 +306,10 @@ def bfcl(name, model, threads):
     log = []
     retries = {}
     for round_no in range(MAX_INFRA_RETRIES + 1):
+        if spec.get("kind") != "dryrun":
+            run_preflight(d, model)  # the server answering now is the declared one
         t0 = time.time()
-        g = sh([str(VENV_BFCL), "benchmarks/bfcl/kab_bfcl.py", "generate", "--model", registry, "--run-ids", "--num-threads", str(threads)], env=env)
+        g = sh([str(VENV_BFCL), "benchmarks/bfcl/kab_bfcl.py", "generate", "--model", registry, "--run-ids", "--num-threads", str(threads)], env=env, timeout=24 * 3600)
         (proj / f"generate-{round_no}.log").write_text(g.stdout + g.stderr)
         log.append({"round": round_no, "seconds": round(time.time() - t0, 1), "exit": g.returncode})
         if g.returncode != 0:
@@ -253,16 +329,26 @@ def bfcl(name, model, threads):
             f.write_text("\n".join(keep) + ("\n" if keep else ""))
         for i in infra:
             retries[i] = retries.get(i, 0) + 1
+    errs = bfcl_errors(proj, registry)
+    config_errs = sorted(i for i, (_, c) in errs.items() if c == "configuration")
+    if config_errs:
+        sys.exit(f"configuration errors (server rejected requests) for {len(config_errs)} entries, e.g. {config_errs[:3]}; not scored — fix serving and re-run")
+    present = set()
+    for f in bfcl_result_files(proj, registry):
+        present |= {json.loads(l)["id"] for l in f.read_text().splitlines() if l.strip()}
+    wanted = {i for ids in spec["bfcl"]["ids"].values() for i in ids}
+    if wanted - present or present - wanted:
+        sys.exit(f"result coverage mismatch: missing {sorted(wanted - present)[:5]} (+{max(0, len(wanted - present) - 5)}), unexpected {sorted(present - wanted)[:5]}")
     cats = sorted(spec["bfcl"]["ids"].keys())
     t0 = time.time()
-    e = sh([str(VENV_BFCL), "benchmarks/bfcl/kab_bfcl.py", "evaluate", "--model", registry, "--test-category", ",".join(cats), "--partial-eval"], env=env)
+    e = sh([str(VENV_BFCL), "benchmarks/bfcl/kab_bfcl.py", "evaluate", "--model", registry, "--test-category", ",".join(cats), "--partial-eval"], env=env, timeout=12 * 3600)
     (proj / "evaluate.log").write_text(e.stdout + e.stderr)
     if e.returncode != 0:
         sys.exit(f"bfcl evaluate failed; see {proj}/evaluate.log")
     errs = bfcl_errors(proj, registry)
     atomic_write(proj / "run.json", {"model": model, "registry": registry, "configHash": h, "finishedAt": now(),
                                      "generateRounds": log, "evaluateSeconds": round(time.time() - t0, 1),
-                                     "infraRetries": retries, "errorsByClass": {c: sorted(i for i, (_, k) in errs.items() if k == c) for c in ("infrastructure", "context", "model")},
+                                     "infraRetries": retries, "errorsByClass": {c: sorted(i for i, (_, k) in errs.items() if k == c) for c in ("infrastructure", "configuration", "context", "model")},
                                      "git": git_state()})
     print(f"{model}: BFCL done; errors {{{', '.join(f'{c}: {sum(1 for _, k in errs.values() if k == c)}' for c in ('infrastructure', 'context', 'model'))}}}")
 
@@ -296,12 +382,22 @@ def swebench_attempt(d, spec, model, iid, h):
     if n > MAX_INFRA_RETRIES:
         return "exhausted"
     runs_dir = base / f"runs-{n}"
+    if runs_dir.exists():
+        # interrupted before its attempt record was written: keep, never reuse
+        runs_dir.rename(base / f"runs-{n}.stale-{int(time.time())}")
+    image = instance_rows()[iid]["image"]
+    if sh(["docker", "image", "inspect", image]).returncode != 0:
+        raise SystemExit(f"official image {image} not present; run pull-images first (no implicit pulls during a campaign)")
     t0 = time.time()
     started = now()
     # Per-run preflight is mandatory; only a "dryrun" campaign (fake model, never
     # analyzed) may skip it.
     pre = [] if spec.get("kind") == "dryrun" else ["--preflight"]
-    r = sh(["node", str(NODE_CLI), "swebench", "run", "--instance", iid, "--agent", model, *pre, "--runs-dir", str(runs_dir)])
+    try:
+        r = sh(["node", str(NODE_CLI), "swebench", "run", "--instance", iid, "--agent", model, *pre, "--runs-dir", str(runs_dir)],
+               timeout=SWE_AGENT_TIMEOUT_S + 900)
+    except subprocess.TimeoutExpired:
+        r = subprocess.CompletedProcess([], 124, "", "harness run exceeded its outer timeout")
     if r.returncode == 3:
         # Preflight blocked: the serving setup is wrong. Halt the campaign; no
         # attempt is recorded, so a later resume runs this instance normally.
@@ -337,9 +433,43 @@ def swebench_attempt(d, spec, model, iid, h):
     return rec["classification"]
 
 
+_ROWS = {}
+
+
+def instance_rows():
+    if not _ROWS:
+        path = next((ROOT / ".cache/swebench").glob("*/instances.jsonl"))
+        for line in path.read_text().splitlines():
+            r = json.loads(line)
+            _ROWS[r["instance_id"]] = r
+    return _ROWS
+
+
+SWE_AGENT_TIMEOUT_S = 1800
+
+
+def prepare(name):
+    """Serial: clone each repository once and build every single-commit
+    workspace snapshot before any run (no cloning during a campaign)."""
+    d, spec = campaign(name)
+    ids_file = d / "swebench-ids.json"
+    ids_file.write_text(json.dumps(spec["swebench"]["ids"]))
+    r = sh(["node", str(NODE_CLI), "swebench", "prepare", "--ids-file", str(ids_file)], timeout=6 * 3600)
+    (d / "prepare.log").write_text(r.stdout + r.stderr)
+    if r.returncode != 0:
+        sys.exit(f"prepare failed; see {d / 'prepare.log'}")
+    print(r.stdout.strip().splitlines()[-1] if r.stdout.strip() else "prepared")
+
+
 def swebench(name, model, concurrency):
     d, spec = campaign(name)
     require_session(d, model)
+    require_clean(spec)
+    with Lock(d / model / "swebench.lock"):
+        return _swebench(d, spec, model, concurrency)
+
+
+def _swebench(d, spec, model, concurrency):
     h = config_hash(spec, model, "swebench")
     ids = spec["swebench"]["ids"]
 
@@ -366,11 +496,17 @@ def swebench_eval(name, model, workers):
     d, spec = campaign(name)
     out = d / model / "swebench" / "eval"
     preds = d / model / "swebench" / "predictions.jsonl"
-    rows, runs = [], []
+    rows, runs, accounting = [], [], {}
     for iid in spec["swebench"]["ids"]:
         a = final_attempt(d, model, iid)
-        if a and a.get("run"):
+        if not a or not a.get("final"):
+            sys.exit(f"{iid}: no final attempt yet; finish the swebench step first")
+        accounting[iid] = {"classification": a["classification"], "hasRun": bool(a.get("run"))}
+        if a.get("run"):
             runs.append(str(d / a["run"]))
+    # Every campaign id is accounted for; ids without a run record are not sent
+    # to the evaluator (they are not empty patches) and stay in the denominator.
+    atomic_write(d / model / "swebench" / "accounting.json", accounting)
     r = sh(["node", str(NODE_CLI), "swebench", "predictions", "--model-name", f"kab-{model}", "--out", str(preds), *runs])
     if r.returncode != 0:
         sys.exit(r.stdout + r.stderr)
@@ -380,6 +516,18 @@ def swebench_eval(name, model, workers):
     if e.returncode != 0:
         sys.exit(f"official evaluation failed; see {d / model / 'swebench' / 'evaluate.log'}")
     print(e.stdout[-1500:])
+
+
+def docker_images_bytes():
+    """Actual (layer-deduplicated) bytes used by all images, from docker system df."""
+    out = sh(["docker", "system", "df", "--format", "{{.Type}}\t{{.Size}}"]).stdout
+    for line in out.splitlines():
+        t, size = line.split("\t")
+        if t == "Images":
+            m = re.match(r"([\d.]+)\s*([kMGT]?B)", size)
+            mult = {"B": 1, "kB": 1e3, "MB": 1e6, "GB": 1e9, "TB": 1e12}[m.group(2)]
+            return int(float(m.group(1)) * mult)
+    raise SystemExit("cannot read docker system df")
 
 
 def pull_images(name):
@@ -393,6 +541,10 @@ def pull_images(name):
     budget_gb = spec["resources"]["dockerBudgetGB"]
     log = d / "images.jsonl"
     before = sh(["docker", "system", "df", "--format", "{{json .}}"]).stdout
+    base_file = d / "images-baseline-bytes.txt"
+    if not base_file.exists():
+        base_file.write_text(str(docker_images_bytes()))
+    base_bytes = int(base_file.read_text())
     for iid in spec["swebench"]["ids"]:
         img = rows[iid]["image"]
         if sh(["docker", "image", "inspect", img]).returncode == 0:
@@ -406,6 +558,9 @@ def pull_images(name):
                 time.sleep(600)
                 continue
             sys.exit(f"pull failed for {img}: {p.stderr[-500:]}")
+        used_now = docker_images_bytes()
+        if (used_now - base_bytes) / 1e9 > budget_gb:
+            sys.exit(f"Docker image budget exceeded: +{(used_now - base_bytes) / 1e9:.1f} GB > {budget_gb} GB; stopping pulls")
         size = sh(["docker", "image", "inspect", "--format", "{{.Size}}", img]).stdout.strip()
         digest = sh(["docker", "image", "inspect", "--format", "{{json .RepoDigests}}", img]).stdout.strip()
         with open(log, "a") as f:
@@ -426,6 +581,8 @@ def main():
     a = ap.parse_args()
     if a.cmd == "pull-images":
         return pull_images(a.campaign)
+    if a.cmd == "prepare":
+        return prepare(a.campaign)
     if a.model not in SERVE:
         sys.exit(f"model must be one of {list(SERVE)}")
     {"inspect": lambda: print(json.dumps(inspect(a.campaign, a.model), indent=1)),

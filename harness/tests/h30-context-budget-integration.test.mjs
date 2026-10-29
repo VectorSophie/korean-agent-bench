@@ -86,3 +86,32 @@ describe("context budget reaches the real upstage-cli loop", () => {
     assert.notEqual(run.outcome.reason, "agent_adapter_error");
   });
 });
+
+describe("model vs infrastructure classification of adapter errors", () => {
+  async function runWith(respond) {
+    const s = createServer((req, res) => {
+      let b = "";
+      req.on("data", (c) => (b += c));
+      req.on("end", () => respond(res));
+    });
+    await new Promise((r) => s.listen(0, "127.0.0.1", r));
+    try {
+      return await new TaskRunner().run(task("Fix f3."), new LocalModelAgent({ model: "kanana", baseUrl: `http://127.0.0.1:${s.address().port}/v1` }));
+    } finally {
+      s.close();
+    }
+  }
+  const json = (res, code, body) => { res.statusCode = code; res.setHeader("content-type", "application/json"); res.end(JSON.stringify(body)); };
+
+  it("an empty model turn is a model outcome (model_protocol_error), not infrastructure", async () => {
+    const run = await runWith((res) => json(res, 200, { choices: [{ index: 0, message: { role: "assistant", content: "" }, finish_reason: "stop" }], usage: {} }));
+    assert.equal(run.trace.stopReason, "model_protocol_error");
+    assert.notEqual(run.outcome.reason, "agent_adapter_error");
+  });
+
+  it("a 5xx from the server is infrastructure", async () => {
+    const run = await runWith((res) => json(res, 503, { error: { message: "unavailable" } }));
+    assert.equal(run.status, "error");
+    assert.equal(run.outcome.reason, "agent_adapter_error");
+  });
+});

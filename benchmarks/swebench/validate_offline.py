@@ -19,6 +19,7 @@ evaluator does with a malformed patch. These are pipeline checks, NOT scores.
 import argparse
 import json
 import pathlib
+import re
 import shutil
 import subprocess
 import sys
@@ -75,6 +76,7 @@ def main():
     rows = {json.loads(l)["instance_id"]: json.loads(l) for l in (ROOT / ".cache/swebench").glob("*/instances.jsonl").__next__().read_text().splitlines() if l.strip()}
     inst = rows[a.instance]
 
+    sh(["node", NODE_CLI, "swebench", "prepare", "--instance", a.instance], out / "prepare.log")
     patches = {"gold": inst["patch"], "empty": ""}
     results = {}
     for name in ["gold", "empty", "wrong"]:
@@ -108,7 +110,11 @@ def main():
             pred = json.loads((d / "predictions.jsonl").read_text())
             # The captured patch must equal git's own diff of the replayed change
             # applied at base_commit (git canonicalizes hunk context), byte for byte.
-            if pred["model_patch"] != canonical_diff(inst, patches[name], out / f"canon-{name}"):
+            # git abbreviates blob ids in "index a..b" lines to a length that grows
+            # with the repository's object count (snapshot vs full clone), so
+            # only that line is compared as full-length-agnostic.
+            norm = lambda t: re.sub(r"(?m)^index [0-9a-f]+\.\.[0-9a-f]+", "index <blobs>", t)
+            if norm(pred["model_patch"]) != norm(canonical_diff(inst, patches[name], out / f"canon-{name}")):
                 failures.append(f"{name}: captured patch differs from git's diff of the replayed change")
         if expect and o["official"] != expect:
             failures.append(f"{name}: official outcome {o['official']} != expected {expect}")

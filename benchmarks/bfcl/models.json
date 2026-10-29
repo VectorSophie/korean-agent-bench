@@ -1,10 +1,63 @@
 {
-  "_comment": "BFCL registrations for the four local models (ADR 0009). servedModelName and endpoint env vars mirror harness/src/agent/local-models.mjs (checked by harness/tests/h28). Generation uses BFCL's own OpenAICompletionsHandler in function-calling mode; the only adapter is chat_template_kwargs where a model configuration requires it.",
+  "_comment": "BFCL registrations for the four local models (ADR 0009). servedModelName and endpoint env vars mirror harness/src/agent/local-models.mjs (checked by harness/tests/h28). Generation uses BFCL's own OpenAICompletionsHandler in function-calling mode; the only adapter is chat_template_kwargs where a model configuration requires it. maxOutputTokens is sent as max_tokens (the harness's validated output ceiling); BFCL itself sends none.",
   "models": {
-    "kab-kanana-FC":         { "agent": "kanana",         "servedModelName": "Kanana-2",         "baseUrlEnv": ["KANANA_BASE_URL", "KSERVE_BASE_URL"], "defaultBaseUrl": "http://127.0.0.1:8101/v1", "chatTemplateKwargs": null },
-    "kab-exaone-FC":         { "agent": "exaone",         "servedModelName": "EXAONE-4.5",       "baseUrlEnv": ["EXAONE_BASE_URL", "KSERVE_BASE_URL"], "defaultBaseUrl": "http://127.0.0.1:8101/v1", "chatTemplateKwargs": { "enable_thinking": true } },
-    "kab-exaone-nothink-FC": { "agent": "exaone-nothink", "servedModelName": "EXAONE-4.5",       "baseUrlEnv": ["EXAONE_BASE_URL", "KSERVE_BASE_URL"], "defaultBaseUrl": "http://127.0.0.1:8101/v1", "chatTemplateKwargs": { "enable_thinking": false } },
-    "kab-ax-FC":             { "agent": "ax",             "servedModelName": "A.X-4.0",          "baseUrlEnv": ["AX_BASE_URL", "KSERVE_BASE_URL"],     "defaultBaseUrl": "http://127.0.0.1:8101/v1", "chatTemplateKwargs": null },
-    "kab-solar-open2-FC":    { "agent": "solar-open2",    "servedModelName": "solar-open2-250b", "baseUrlEnv": ["SOLAR_BASE_URL"],                     "defaultBaseUrl": "http://127.0.0.1:8102/v1", "chatTemplateKwargs": null }
+    "kab-kanana-FC": {
+      "agent": "kanana",
+      "servedModelName": "Kanana-2",
+      "baseUrlEnv": [
+        "KANANA_BASE_URL",
+        "KSERVE_BASE_URL"
+      ],
+      "defaultBaseUrl": "http://127.0.0.1:8101/v1",
+      "chatTemplateKwargs": null,
+      "maxOutputTokens": 8192
+    },
+    "kab-exaone-FC": {
+      "agent": "exaone",
+      "servedModelName": "EXAONE-4.5",
+      "baseUrlEnv": [
+        "EXAONE_BASE_URL",
+        "KSERVE_BASE_URL"
+      ],
+      "defaultBaseUrl": "http://127.0.0.1:8101/v1",
+      "chatTemplateKwargs": {
+        "enable_thinking": true
+      },
+      "maxOutputTokens": 8192
+    },
+    "kab-exaone-nothink-FC": {
+      "agent": "exaone-nothink",
+      "servedModelName": "EXAONE-4.5",
+      "baseUrlEnv": [
+        "EXAONE_BASE_URL",
+        "KSERVE_BASE_URL"
+      ],
+      "defaultBaseUrl": "http://127.0.0.1:8101/v1",
+      "chatTemplateKwargs": {
+        "enable_thinking": false
+      },
+      "maxOutputTokens": 4096
+    },
+    "kab-ax-FC": {
+      "agent": "ax",
+      "servedModelName": "A.X-4.0",
+      "baseUrlEnv": [
+        "AX_BASE_URL",
+        "KSERVE_BASE_URL"
+      ],
+      "defaultBaseUrl": "http://127.0.0.1:8101/v1",
+      "chatTemplateKwargs": null,
+      "maxOutputTokens": 4096
+    },
+    "kab-solar-open2-FC": {
+      "agent": "solar-open2",
+      "servedModelName": "solar-open2-250b",
+      "baseUrlEnv": [
+        "SOLAR_BASE_URL"
+      ],
+      "defaultBaseUrl": "http://127.0.0.1:8102/v1",
+      "chatTemplateKwargs": null,
+      "maxOutputTokens": 4096
+    }
   }
 }
