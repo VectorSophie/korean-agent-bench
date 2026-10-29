@@ -11,9 +11,9 @@ local_files_only; nothing is downloaded), and harness/src/agent/local-models.mjs
 Per (instance, model) it renders the agent's real first request with the
 model's chat template and counts tokens:
   lowerBound = system prompt + empty-repository context block + tools + issue prompt
-  upperBound = lowerBound + the CLI's repository-context cap in characters
-               (23,592 = floor(65536 * 4 * 0.09); characters >= tokens for ASCII)
-and classifies against contextLimit - maxOutputTokens (the frozen envelope):
+  upperBound = lowerBound + the model's repository-context cap in characters
+               (characters >= tokens for ASCII)
+and classifies against the input budget contextLimit - maxOutputTokens - 5% margin:
   fits                  upperBound fits
   cannot_fit            lowerBound already exceeds  (certain)
   depends_on_context    in between; decided by the real repository context at run time
@@ -30,7 +30,10 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 HUB = pathlib.Path(os.getenv("KAB_HF_HUB", "/data/jackb/krasis/huggingface/hub"))
 REQS = ROOT / ".cache/swebench/initial-requests"
 OUT = ROOT / "datasets/swe-bench-verified/context-feasibility-v1.json"
-REPO_CONTEXT_CAP_CHARS = 23592  # upstage-cli context-builder: floor(65536 * 4 * 0.09); 65536 = its fallback for unknown model ids
+# upstage-cli >= b17a1f3 with the harness's contextBudget (ADR 0010): input budget =
+# contextLimit - maxOutputTokens - ceil(5% of contextLimit); repository context
+# capped at floor(inputBudget * 0.09 * charsPerToken) characters.
+SAFETY_MARGIN_RATIO = 0.05
 PLACE = {"<<<KAB_REPO>>>": "repo", "<<<KAB_BASE_COMMIT>>>": "base_commit", "<<<KAB_ISSUE>>>": "problem_statement"}
 
 
@@ -60,8 +63,11 @@ def main():
         tok = AutoTokenizer.from_pretrained(snapshot(cfg), local_files_only=True, trust_remote_code=False)
         req = json.loads((REQS / f"{key}.json").read_text())
         kwargs = cfg.get("chatTemplateKwargs") or {}
-        budget = cfg["contextLimit"] - cfg["maxOutputTokens"]
+        margin = -(-cfg["contextLimit"] * 5 // 100)
+        budget = cfg["contextLimit"] - cfg["maxOutputTokens"] - margin
+        repo_cap_chars = int(budget * 0.09 * cfg["contextCharsPerToken"])
         per_model[key] = {"contextLimit": cfg["contextLimit"], "maxOutputTokens": cfg["maxOutputTokens"], "inputBudget": budget,
+                          "repositoryContextCapChars": repo_cap_chars,
                           "tokenizer": f"{cfg['provenance']['hfRepo']}@{cfg['provenance']['revision']}", "tokenizerClass": type(tok).__name__,
                           "chatTemplateKwargs": kwargs}
         for iid in subset["instance_ids"]:
@@ -74,17 +80,16 @@ def main():
                 msgs.append({"role": m["role"], "content": c})
             ids = tok.apply_chat_template(msgs, tools=req.get("tools"), add_generation_prompt=True, tokenize=True, **kwargs)
             n = len(ids["input_ids"]) if isinstance(ids, dict) or hasattr(ids, "keys") else len(ids)
-            upper = n + REPO_CONTEXT_CAP_CHARS
+            upper = n + repo_cap_chars
             cls = "fits" if upper <= budget else ("cannot_fit" if n > budget else "depends_on_context")
             table[iid][key] = {"lowerBound": n, "upperBound": upper, "class": cls}
     summary = {k: dict(collections.Counter(table[i][k]["class"] for i in table)) for k in models}
     out = {
         "kind": "swebench-context-feasibility",
-        "preregistered": "Computed 2026-10-29 before any model run on this subset; classification never uses model output.",
+        "preregistered": "Recomputed 2026-10-29 after the context-budget fix (ADR 0010), before any model run on SWE-bench; classification never uses model output.",
         "subset": subset["subset"], "promptTemplateSha256": json.loads((REQS / "summary.json").read_text())["promptTemplateSha256"],
         "method": __doc__.split("Per (instance, model)")[1].split("No instance")[0].strip(),
-        "repositoryContextCapChars": REPO_CONTEXT_CAP_CHARS,
-        "knownIssue": "upstage-cli (pinned 7380ef6) has no capability entry for these served model ids and uses its 65,536-token fallback, so the repository-context cap and its own context management do not reflect the 8K/16K validated windows. See docs/STATUS.md.",
+        "contextBudget": "upstage-cli b17a1f3 + harness contextBudget (ADR 0010): the validated limit, output reservation and calibrated chars/token reach the agent loop; the per-model repository-context cap is listed under models.",
         "policy": "Instances are never removed for infeasibility. Results report resolved / unresolved / infeasible (context) / infrastructure error separately per model.",
         "models": per_model, "summary": summary, "instances": table,
     }

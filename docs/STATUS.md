@@ -37,12 +37,9 @@ evaluator gold-via-agent-pipeline **resolved**, empty **empty_patch**, wrong
 
 ## Blockers before a reportable model comparison
 
-1. **upstage-cli context limits for local models.** upstage-cli has no
-   capability entries for `Kanana-2`, `EXAONE-4.5`, `A.X-4.0`,
-   `solar-open2-250b` and uses a 65,536-token fallback. Its repository-context
-   cap (23,592 chars) and context management therefore ignore the validated
-   8K/16K windows. Affects every agent run (SWE-bench especially); not BFCL's
-   official track, which does not use upstage-cli. Fix upstream, move the pin.
+1. ~~upstage-cli context limits for local models~~ — **resolved 2026-10-29**
+   (upstage-cli#15 `b17a1f3`, ADR 0010): the harness passes each model's
+   validated budget to the loop.
 2. **Live preflight.** `harness preflight` has only run against fakes and
    against this machine with no server up (correctly BLOCKED). The first
    controlled live session must start with it and keep its output.

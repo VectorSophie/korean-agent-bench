@@ -1,0 +1,110 @@
+{
+ "kind": "tokenizer-calibration",
+ "date": "2026-10-29",
+ "purpose": "Ratio of each model's real token count to upstage-cli's estimateTokens() heuristic (chars/4; chars/2.5 if >30% Hangul), used to set the caller-calibrated charsPerToken in the context-budget contract.",
+ "method": "Tokenizer from the local HF snapshot at the pinned revision (local_files_only, trust_remote_code=False), encode without special tokens. Samples: the 100 SWE-bench subset issue texts, the captured system prompt and tool schemas, 19 Python files of psf/requests, those files wrapped as JSON tool output.",
+ "ratios": {
+  "kanana": {
+   "issue": {
+    "n": 100,
+    "max": 1.873,
+    "median": 1.034
+   },
+   "system+tools": {
+    "n": 2,
+    "max": 1.055,
+    "median": 1.055
+   },
+   "python-source": {
+    "n": 19,
+    "max": 1.578,
+    "median": 0.975
+   },
+   "tool-json": {
+    "n": 19,
+    "max": 1.587,
+    "median": 1.061
+   }
+  },
+  "exaone": {
+   "issue": {
+    "n": 100,
+    "max": 1.982,
+    "median": 1.065
+   },
+   "system+tools": {
+    "n": 2,
+    "max": 1.048,
+    "median": 1.048
+   },
+   "python-source": {
+    "n": 19,
+    "max": 1.688,
+    "median": 0.965
+   },
+   "tool-json": {
+    "n": 19,
+    "max": 1.669,
+    "median": 1.033
+   }
+  },
+  "ax": {
+   "issue": {
+    "n": 100,
+    "max": 2.269,
+    "median": 1.243
+   },
+   "system+tools": {
+    "n": 2,
+    "max": 1.064,
+    "median": 1.064
+   },
+   "python-source": {
+    "n": 19,
+    "max": 1.89,
+    "median": 1.133
+   },
+   "tool-json": {
+    "n": 19,
+    "max": 1.868,
+    "median": 1.208
+   }
+  },
+  "solar-open2": {
+   "issue": {
+    "n": 100,
+    "max": 2.123,
+    "median": 1.067
+   },
+   "system+tools": {
+    "n": 2,
+    "max": 1.04,
+    "median": 1.04
+   },
+   "python-source": {
+    "n": 19,
+    "max": 1.633,
+    "median": 0.983
+   },
+   "tool-json": {
+    "n": 19,
+    "max": 1.628,
+    "median": 1.042
+   }
+  }
+ },
+ "worstRatio": {
+  "kanana": 1.873,
+  "exaone": 1.982,
+  "ax": 2.269,
+  "solar-open2": 2.123
+ },
+ "charsPerToken": {
+  "kanana": 1.94,
+  "exaone": 1.83,
+  "ax": 1.6,
+  "solar-open2": 1.71
+ },
+ "charsPerTokenRule": "4 / (worstRatio * 1.10), rounded to 2 decimals: the heuristic is scaled so the worst observed sample is over-estimated by >=10%.",
+ "note": "exaone-nothink uses the exaone tokenizer."
+}
