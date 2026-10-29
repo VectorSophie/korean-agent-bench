@@ -14,9 +14,8 @@ changes; do not edit history in place.
   A.X 4.0, Solar Open 2 (unofficial Nota NVFP4) — documented in
   [`models/`](models/README.md). All `serving_ready` and
   `harness_integrated`; **none `benchmark_ready`**.
-- **Synthetic development fixtures**: benchmark-v1 tranche v1-initial (14
-  rows) on `main`; tranche v1-dataset (14 more) and the private held-out pack
-  loader on branch `import/upstage-cli-pr-12`, pending review.
+- **Synthetic regression fixtures**: benchmark-v1, 15 rows / 12 families,
+  all images digest-pinned (ADR 0007).
 - **A dataset registry** that excludes every synthetic set from the main
   comparison and lists BFCL and SWE-bench Verified as pinned, planned
   candidates (ADR 0003).
@@ -28,8 +27,8 @@ changes; do not edit history in place.
 Commands in [`VERIFY.md`](VERIFY.md); full table and baseline comparison in
 [`MIGRATION.md`](MIGRATION.md#verification). On `main`: check, lint, unit
 361/361, Docker tier 35/35, smoke, `benchmark:validate`, evidence checksums.
-On `import/upstage-cli-pr-12`: unit 379/379, Docker 35/35, `benchmark:qa`
-28/28. Not run: any GPU workload, model server or live inference.
+After korean-agent-bench#1: unit 371/371, Docker 35/35, `benchmark:qa`
+15/15. Not run: any GPU workload, model server or live inference.
 
 GitHub CI (Node 22) is green on `main` (unit 361/361, Docker 35/35, evidence
 checksums; run 40829975387) and on the PR #12 import
@@ -80,12 +79,9 @@ checksums; run 40829975387) and on the PR #12 import
 
 ## Open owner decisions
 
-- **Held-out candidates are disclosed.** Upstage-cli PR #12's public branch
-  describes three built and five designed held-out tasks (ADR 0004). Decide
-  whether to delete that branch / close PR #12, and retire those candidates.
-- **PR #12 here.** Review and merge (or not)
-  [korean-agent-bench#1](https://github.com/VectorSophie/korean-agent-bench/pull/1)
-  (draft).
+- **Resolved 2026-10-29:** upstage-cli#12 closed unmerged and its branch
+  deleted; its held-out candidates are retired as disclosed;
+  korean-agent-bench#1 reduced and merged (`MIGRATION.md`, "PR #12").
 - **upstage-cli cleanup PR.**
   [upstage-cli#13](https://github.com/VectorSophie/upstage-cli/pull/13)
   (draft). This repository's CI is green; merge after PR #12's fate is

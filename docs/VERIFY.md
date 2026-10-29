@@ -34,10 +34,8 @@ npm run benchmark:validate           # benchmark-v1 manifest
 npm run benchmark:qa                 # Docker: each fixture fails at baseline, passes with its reference solution
 ```
 
-Expected on `main` as of 2026-10-29: unit 361/361, Docker 35/35,
-`validate: OK (14 tasks, 14 warnings)` (unpinned `node:22-alpine` tags in the
-v1-initial tranche, as upstream). `benchmark:qa` is first exercised on the
-PR #12 import branch (28/28).
+Expected on `main` as of 2026-10-29 (after korean-agent-bench#1): unit
+371/371, Docker 35/35, `validate: OK (15 tasks, 0 warnings)`, `qa: 15/15`.
 
 ## Evidence integrity
 
