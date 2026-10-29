@@ -1,168 +1,48 @@
-# Benchmark v1 — Substantive task tranche & private held-out workflow
+# Benchmark v1 — `v1-dataset` tranche: disposition
 
-This PR (#12) adds a second tranche of **substantive, low-disclosure** tasks to the
-v1 set and establishes the **private held-out** dataset workflow (an external
-pack loaded from outside the public repo). It does **not** run any model.
+Status as of **2026-10-29** (korean-agent-bench#1). This document replaces
+the version written for upstage-cli PR #12 (`f4c574f`), which described
+14 new task rows and a private held-out pack workflow. That PR was closed
+unmerged; its text remains readable at
+`https://github.com/VectorSophie/upstage-cli/pull/12` and its commit at
+`refs/pull/12/head`. Decision record: `docs/adr/0007-reduce-synthetic-fixtures-remove-holdout-pack.md`.
 
-The original 14 tasks (tranche `v1-initial`) are preserved unchanged as
-calibration/development material with their audited meaning (see
-`BENCHMARK_V1_SEMANTIC_AUDIT.md`). This tranche is `v1-dataset`.
+## Why the tranche was reduced
 
-## 1. What is new (public, in this repo)
+All benchmark-v1 tasks are AI-authored. Under ADR 0003 they cannot produce
+the main model comparison, whatever their quality, so adding rows does not
+add research evidence. What remains useful is **infrastructure**: evaluators
+and fixtures that prove the harness scores correctly. A fixture earns its
+place only if it exercises a mechanism nothing else does.
 
-**14 new task rows = 12 new independent families + 2 new language pairs.** All run
-in Docker (`node:22-alpine`, **pinned by digest**), network `none`, Track A
-budgets, scored tests protected by `trustedPaths` (restored from the pristine
-fixture before scoring) or by a trusted trace evaluator.
+## Retained
 
-| ID | Family | Cat | Diff | Disclosure | Actually measures |
-|---|---|---|---|---|---|
-| bv1-dx1-config-merge (+ko) | dx1 | B | medium | low | **cross-file diagnosis** — nested deep-merge defect found by tracing loadConfig→deepMerge; location NOT given |
-| bv1-dx2-route-normalize | dx2 | B | medium | low | **cross-file diagnosis** — route-key normalization defect across router→routes→path |
-| bv1-dx3-stats-mean | dx3 | B | medium | low | **cross-file diagnosis** — off-by-one divisor in a mean helper; the sum is correct, so the fault must be localized |
-| bv1-ts1-target-select | ts1 | C | medium | medium | **target selection** — pick which of several settings modules is actually imported; editing the distractor fails |
-| bv1-fr1-crash-recover (+ko) | fr1 | E | medium | medium | **failure recovery** — observe a thrown TypeError, diagnose the missing field, recover; all-anonymous shortcut fails |
-| bv1-fr2-root-cause | fr2 | E | hard | low | **failure recovery + root cause** — resist symptom suppression: the naive fix (weaken the validator) fails; must fix the bad default |
-| bv1-ms2-coordinated | ms2 | F | hard | low | **dependent multi-step** — two COORDINATED edits (topTwo depends on prepare's order); fixing one fails |
-| bv1-tr1-json-field | tr1 | D | medium | medium | **tool-result interpretation** — select the api service's port from runtime JSON (not copy stdout) |
-| bv1-tr2-json-max | tr2 | D | medium | medium | **tool-result interpretation** — select the id of the max-score item (argmax over structured output) |
-| bv1-ms1-indirect | ms1 | D | hard | medium | **dependent tool-result interpretation** — indirect selection ports[primary] |
-| bv1-cr1-stop-when-done | cr1 | A | easy | high | **completion reliability** — minimal fix; measures whether the agent stops (Post-Solution Overhead) |
-| bv1-sr1-clamp | sr1 | A | medium | medium | simple localized repair (kept baseline anchor) |
+| Component | Why | Evidence |
+|---|---|---|
+| `tool-result-selection` trusted evaluator (`src/evaluation/evaluators.mjs`) | Proves the agent ran the exact trusted command **and interpreted** its structured output: the evaluator recomputes the correct value from the run's own stdout with a declarative selector (`find-field`, `max-by`, `indirect`; no eval, no agent-supplied code). | `tests/h22` (adversarial: wrong field, whole-stdout copy, hardcoded value, stderr-only, no execution) |
+| `bv1-tr1-json-field` task + `fixtures/benchmark-v1/tr1-json` + mount `bench-tr1-json` | The only row that runs `tool-result-selection` end to end in Docker. | `benchmark:qa`: baseline fails, solution passes, no-op fails |
+| `_base-benchmark-v1-dataset.yaml` | Envelope used by tr1, image pinned by digest. | `benchmark:validate` |
+| Digest pinning of `_base-benchmark-v1.yaml` | Reproducibility: `node:22-alpine@sha256:fe4f6d74…` for every row; 0 unpinned warnings (was 14). | `tests/h20` asserts every image is pinned |
+| Manifest `tranche`, `byTranche`, `byDifficulty`; language pairs counted only when both members exist | Honest independence accounting. | `tests/h20`; `node bin/benchmark.mjs report` |
+| `benchmark.mjs report` | Prints rows vs **independent families** (15 rows → 12 families). | — |
+| QA support for selection tasks (`src/benchmark/qa.mjs`) | Lets fixture QA drive tr1. | `benchmark:qa` 15/15 |
 
-Simple localized repair does **not** dominate: of the 12 new families only cr1/sr1
-are baseline repair; the rest exercise diagnosis, selection, interpretation,
-recovery, or coordinated multi-step work.
+## Dropped
 
-## 2. Evidence that these exercise diagnosis / recovery / planning (not guided repair)
+| Component | Reason |
+|---|---|
+| 13 task rows: `cr1`, `dx1` (+`-ko`), `dx2`, `dx3`, `fr1` (+`-ko`), `fr2`, `ms1`, `ms2`, `sr1`, `tr2`, `ts1` — with their fixtures, reference solutions and the `bench-tr2-json` / `bench-ms1-indirect` mounts | Eleven use `trustedPaths` restore, the mechanism the 14 `v1-initial` rows already cover. `tr2` and `ms1` use `tool-result-selection` with the `max-by` and `indirect` selectors, which `tests/h22` already unit-tests; tr1 covers the end-to-end path. |
+| `src/benchmark/pack.mjs`, `tests/h23`, `benchmark.mjs pack {verify,summary,qa}`, `qaPack` | Its only purpose was a private held-out pool of AI-authored tasks. Those cannot enter the main comparison (ADR 0003), and the candidates built for it were disclosed on a public branch and are retired (ADR 0004). The main comparison uses public external benchmarks. A security-sensitive loader without a use is removed rather than hardened. |
+| `harness/benchmarks/v1/holdout-pack.public.json`, held-out construct descriptions | Never imported (ADR 0004). |
+| "~70–80 independent families" target added to PROTOCOL/STATISTICS | No defensible basis; sample size for the main comparison follows the external benchmarks' structure and a precision analysis (ADR 0003). |
 
-Each claim is backed by an adversarial check that a *plausible wrong* solution
-**fails** (so passing requires the intended reasoning). Verified in Docker QA and
-locally:
+## Current set
 
-- **dx1 (diagnosis):** a one-level "merge server only" hack **fails** the
-  top-level-override case → a genuine recursive deep-merge is required, found by
-  tracing across three files.
-- **ms2 (dependent planning):** fixing only `prepare` (or only `topTwo`) **fails**;
-  both must change in a coordinated way.
-- **fr2 (recovery, root cause):** weakening the validator to stop the throw
-  **fails** `fix_invalid_still_rejected`; the agent must find the real cause (the
-  invalid default).
-- **fr1 (recovery):** returning `"anonymous"` for every record **fails** — real
-  names must be preserved; the agent must run the code, read the stack, and add
-  targeted handling.
-- **tr1/tr2/ms1 (interpretation):** copying whole stdout, writing any other
-  field/port, or hardcoding a token **fails** (unit tests h22); the trusted
-  evaluator recomputes the correct value from the run's own JSON.
-- **ts1 (selection):** editing the distractor `legacy_settings.mjs` **fails**;
-  only the actually-imported module counts.
+15 rows (14 `v1-initial` + `bv1-tr1-json-field`), 12 independent families,
+2 language pairs, categories A3 B2 C3 D3 E2 F2, all `split: dev`,
+`independentHumanReviewed` 0/15, all synthetic-dev in
+`datasets/registry.json`.
 
-## 3. Trusted evaluation added this PR
-
-`tool-result-selection` (src/evaluation/evaluators.mjs) — like
-`tool-result-continuation`, it proves the agent ran the EXACT trusted command and
-used its output, but additionally requires INTERPRETING structured JSON: the
-evaluator recomputes the correct value from the qualifying run's own stdout via a
-**safe, declarative selector** (`find-field` / `max-by` / `indirect`; no eval, no
-agent-supplied code). Generators are read-only Docker mounts from the trusted
-registry; tokens are runtime CSPRNG values, so answers are non-guessable and
-cannot be hardcoded or leaked. Adversarially unit-tested in `tests/h22`.
-
-## 4. Public development vs private held-out
-
-A task committed publicly **cannot** be a confidential held-out example. So:
-
-- **Public development material (this repo):** the 14 `v1-dataset` rows above —
-  reviewable, used to debug the Harness and for calibration. `split: dev`.
-- **Private held-out candidates (NOT in this repo):** stored in an external pack
-  at a local path outside the repository. Only the loader is committed. No
-  held-out prompts, fixtures, tests, solutions, construct descriptions or
-  per-task metadata are committed, logged, or placed in CI/PR text
-  (korean-agent-bench ADR 0004).
-
-A candidate is **not** a frozen held-out task merely because its files are
-private: the held-out set must still be independently human-reviewed,
-contamination-checked, and frozen before any model evaluation.
-
-### 4.1 External pack architecture (Phase 7)
-
-`src/benchmark/pack.mjs` — `loadPack` / `verifyPack` / `packPublicSummary`, plus
-`benchmark.mjs pack {verify|summary|qa} <path>`. Properties (all fail-closed,
-unit-tested in `tests/h23`):
-
-- **Explicit path only** — no auto-discovery, no traversal outside the pack root
-  (every resolved path is realpath-checked to stay within it).
-- **No code execution during parse** — `pack.json` via `JSON.parse`, tasks via the
-  existing YAML loader; neither runs pack code. No network, no cloning.
-- **No arbitrary host mounts** — read-only mounts are still resolved by NAME from
-  the harness-owned trusted registry; a pack cannot mount host files.
-- **Integrity + version pinning** — per-file SHA-256 and fixture hashes are
-  verified, and the pack's `evaluatorVersion` must equal the harness's
-  (`bench-v1-eval-2`), else it is refused.
-- **Confidentiality** — private reference solutions are **never** copied into an
-  agent workspace (the runner copies only the fixture); the loader returns a
-  content-free summary for logging. **Hashes alone do NOT guarantee
-  confidentiality** — that comes from not committing/exposing the content.
-- **Reuse, not a new runner** — execution goes through the same `TaskRunner`,
-  `trustedPaths` restore, trusted evaluators, and Docker isolation.
-
-### 4.2 Held-out candidates (private)
-
-_Redacted on import into korean-agent-bench (2026-10-29)._ The upstage-cli
-version of this section listed each held-out candidate's id, category,
-difficulty and construct — including grader behavior — and five further
-designed specs. That is held-out content, so it is not carried over
-(`docs/adr/0004-private-held-out-material.md`). Because it was published on
-upstage-cli's public PR #12 branch, those candidates should be treated as
-disclosed.
-
-## 5. Language pairing (Phase 6)
-
-4 language pairs now exist (2 original: a1, c1; 2 new: dx1, fr1), each sharing an
-identical fixture, grader, budgets, and tools — only the prompt language differs
-(validator-enforced). Pairs are **paired observations, not independent families**:
-`manifest.counts.independentFamilies` (23) already excludes the ko twins. For the
-eventual evaluation, the target is **≥8–10 independently-reviewed pairs across all
-six categories**; language variants never inflate the primary sample size.
-
-## 6. Independence & sampling (Phase 9)
-
-`benchmark.mjs report` prints the authoritative accounting. Current public set:
-
-- **28 rows → 23 independent families → 4 language pairs.**
-- Non-independent families (ko/en twins + d1/d2 replicate): a1, c1, d-token, dx1,
-  fr1.
-- Tranches: `v1-initial` 14, `v1-dataset` 14. Difficulty: 10 easy / 15 medium / 3
-  hard. Categories A5 B6 C4 D5 E5 F3.
-
-**Proposed final sampling plan (~70–80 independent families):** ~12–14 families per
-category, difficulty-balanced (≈30% easy, ≈45% medium, ≈25% hard), with ≥8–10
-language pairs and a small number of deliberate within-family replicates for
-reliability estimates — all counted as families, not rows. Power/precision is
-computed on **independent families**, with category strata and within-family
-clustering. The full dataset does **not** exist yet; this is the plan, not a claim.
-
-## 7. Reproducibility (Phase 8)
-
-All task images are pinned by digest
-(`node:22-alpine@sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914`);
-the validator warns on any unpinned tag (now 0). The manifest records image +
-digest, fixture hashes, acceptance check ids, budgets, sandbox policy, and the
-evaluator version travels with the held-out pack.
-
-## 8. Review state & freeze blockers
-
-Every task is **auto-validated + assistant-semantic-reviewed**; **none is
-independently human-reviewed** (`review.independentHumanReviewed = false`,
-validator-enforced). An assistant audit is explicitly **not** independent human
-review. Remaining blockers before any freeze or live calibration:
-
-- Independent **human review** of every dev and held-out task.
-- **Contamination review** of the held-out set (these shapes are more composed than
-  the initial tranche, but provenance/novelty must be checked per task).
-- **Freeze** a held-out split (author the remaining ~5 specs into the private pack;
-  the public repo keeps only hashes).
-- Finalize Track A/B budgets and the exact family-level sample size.
-- Finalize the failure-accounting policy (carried from the semantic audit).
-
-The protocol is **NOT** frozen and no model has been run.
+To recover a dropped task: `git show f4c574fef12512686577a029c6b657ea45a63275:<path>`
+in an upstage-cli clone (fetch `refs/pull/12/head`), or the pre-reduction
+commit `33c84e4` of this repository's PR #1 branch.

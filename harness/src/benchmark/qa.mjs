@@ -87,9 +87,9 @@ async function driveTraceSolution(task, sandbox, wd) {
   return [{ tool: "run_shell", ok: true, args: { command: cfg.command }, resultData: { ok: r.ok === true, code: r.exitCode ?? 0, stdout, stderr: r.stderr || "", timedOut: !!r.timedOut, truncated: false } }];
 }
 
-export async function qaTask(task, { solutionDir = null } = {}) {
+export async function qaTask(task) {
   const isTrace = (task.checks.custom || []).some((c) => c.evaluator);
-  const solDir = solutionDir || join(SOLUTIONS_DIR, task.id);
+  const solDir = join(SOLUTIONS_DIR, task.id);
   const hasFileSolution = !isTrace && statSafe(solDir);
   const out = { id: task.id, mode: isTrace ? "trace" : (hasFileSolution ? "file-overlay" : "none"), ok: false, baseline: null, solution: null, verdict: null };
 
@@ -133,20 +133,6 @@ export async function qaTask(task, { solutionDir = null } = {}) {
 export async function qaAll(tasks) {
   const results = [];
   for (const t of tasks) results.push(await qaTask(t));
-  return results;
-}
-
-/**
- * QA an external held-out pack in the real Docker sandbox, using the pack's
- * PRIVATE reference solutions (which are never copied into an agent workspace —
- * only overlaid here, offline, with no model). Returns the same per-task shape
- * as qaAll but never prints prompts/fixtures/solutions.
- */
-export async function qaPack(packPath) {
-  const { loadPack } = await import("./pack.mjs");
-  const { tasks, solutionDirs } = loadPack(packPath, { verifyHashes: true });
-  const results = [];
-  for (const t of tasks) results.push(await qaTask(t, { solutionDir: solutionDirs[t.id] || null }));
   return results;
 }
 

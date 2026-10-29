@@ -18,11 +18,13 @@ const manifest = buildManifest({ withImageDigests: false });
 
 describe("benchmark v1 — candidate set shape", () => {
   it("spans all six categories A–F across both tranches", () => {
-    assert.ok(manifest.counts.total >= 24 && manifest.counts.total <= 48, `count ${manifest.counts.total}`);
+    // v1-initial (14) + the single retained v1-dataset fixture (korean-agent-bench#1).
+    assert.equal(manifest.counts.total, 15, `count ${manifest.counts.total}`);
     for (const c of ["A", "B", "C", "D", "E", "F"]) assert.ok((manifest.counts.byCategory[c] || 0) >= 1, `category ${c} present`);
     assert.ok((manifest.counts.byTranche["v1-initial"] || 0) >= 1, "initial tranche present");
-    assert.ok((manifest.counts.byTranche["v1-dataset"] || 0) >= 10, "dataset tranche present");
-    for (const d of ["easy", "medium", "hard"]) assert.ok((manifest.counts.byDifficulty[d] || 0) >= 1, `difficulty ${d} present`);
+    assert.equal(manifest.counts.byTranche["v1-dataset"], 1, "only the tool-result-selection fixture is retained");
+    // No difficulty-balance assertion: these are regression fixtures for the
+    // harness, not a difficulty-balanced benchmark (ADR 0003, ADR 0007).
   });
 
   it("every task runs in Docker with no network and has a required acceptance check", () => {
@@ -232,8 +234,6 @@ describe("benchmark v1 — semantic-audit metadata + validator invariants", () =
     assert.ok(manifest.counts.independentFamilies < manifest.counts.total, "families < rows");
     assert.equal(manifest.counts.independentFamilies, Object.keys(manifest.families).length);
     assert.ok(manifest.families["d-token"].length === 2, "d1/d2 share one family");
-    assert.ok(manifest.families["dx1-config-merge"].length === 2, "dx1 en/ko share one family");
-    assert.ok(manifest.families["fr1-crash-recover"].length === 2, "fr1 en/ko share one family");
   });
 
   it("language pairs share the base fixture hash and acceptance checks", () => {
