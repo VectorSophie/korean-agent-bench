@@ -37,7 +37,11 @@ export const PROMPT_TEMPLATE_SHA256 = createHash("sha256").update(PROMPT_TEMPLAT
 // Provisional agent envelope; frozen by a future ADR before any reportable run.
 export const ENVELOPE = Object.freeze({
   maxTurns: 30,
-  timeoutSec: 1800,
+  // Turns, not tool calls, are the binding budget (several calls per turn are allowed).
+  maxToolCalls: 60,
+  timeoutSec: 2700,
+  // The benchmark is English; upstage-cli's default system prompt is Korean-first.
+  language: "en",
   tools: ["read_file", "write_file", "edit_file", "list_files", "search_code", "glob", "run_shell"],
   // Official images keep the project's interpreter in the "testbed" conda env;
   // put it first so `python`/`pytest` work for the agent (the workspace copy at
@@ -134,7 +138,10 @@ export function buildTask(instance, { repoDir, image = instance.image, envelope 
       type: "docker", image, network: "none", timeout: envelope.timeoutSec, dependencies: "image",
       memory: envelope.memory, cpus: envelope.cpus, env: { PATH: envelope.path }
     },
-    agent: { permissions: "bypassPermissions", maxTurns: envelope.maxTurns, tools: { allow: [...envelope.tools], deny: [] } },
+    agent: {
+      permissions: "bypassPermissions", maxTurns: envelope.maxTurns, maxToolCalls: envelope.maxToolCalls, language: envelope.language,
+      tools: { allow: [...envelope.tools], deny: [] }
+    },
     // No local checks: resolution is decided only by the official evaluator.
     checks: { fail_to_pass: [], pass_to_pass: [], custom: [] },
     tags: ["swebench-verified", "prediction-only"],

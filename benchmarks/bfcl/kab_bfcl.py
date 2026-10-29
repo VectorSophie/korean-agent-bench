@@ -12,8 +12,8 @@ additions are (ADR 0009):
     MODEL_CONFIG_MAPPING (its documented "add a model" extension point);
   * KabLocalFCHandler = bfcl_eval's OpenAICompletionsHandler with (a) a client
     bound to the model's own endpoint, (b) chat_template_kwargs as extra_body
-    when models.json declares them, (c) max_tokens = the model's validated
-    output ceiling (BFCL sends none), (d) reasoning kept out of the chat
+    when models.json declares them, (c) no max_tokens, exactly as upstream
+    (vLLM then allows the remaining context; see ADR 0011), (d) reasoning kept out of the chat
     history under both vLLM field names (upstream's
     _add_reasoning_content_if_available_FC semantics), (e) a per-response
     diagnostics line (finish_reason, usage, empty output) in
@@ -57,7 +57,6 @@ def register():
             entry = MODELS[registry_name]
             self.client = OpenAI(base_url=resolve_base_url(entry), api_key=os.getenv("LOCAL_MODEL_API_KEY", "EMPTY"))
             self._extra_body = {"chat_template_kwargs": entry["chatTemplateKwargs"]} if entry["chatTemplateKwargs"] else None
-            self._max_tokens = entry.get("maxOutputTokens")
 
         def inference(self, test_entry, *args, **kwargs):
             current.id = test_entry.get("id")
@@ -67,8 +66,6 @@ def register():
         def generate_with_backoff(self, **kwargs):
             if self._extra_body:
                 kwargs["extra_body"] = self._extra_body
-            if self._max_tokens:
-                kwargs["max_tokens"] = self._max_tokens
             return super().generate_with_backoff(**kwargs)
 
         def _parse_query_response_FC(self, api_response):

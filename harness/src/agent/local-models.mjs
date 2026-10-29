@@ -39,6 +39,9 @@ export const LOCAL_MODELS = {
     // Calibrated chars/token for upstage-cli's context budget: 4 / (worst real/heuristic
     // token ratio x 1.1) from models/tokenizer-calibration/2026-10-29.json.
     contextCharsPerToken: 1.94,
+    // Context reserved for output in the budget (ADR 0011): 8192 for every 16K model, so
+    // their input budgets are equal; the max_tokens actually sent is maxOutputTokens.
+    contextOutputReservation: 8192,
     // ── provenance ──
     provenance: {
       provider: "local-vllm",
@@ -74,6 +77,9 @@ export const LOCAL_MODELS = {
     // Calibrated chars/token for upstage-cli's context budget: 4 / (worst real/heuristic
     // token ratio x 1.1) from models/tokenizer-calibration/2026-10-29.json.
     contextCharsPerToken: 1.83,
+    // Context reserved for output in the budget (ADR 0011): 8192 for every 16K model, so
+    // their input budgets are equal; the max_tokens actually sent is maxOutputTokens.
+    contextOutputReservation: 8192,
     provenance: {
       provider: "local-vllm",
       hfRepo: "LGAI-EXAONE/EXAONE-4.5-33B-FP8",
@@ -106,6 +112,9 @@ export const LOCAL_MODELS = {
     // Calibrated chars/token for upstage-cli's context budget: 4 / (worst real/heuristic
     // token ratio x 1.1) from models/tokenizer-calibration/2026-10-29.json.
     contextCharsPerToken: 1.83,
+    // Context reserved for output in the budget (ADR 0011): 8192 for every 16K model, so
+    // their input budgets are equal; the max_tokens actually sent is maxOutputTokens.
+    contextOutputReservation: 8192,
     provenance: {
       provider: "local-vllm",
       hfRepo: "LGAI-EXAONE/EXAONE-4.5-33B-FP8",
@@ -137,6 +146,9 @@ export const LOCAL_MODELS = {
     // Calibrated chars/token for upstage-cli's context budget: 4 / (worst real/heuristic
     // token ratio x 1.1) from models/tokenizer-calibration/2026-10-29.json.
     contextCharsPerToken: 1.6,
+    // Context reserved for output in the budget (ADR 0011): 8192 for every 16K model, so
+    // their input budgets are equal; the max_tokens actually sent is maxOutputTokens.
+    contextOutputReservation: 8192,
     provenance: {
       provider: "local-vllm",
       hfRepo: "skt/A.X-4.0",
@@ -172,6 +184,9 @@ export const LOCAL_MODELS = {
     // Calibrated chars/token for upstage-cli's context budget: 4 / (worst real/heuristic
     // token ratio x 1.1) from models/tokenizer-calibration/2026-10-29.json.
     contextCharsPerToken: 1.71,
+    // Context reserved for output in the budget (ADR 0011): 8192 for every 16K model, so
+    // their input budgets are equal; the max_tokens actually sent is maxOutputTokens.
+    contextOutputReservation: 4096,
     provenance: {
       provider: "local-vllm-fork",
       hfRepo: "nota-ai/Solar-Open2-250B-Nota-NVFP4",

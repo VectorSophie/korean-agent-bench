@@ -29,7 +29,12 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 SOURCE = json.loads((ROOT / "datasets/swe-bench-verified/source.json").read_text())
 PARQUET = ROOT / ".cache/swebench" / SOURCE["revision"] / "test.parquet"
-CATEGORIES = ["resolved", "unresolved", "empty_patch", "error", "infra_failure", "ambiguous_failure", "incomplete"]
+# Primary, mutually exclusive outcomes. infra_failure / ambiguous_failure are
+# ADDITIVE sub-classifications of unresolved or error ids in swebench 5.x
+# (reporting.py: "these ids stay in unresolved_ids/error_ids, so the
+# denominator is unchanged"); they are reported as a separate field.
+CATEGORIES = ["resolved", "unresolved", "empty_patch", "error", "incomplete"]
+SUBCLASSES = ["infra_failure", "ambiguous_failure"]
 
 
 def load_dataset():
@@ -110,7 +115,10 @@ def main():
     outcomes = {}
     for iid in ids:
         cats = [c for c in CATEGORIES if iid in report.get(f"{c}_ids", [])]
+        subs = [c for c in SUBCLASSES if iid in report.get(f"{c}_ids", [])]
         outcomes[iid] = {"official": cats[0] if len(cats) == 1 else (cats or ["not_reported"]),
+                         "officialSubclass": subs[0] if subs else None,
+                         "failureReason": (report.get("failure_reasons") or {}).get(iid),
                          "validationFindings": findings[iid], "image": images[iid], "imageRepoDigests": image_digest(images[iid])}
     summary = {
         "kind": "swebench-official-evaluation",
@@ -118,6 +126,7 @@ def main():
         "datasetSha256": SOURCE["sha256"], "runId": a.run_id, "officialReport": reports[0].name,
         "counts": {**{c: sum(1 for o in outcomes.values() if o["official"] == c) for c in CATEGORIES},
                    "not_reported": sum(1 for o in outcomes.values() if o["official"] not in CATEGORIES)},
+        "subclasses": {c: sum(1 for o in outcomes.values() if o["officialSubclass"] == c) for c in SUBCLASSES},
         "outcomes": outcomes,
     }
     (out / "outcomes.json").write_text(json.dumps(summary, indent=1) + "\n")

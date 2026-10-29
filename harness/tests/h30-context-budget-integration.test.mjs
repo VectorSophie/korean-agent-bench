@@ -13,7 +13,7 @@ import { LOCAL_MODELS } from "../src/agent/local-models.mjs";
 import { TaskRunner } from "../src/task/runner.mjs";
 import { importFromCli } from "../src/upstream.mjs";
 
-let srv, baseUrl, requests, home, savedHome;
+let srv, baseUrl, requests, tokenizeCalls, home, savedHome;
 before(async () => {
   home = mkdtempSync(join(tmpdir(), "h30-home-"));
   savedHome = process.env.HOME;
@@ -22,8 +22,14 @@ before(async () => {
     let body = "";
     req.on("data", (c) => (body += c));
     req.on("end", () => {
-      requests.push(JSON.parse(body || "{}"));
       res.setHeader("content-type", "application/json");
+      if (req.url === "/tokenize") {
+        // stand-in for vLLM /tokenize: ~4 chars per token of the payload
+        const b = JSON.parse(body || "{}");
+        tokenizeCalls.push(b);
+        return res.end(JSON.stringify({ count: Math.ceil(JSON.stringify([b.messages, b.tools]).length / 4) }));
+      }
+      requests.push(JSON.parse(body || "{}"));
       res.end(JSON.stringify({ id: "x", object: "chat.completion", created: 0, model: "m",
         choices: [{ index: 0, message: { role: "assistant", content: "done" }, finish_reason: "stop" }],
         usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2 } }));
@@ -57,18 +63,24 @@ describe("context budget reaches the real upstage-cli loop", () => {
   for (const key of ["kanana", "solar-open2"]) {
     it(`${key}: budget event, max_tokens, capped repository context, whole request within budget`, async () => {
       requests = [];
+      tokenizeCalls = [];
       const cfg = LOCAL_MODELS[key];
       const run = await new TaskRunner().run(task("Fix f3 to return 33."), new LocalModelAgent({ model: key, baseUrl }));
       const recorded = run.provenance.model.contextBudget;
       assert.deepEqual(
         { contextLimit: recorded.contextLimit, maxOutputTokens: recorded.maxOutputTokens, charsPerToken: recorded.charsPerToken },
-        { contextLimit: cfg.contextLimit, maxOutputTokens: cfg.maxOutputTokens, charsPerToken: cfg.contextCharsPerToken }
+        { contextLimit: cfg.contextLimit, maxOutputTokens: cfg.contextOutputReservation, charsPerToken: cfg.contextCharsPerToken }
       );
       assert.equal(requests.length, 1);
+      assert.ok(tokenizeCalls.length >= 1, "the exact count was requested");
+      assert.equal(tokenizeCalls[0].model, cfg.servedModelName);
+      assert.ok(Array.isArray(tokenizeCalls[0].tools) && tokenizeCalls[0].tools.length > 0, "tools are counted");
+      assert.ok(run.provenance.model.agentDiagnostics.contextFit[0].exact > 0, "exact count recorded");
       const body = requests[0];
       assert.equal(body.max_tokens, cfg.maxOutputTokens);
       const { validateContextBudget, estimateMessages, estimateWith } = await importFromCli("agent/effective-context.mjs");
-      const eff = validateContextBudget({ ...recorded, safetyMarginRatio: CONTEXT_SAFETY_MARGIN_RATIO });
+      const { countTokens: _counter, ...budgetFields } = recorded; // recorded as a description string
+      const eff = validateContextBudget({ ...budgetFields, safetyMarginRatio: CONTEXT_SAFETY_MARGIN_RATIO });
       const contextBlock = body.messages[1].content;
       assert.ok(contextBlock.length <= eff.repoContextMaxChars + 40, `context block ${contextBlock.length} > ${eff.repoContextMaxChars}`);
       const est = estimateMessages(eff, body.messages) + estimateWith(eff, JSON.stringify(body.tools));
@@ -80,6 +92,7 @@ describe("context budget reaches the real upstage-cli loop", () => {
 
   it("a task that cannot fit Solar's 8K window ends as context_exhausted without any request — not an infrastructure error", async () => {
     requests = [];
+    tokenizeCalls = [];
     const run = await new TaskRunner().run(task("Describe this: " + "lorem ipsum ".repeat(4000)), new LocalModelAgent({ model: "solar-open2", baseUrl }));
     assert.equal(requests.length, 0);
     assert.equal(run.trace.stopReason, "context_exhausted");
