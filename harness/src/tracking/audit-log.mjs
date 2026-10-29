@@ -52,8 +52,10 @@ export class AuditLog {
         if (this._currentTurn) {
           this._currentTurn.response += event.text || "";
         }
-      } else if (event.type === "context_compaction") {
-        this._compactions.push({ turn: this._turns.length, at: Date.now() });
+      } else if (event.type === "compaction" || event.type === "context_compaction") {
+        // upstage-cli emits "compaction" (AgentEventType.COMPACTION); the old
+        // name never matched, so trace.compactions was always empty.
+        this._compactions.push({ turn: this._turns.length, at: Date.now(), reason: event.reason ?? null });
       }
     }
     if (this._currentTurn) {

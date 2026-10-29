@@ -128,3 +128,13 @@ describe("model vs infrastructure classification of adapter errors", () => {
     assert.equal(run.outcome.reason, "agent_adapter_error");
   });
 });
+
+describe("audit log: compaction events from the pinned upstage-cli", () => {
+  it("records the loop's compaction events in trace.compactions", async () => {
+    const { AuditLog } = await import("../src/tracking/audit-log.mjs");
+    const { AgentEventType, createEvent } = await importFromCli("protocol/events.mjs");
+    const log = new AuditLog("r");
+    log.recordEvents([createEvent(AgentEventType.COMPACTION, { reason: "auto_threshold" }), createEvent(AgentEventType.COMPACTION, { reason: "context_budget_fit" })]);
+    assert.deepEqual(log.compactions().map((c) => c.reason), ["auto_threshold", "context_budget_fit"]);
+  });
+});
