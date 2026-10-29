@@ -1,0 +1,55 @@
+{
+ "promptTemplateSha256": "8bf9fe0d62a40ce5a7c5964d5f5d2c3ed0f02ad24d74bf009585e20db4ce3cbf",
+ "placeholders": {
+  "repo": "<<<KAB_REPO>>>",
+  "base_commit": "<<<KAB_BASE_COMMIT>>>",
+  "problem_statement": "<<<KAB_ISSUE>>>"
+ },
+ "agents": {
+  "kanana": {
+   "messages": 3,
+   "tools": 7,
+   "roles": [
+    "system",
+    "system",
+    "user"
+   ]
+  },
+  "exaone": {
+   "messages": 3,
+   "tools": 7,
+   "roles": [
+    "system",
+    "system",
+    "user"
+   ]
+  },
+  "exaone-nothink": {
+   "messages": 3,
+   "tools": 7,
+   "roles": [
+    "system",
+    "system",
+    "user"
+   ]
+  },
+  "ax": {
+   "messages": 3,
+   "tools": 7,
+   "roles": [
+    "system",
+    "system",
+    "user"
+   ]
+  },
+  "solar-open2": {
+   "messages": 3,
+   "tools": 7,
+   "roles": [
+    "system",
+    "system",
+    "user"
+   ]
+  }
+ }
+}

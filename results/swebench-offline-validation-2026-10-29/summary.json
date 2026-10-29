@@ -1,0 +1,70 @@
+{
+ "kind": "swebench-offline-validation",
+ "note": "Pipeline validation with replayed patches; NOT model scores.",
+ "instance": "psf__requests-6028",
+ "results": {
+  "gold": {
+   "official": "resolved",
+   "expected": "resolved",
+   "validationFindings": [],
+   "imageRepoDigests": [
+    "swebench/sweb.eval.x86_64.psf_1776_requests-6028@sha256:639088346355ea7076bc6faf2eadb23b1e1f1ed4f34b291e843061b2fc87cbe2"
+   ],
+   "agentRun": {
+    "status": "incomplete",
+    "reason": "no_required_acceptance_checks",
+    "filesChanged": [
+     "requests/utils.py"
+    ],
+    "promptTemplate": "swebench-verified",
+    "sandboxImage": "swebench/sweb.eval.x86_64.psf_1776_requests-6028:latest"
+   }
+  },
+  "empty": {
+   "official": "empty_patch",
+   "expected": "empty_patch",
+   "validationFindings": [
+    "empty patch"
+   ],
+   "imageRepoDigests": [
+    "swebench/sweb.eval.x86_64.psf_1776_requests-6028@sha256:639088346355ea7076bc6faf2eadb23b1e1f1ed4f34b291e843061b2fc87cbe2"
+   ],
+   "agentRun": {
+    "status": "incomplete",
+    "reason": "no_required_acceptance_checks",
+    "filesChanged": [],
+    "promptTemplate": "swebench-verified",
+    "sandboxImage": "swebench/sweb.eval.x86_64.psf_1776_requests-6028:latest"
+   }
+  },
+  "wrong": {
+   "official": "unresolved",
+   "expected": "unresolved",
+   "validationFindings": [],
+   "imageRepoDigests": [
+    "swebench/sweb.eval.x86_64.psf_1776_requests-6028@sha256:639088346355ea7076bc6faf2eadb23b1e1f1ed4f34b291e843061b2fc87cbe2"
+   ],
+   "agentRun": {
+    "status": "incomplete",
+    "reason": "no_required_acceptance_checks",
+    "filesChanged": [
+     "requests/utils.py"
+    ],
+    "promptTemplate": "swebench-verified",
+    "sandboxImage": "swebench/sweb.eval.x86_64.psf_1776_requests-6028:latest"
+   }
+  },
+  "unparseable": {
+   "official": "error",
+   "expected": null,
+   "validationFindings": [
+    "no file diffs parsed"
+   ],
+   "imageRepoDigests": [
+    "swebench/sweb.eval.x86_64.psf_1776_requests-6028@sha256:639088346355ea7076bc6faf2eadb23b1e1f1ed4f34b291e843061b2fc87cbe2"
+   ]
+  }
+ },
+ "passed": true,
+ "failures": []
+}

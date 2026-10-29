@@ -1,0 +1,2780 @@
+{
+ "kind": "swebench-context-feasibility",
+ "preregistered": "Computed 2026-10-29 before any model run on this subset; classification never uses model output.",
+ "subset": "swe-bench-verified-kab-subset-v1",
+ "promptTemplateSha256": "8bf9fe0d62a40ce5a7c5964d5f5d2c3ed0f02ad24d74bf009585e20db4ce3cbf",
+ "method": "it renders the agent's real first request with the\nmodel's chat template and counts tokens:\n  lowerBound = system prompt + empty-repository context block + tools + issue prompt\n  upperBound = lowerBound + the CLI's repository-context cap in characters\n               (23,592 = floor(65536 * 4 * 0.09); characters >= tokens for ASCII)\nand classifies against contextLimit - maxOutputTokens (the frozen envelope):\n  fits                  upperBound fits\n  cannot_fit            lowerBound already exceeds  (certain)\n  depends_on_context    in between; decided by the real repository context at run time",
+ "repositoryContextCapChars": 23592,
+ "knownIssue": "upstage-cli (pinned 7380ef6) has no capability entry for these served model ids and uses its 65,536-token fallback, so the repository-context cap and its own context management do not reflect the 8K/16K validated windows. See docs/STATUS.md.",
+ "policy": "Instances are never removed for infeasibility. Results report resolved / unresolved / infeasible (context) / infrastructure error separately per model.",
+ "models": {
+  "kanana": {
+   "contextLimit": 16384,
+   "maxOutputTokens": 8192,
+   "inputBudget": 8192,
+   "tokenizer": "kakaocorp/kanana-2-30b-a3b-thinking-2601@cdcbf8b811c21366f20f8a10a1f83183433c0844",
+   "tokenizerClass": "TokenizersBackend",
+   "chatTemplateKwargs": {}
+  },
+  "exaone": {
+   "contextLimit": 16384,
+   "maxOutputTokens": 8192,
+   "inputBudget": 8192,
+   "tokenizer": "LGAI-EXAONE/EXAONE-4.5-33B-FP8@69570ad5d9a5159816ef267f2f4d37e36447f1be",
+   "tokenizerClass": "TokenizersBackend",
+   "chatTemplateKwargs": {
+    "enable_thinking": true
+   }
+  },
+  "exaone-nothink": {
+   "contextLimit": 16384,
+   "maxOutputTokens": 4096,
+   "inputBudget": 12288,
+   "tokenizer": "LGAI-EXAONE/EXAONE-4.5-33B-FP8@69570ad5d9a5159816ef267f2f4d37e36447f1be",
+   "tokenizerClass": "TokenizersBackend",
+   "chatTemplateKwargs": {
+    "enable_thinking": false
+   }
+  },
+  "ax": {
+   "contextLimit": 16384,
+   "maxOutputTokens": 4096,
+   "inputBudget": 12288,
+   "tokenizer": "skt/A.X-4.0@a3393fd67bf09a34a85e66dfd2c2da61c4497b67",
+   "tokenizerClass": "Qwen2Tokenizer",
+   "chatTemplateKwargs": {}
+  },
+  "solar-open2": {
+   "contextLimit": 8192,
+   "maxOutputTokens": 4096,
+   "inputBudget": 4096,
+   "tokenizer": "nota-ai/Solar-Open2-250B-Nota-NVFP4@3cc673335f4c2f41181e05a98fc2b8324d586a64",
+   "tokenizerClass": "TokenizersBackend",
+   "chatTemplateKwargs": {}
+  }
+ },
+ "summary": {
+  "kanana": {
+   "depends_on_context": 100
+  },
+  "exaone": {
+   "depends_on_context": 100
+  },
+  "exaone-nothink": {
+   "depends_on_context": 100
+  },
+  "ax": {
+   "depends_on_context": 100
+  },
+  "solar-open2": {
+   "depends_on_context": 99,
+   "cannot_fit": 1
+  }
+ },
+ "instances": {
+  "astropy__astropy-13453": {
+   "kanana": {
+    "lowerBound": 3380,
+    "upperBound": 26972,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 3458,
+    "upperBound": 27050,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 3460,
+    "upperBound": 27052,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 3815,
+    "upperBound": 27407,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 3458,
+    "upperBound": 27050,
+    "class": "depends_on_context"
+   }
+  },
+  "astropy__astropy-14598": {
+   "kanana": {
+    "lowerBound": 1923,
+    "upperBound": 25515,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1954,
+    "upperBound": 25546,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1956,
+    "upperBound": 25548,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 2233,
+    "upperBound": 25825,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1977,
+    "upperBound": 25569,
+    "class": "depends_on_context"
+   }
+  },
+  "astropy__astropy-7166": {
+   "kanana": {
+    "lowerBound": 1188,
+    "upperBound": 24780,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1130,
+    "upperBound": 24722,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1132,
+    "upperBound": 24724,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1302,
+    "upperBound": 24894,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1186,
+    "upperBound": 24778,
+    "class": "depends_on_context"
+   }
+  },
+  "astropy__astropy-7606": {
+   "kanana": {
+    "lowerBound": 1432,
+    "upperBound": 25024,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1409,
+    "upperBound": 25001,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1411,
+    "upperBound": 25003,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1601,
+    "upperBound": 25193,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1451,
+    "upperBound": 25043,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-10554": {
+   "kanana": {
+    "lowerBound": 1959,
+    "upperBound": 25551,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 2004,
+    "upperBound": 25596,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 2006,
+    "upperBound": 25598,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 2335,
+    "upperBound": 25927,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 2024,
+    "upperBound": 25616,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-11099": {
+   "kanana": {
+    "lowerBound": 1320,
+    "upperBound": 24912,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1240,
+    "upperBound": 24832,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1242,
+    "upperBound": 24834,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1444,
+    "upperBound": 25036,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1310,
+    "upperBound": 24902,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-11119": {
+   "kanana": {
+    "lowerBound": 1237,
+    "upperBound": 24829,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1171,
+    "upperBound": 24763,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1173,
+    "upperBound": 24765,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1355,
+    "upperBound": 24947,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1230,
+    "upperBound": 24822,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-11149": {
+   "kanana": {
+    "lowerBound": 1342,
+    "upperBound": 24934,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1270,
+    "upperBound": 24862,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1272,
+    "upperBound": 24864,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1480,
+    "upperBound": 25072,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1339,
+    "upperBound": 24931,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-11179": {
+   "kanana": {
+    "lowerBound": 1211,
+    "upperBound": 24803,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1153,
+    "upperBound": 24745,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1155,
+    "upperBound": 24747,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1335,
+    "upperBound": 24927,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1213,
+    "upperBound": 24805,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-11239": {
+   "kanana": {
+    "lowerBound": 1413,
+    "upperBound": 25005,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1358,
+    "upperBound": 24950,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1360,
+    "upperBound": 24952,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1604,
+    "upperBound": 25196,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1429,
+    "upperBound": 25021,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-11299": {
+   "kanana": {
+    "lowerBound": 1916,
+    "upperBound": 25508,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1802,
+    "upperBound": 25394,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1804,
+    "upperBound": 25396,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 2166,
+    "upperBound": 25758,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1894,
+    "upperBound": 25486,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-11433": {
+   "kanana": {
+    "lowerBound": 1286,
+    "upperBound": 24878,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1223,
+    "upperBound": 24815,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1225,
+    "upperBound": 24817,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1417,
+    "upperBound": 25009,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1285,
+    "upperBound": 24877,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-11477": {
+   "kanana": {
+    "lowerBound": 1191,
+    "upperBound": 24783,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1128,
+    "upperBound": 24720,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1130,
+    "upperBound": 24722,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1306,
+    "upperBound": 24898,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1188,
+    "upperBound": 24780,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-11734": {
+   "kanana": {
+    "lowerBound": 1385,
+    "upperBound": 24977,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1312,
+    "upperBound": 24904,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1314,
+    "upperBound": 24906,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1543,
+    "upperBound": 25135,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1379,
+    "upperBound": 24971,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-11848": {
+   "kanana": {
+    "lowerBound": 1313,
+    "upperBound": 24905,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1250,
+    "upperBound": 24842,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1252,
+    "upperBound": 24844,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1452,
+    "upperBound": 25044,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1321,
+    "upperBound": 24913,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-12050": {
+   "kanana": {
+    "lowerBound": 1220,
+    "upperBound": 24812,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1161,
+    "upperBound": 24753,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1163,
+    "upperBound": 24755,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1340,
+    "upperBound": 24932,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1216,
+    "upperBound": 24808,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-12273": {
+   "kanana": {
+    "lowerBound": 1380,
+    "upperBound": 24972,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1309,
+    "upperBound": 24901,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1311,
+    "upperBound": 24903,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1561,
+    "upperBound": 25153,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1380,
+    "upperBound": 24972,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-12325": {
+   "kanana": {
+    "lowerBound": 1353,
+    "upperBound": 24945,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1298,
+    "upperBound": 24890,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1300,
+    "upperBound": 24892,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1516,
+    "upperBound": 25108,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1346,
+    "upperBound": 24938,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-12754": {
+   "kanana": {
+    "lowerBound": 1341,
+    "upperBound": 24933,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1271,
+    "upperBound": 24863,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1273,
+    "upperBound": 24865,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1485,
+    "upperBound": 25077,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1335,
+    "upperBound": 24927,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-13343": {
+   "kanana": {
+    "lowerBound": 1389,
+    "upperBound": 24981,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1310,
+    "upperBound": 24902,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1312,
+    "upperBound": 24904,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1527,
+    "upperBound": 25119,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1392,
+    "upperBound": 24984,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-13590": {
+   "kanana": {
+    "lowerBound": 1341,
+    "upperBound": 24933,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1268,
+    "upperBound": 24860,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1270,
+    "upperBound": 24862,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1470,
+    "upperBound": 25062,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1335,
+    "upperBound": 24927,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-13741": {
+   "kanana": {
+    "lowerBound": 1352,
+    "upperBound": 24944,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1276,
+    "upperBound": 24868,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1278,
+    "upperBound": 24870,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1492,
+    "upperBound": 25084,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1355,
+    "upperBound": 24947,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-13786": {
+   "kanana": {
+    "lowerBound": 1304,
+    "upperBound": 24896,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1234,
+    "upperBound": 24826,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1236,
+    "upperBound": 24828,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1436,
+    "upperBound": 25028,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1302,
+    "upperBound": 24894,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-13794": {
+   "kanana": {
+    "lowerBound": 1210,
+    "upperBound": 24802,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1140,
+    "upperBound": 24732,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1142,
+    "upperBound": 24734,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1319,
+    "upperBound": 24911,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1200,
+    "upperBound": 24792,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-13807": {
+   "kanana": {
+    "lowerBound": 1530,
+    "upperBound": 25122,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1478,
+    "upperBound": 25070,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1480,
+    "upperBound": 25072,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1733,
+    "upperBound": 25325,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1535,
+    "upperBound": 25127,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-13820": {
+   "kanana": {
+    "lowerBound": 1583,
+    "upperBound": 25175,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1475,
+    "upperBound": 25067,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1477,
+    "upperBound": 25069,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1731,
+    "upperBound": 25323,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1587,
+    "upperBound": 25179,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-13925": {
+   "kanana": {
+    "lowerBound": 2092,
+    "upperBound": 25684,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1993,
+    "upperBound": 25585,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1995,
+    "upperBound": 25587,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 2397,
+    "upperBound": 25989,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 2088,
+    "upperBound": 25680,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-14017": {
+   "kanana": {
+    "lowerBound": 1521,
+    "upperBound": 25113,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1480,
+    "upperBound": 25072,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1482,
+    "upperBound": 25074,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1697,
+    "upperBound": 25289,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1526,
+    "upperBound": 25118,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-14311": {
+   "kanana": {
+    "lowerBound": 1323,
+    "upperBound": 24915,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1268,
+    "upperBound": 24860,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1270,
+    "upperBound": 24862,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1458,
+    "upperBound": 25050,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1324,
+    "upperBound": 24916,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-14373": {
+   "kanana": {
+    "lowerBound": 1205,
+    "upperBound": 24797,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1138,
+    "upperBound": 24730,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1140,
+    "upperBound": 24732,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1316,
+    "upperBound": 24908,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1194,
+    "upperBound": 24786,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-14434": {
+   "kanana": {
+    "lowerBound": 1189,
+    "upperBound": 24781,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1125,
+    "upperBound": 24717,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1127,
+    "upperBound": 24719,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1303,
+    "upperBound": 24895,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1184,
+    "upperBound": 24776,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-14580": {
+   "kanana": {
+    "lowerBound": 1546,
+    "upperBound": 25138,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1466,
+    "upperBound": 25058,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1468,
+    "upperBound": 25060,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1748,
+    "upperBound": 25340,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1551,
+    "upperBound": 25143,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-14608": {
+   "kanana": {
+    "lowerBound": 1289,
+    "upperBound": 24881,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1214,
+    "upperBound": 24806,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1216,
+    "upperBound": 24808,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1398,
+    "upperBound": 24990,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1282,
+    "upperBound": 24874,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-14631": {
+   "kanana": {
+    "lowerBound": 1456,
+    "upperBound": 25048,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1351,
+    "upperBound": 24943,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1353,
+    "upperBound": 24945,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1598,
+    "upperBound": 25190,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1451,
+    "upperBound": 25043,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-14792": {
+   "kanana": {
+    "lowerBound": 1575,
+    "upperBound": 25167,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1504,
+    "upperBound": 25096,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1506,
+    "upperBound": 25098,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1757,
+    "upperBound": 25349,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1582,
+    "upperBound": 25174,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-14855": {
+   "kanana": {
+    "lowerBound": 1364,
+    "upperBound": 24956,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1272,
+    "upperBound": 24864,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1274,
+    "upperBound": 24866,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1515,
+    "upperBound": 25107,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1360,
+    "upperBound": 24952,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-15268": {
+   "kanana": {
+    "lowerBound": 1490,
+    "upperBound": 25082,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1437,
+    "upperBound": 25029,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1439,
+    "upperBound": 25031,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1672,
+    "upperBound": 25264,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1495,
+    "upperBound": 25087,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-15499": {
+   "kanana": {
+    "lowerBound": 1203,
+    "upperBound": 24795,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1138,
+    "upperBound": 24730,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1140,
+    "upperBound": 24732,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1314,
+    "upperBound": 24906,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1195,
+    "upperBound": 24787,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-15525": {
+   "kanana": {
+    "lowerBound": 2292,
+    "upperBound": 25884,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 2285,
+    "upperBound": 25877,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 2287,
+    "upperBound": 25879,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 2755,
+    "upperBound": 26347,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 2304,
+    "upperBound": 25896,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-15561": {
+   "kanana": {
+    "lowerBound": 1227,
+    "upperBound": 24819,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1165,
+    "upperBound": 24757,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1167,
+    "upperBound": 24759,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1343,
+    "upperBound": 24935,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1225,
+    "upperBound": 24817,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-15629": {
+   "kanana": {
+    "lowerBound": 1792,
+    "upperBound": 25384,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1736,
+    "upperBound": 25328,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1738,
+    "upperBound": 25330,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 2040,
+    "upperBound": 25632,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1752,
+    "upperBound": 25344,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-15863": {
+   "kanana": {
+    "lowerBound": 1347,
+    "upperBound": 24939,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1314,
+    "upperBound": 24906,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1316,
+    "upperBound": 24908,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1508,
+    "upperBound": 25100,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1373,
+    "upperBound": 24965,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-15930": {
+   "kanana": {
+    "lowerBound": 1330,
+    "upperBound": 24922,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1271,
+    "upperBound": 24863,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1273,
+    "upperBound": 24865,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1475,
+    "upperBound": 25067,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1319,
+    "upperBound": 24911,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-16145": {
+   "kanana": {
+    "lowerBound": 1311,
+    "upperBound": 24903,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1256,
+    "upperBound": 24848,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1258,
+    "upperBound": 24850,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1442,
+    "upperBound": 25034,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1323,
+    "upperBound": 24915,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-16315": {
+   "kanana": {
+    "lowerBound": 1489,
+    "upperBound": 25081,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1413,
+    "upperBound": 25005,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1415,
+    "upperBound": 25007,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1649,
+    "upperBound": 25241,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1465,
+    "upperBound": 25057,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-16429": {
+   "kanana": {
+    "lowerBound": 1418,
+    "upperBound": 25010,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1377,
+    "upperBound": 24969,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1379,
+    "upperBound": 24971,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1609,
+    "upperBound": 25201,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1439,
+    "upperBound": 25031,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-16612": {
+   "kanana": {
+    "lowerBound": 1353,
+    "upperBound": 24945,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1332,
+    "upperBound": 24924,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1334,
+    "upperBound": 24926,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1527,
+    "upperBound": 25119,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1378,
+    "upperBound": 24970,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-16631": {
+   "kanana": {
+    "lowerBound": 1332,
+    "upperBound": 24924,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1246,
+    "upperBound": 24838,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1248,
+    "upperBound": 24840,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1476,
+    "upperBound": 25068,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1339,
+    "upperBound": 24931,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-16877": {
+   "kanana": {
+    "lowerBound": 1249,
+    "upperBound": 24841,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1177,
+    "upperBound": 24769,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1179,
+    "upperBound": 24771,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1363,
+    "upperBound": 24955,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1242,
+    "upperBound": 24834,
+    "class": "depends_on_context"
+   }
+  },
+  "django__django-7530": {
+   "kanana": {
+    "lowerBound": 1258,
+    "upperBound": 24850,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1197,
+    "upperBound": 24789,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1199,
+    "upperBound": 24791,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1382,
+    "upperBound": 24974,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1254,
+    "upperBound": 24846,
+    "class": "depends_on_context"
+   }
+  },
+  "matplotlib__matplotlib-21568": {
+   "kanana": {
+    "lowerBound": 1528,
+    "upperBound": 25120,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1538,
+    "upperBound": 25130,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1540,
+    "upperBound": 25132,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1764,
+    "upperBound": 25356,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1575,
+    "upperBound": 25167,
+    "class": "depends_on_context"
+   }
+  },
+  "matplotlib__matplotlib-22719": {
+   "kanana": {
+    "lowerBound": 3638,
+    "upperBound": 27230,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 3932,
+    "upperBound": 27524,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 3934,
+    "upperBound": 27526,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 4515,
+    "upperBound": 28107,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 3881,
+    "upperBound": 27473,
+    "class": "depends_on_context"
+   }
+  },
+  "matplotlib__matplotlib-23476": {
+   "kanana": {
+    "lowerBound": 2233,
+    "upperBound": 25825,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 2418,
+    "upperBound": 26010,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 2420,
+    "upperBound": 26012,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 2689,
+    "upperBound": 26281,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 2407,
+    "upperBound": 25999,
+    "class": "depends_on_context"
+   }
+  },
+  "matplotlib__matplotlib-25287": {
+   "kanana": {
+    "lowerBound": 1718,
+    "upperBound": 25310,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1723,
+    "upperBound": 25315,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1725,
+    "upperBound": 25317,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1989,
+    "upperBound": 25581,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1738,
+    "upperBound": 25330,
+    "class": "depends_on_context"
+   }
+  },
+  "matplotlib__matplotlib-25479": {
+   "kanana": {
+    "lowerBound": 2903,
+    "upperBound": 26495,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 2896,
+    "upperBound": 26488,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 2898,
+    "upperBound": 26490,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 3460,
+    "upperBound": 27052,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 2896,
+    "upperBound": 26488,
+    "class": "depends_on_context"
+   }
+  },
+  "matplotlib__matplotlib-25775": {
+   "kanana": {
+    "lowerBound": 1311,
+    "upperBound": 24903,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1240,
+    "upperBound": 24832,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1242,
+    "upperBound": 24834,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1438,
+    "upperBound": 25030,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1302,
+    "upperBound": 24894,
+    "class": "depends_on_context"
+   }
+  },
+  "matplotlib__matplotlib-26113": {
+   "kanana": {
+    "lowerBound": 3816,
+    "upperBound": 27408,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 3984,
+    "upperBound": 27576,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 3986,
+    "upperBound": 27578,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 4409,
+    "upperBound": 28001,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 3950,
+    "upperBound": 27542,
+    "class": "depends_on_context"
+   }
+  },
+  "mwaskom__seaborn-3187": {
+   "kanana": {
+    "lowerBound": 1536,
+    "upperBound": 25128,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1507,
+    "upperBound": 25099,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1509,
+    "upperBound": 25101,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1739,
+    "upperBound": 25331,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1557,
+    "upperBound": 25149,
+    "class": "depends_on_context"
+   }
+  },
+  "pallets__flask-5014": {
+   "kanana": {
+    "lowerBound": 1203,
+    "upperBound": 24795,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1137,
+    "upperBound": 24729,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1139,
+    "upperBound": 24731,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1318,
+    "upperBound": 24910,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1197,
+    "upperBound": 24789,
+    "class": "depends_on_context"
+   }
+  },
+  "psf__requests-6028": {
+   "kanana": {
+    "lowerBound": 1537,
+    "upperBound": 25129,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1518,
+    "upperBound": 25110,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1520,
+    "upperBound": 25112,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1714,
+    "upperBound": 25306,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1548,
+    "upperBound": 25140,
+    "class": "depends_on_context"
+   }
+  },
+  "pydata__xarray-3151": {
+   "kanana": {
+    "lowerBound": 1879,
+    "upperBound": 25471,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1869,
+    "upperBound": 25461,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1871,
+    "upperBound": 25463,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 2081,
+    "upperBound": 25673,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1893,
+    "upperBound": 25485,
+    "class": "depends_on_context"
+   }
+  },
+  "pydata__xarray-4356": {
+   "kanana": {
+    "lowerBound": 1358,
+    "upperBound": 24950,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1310,
+    "upperBound": 24902,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1312,
+    "upperBound": 24904,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1501,
+    "upperBound": 25093,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1362,
+    "upperBound": 24954,
+    "class": "depends_on_context"
+   }
+  },
+  "pydata__xarray-4695": {
+   "kanana": {
+    "lowerBound": 2445,
+    "upperBound": 26037,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 2459,
+    "upperBound": 26051,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 2461,
+    "upperBound": 26053,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 2671,
+    "upperBound": 26263,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 2460,
+    "upperBound": 26052,
+    "class": "depends_on_context"
+   }
+  },
+  "pydata__xarray-7229": {
+   "kanana": {
+    "lowerBound": 2078,
+    "upperBound": 25670,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 2077,
+    "upperBound": 25669,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 2079,
+    "upperBound": 25671,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 2336,
+    "upperBound": 25928,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 2109,
+    "upperBound": 25701,
+    "class": "depends_on_context"
+   }
+  },
+  "pylint-dev__pylint-4661": {
+   "kanana": {
+    "lowerBound": 1368,
+    "upperBound": 24960,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1300,
+    "upperBound": 24892,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1302,
+    "upperBound": 24894,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1500,
+    "upperBound": 25092,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1379,
+    "upperBound": 24971,
+    "class": "depends_on_context"
+   }
+  },
+  "pylint-dev__pylint-6386": {
+   "kanana": {
+    "lowerBound": 1371,
+    "upperBound": 24963,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1352,
+    "upperBound": 24944,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1354,
+    "upperBound": 24946,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1519,
+    "upperBound": 25111,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1396,
+    "upperBound": 24988,
+    "class": "depends_on_context"
+   }
+  },
+  "pytest-dev__pytest-10051": {
+   "kanana": {
+    "lowerBound": 1574,
+    "upperBound": 25166,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1549,
+    "upperBound": 25141,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1551,
+    "upperBound": 25143,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1763,
+    "upperBound": 25355,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1621,
+    "upperBound": 25213,
+    "class": "depends_on_context"
+   }
+  },
+  "pytest-dev__pytest-10356": {
+   "kanana": {
+    "lowerBound": 2369,
+    "upperBound": 25961,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 2281,
+    "upperBound": 25873,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 2283,
+    "upperBound": 25875,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 2633,
+    "upperBound": 26225,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 2363,
+    "upperBound": 25955,
+    "class": "depends_on_context"
+   }
+  },
+  "pytest-dev__pytest-5631": {
+   "kanana": {
+    "lowerBound": 1781,
+    "upperBound": 25373,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1772,
+    "upperBound": 25364,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1774,
+    "upperBound": 25366,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 2035,
+    "upperBound": 25627,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1812,
+    "upperBound": 25404,
+    "class": "depends_on_context"
+   }
+  },
+  "pytest-dev__pytest-7432": {
+   "kanana": {
+    "lowerBound": 1355,
+    "upperBound": 24947,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1302,
+    "upperBound": 24894,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1304,
+    "upperBound": 24896,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1492,
+    "upperBound": 25084,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1353,
+    "upperBound": 24945,
+    "class": "depends_on_context"
+   }
+  },
+  "scikit-learn__scikit-learn-12682": {
+   "kanana": {
+    "lowerBound": 1288,
+    "upperBound": 24880,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1206,
+    "upperBound": 24798,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1208,
+    "upperBound": 24800,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1405,
+    "upperBound": 24997,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1272,
+    "upperBound": 24864,
+    "class": "depends_on_context"
+   }
+  },
+  "scikit-learn__scikit-learn-13124": {
+   "kanana": {
+    "lowerBound": 3764,
+    "upperBound": 27356,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 3855,
+    "upperBound": 27447,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 3857,
+    "upperBound": 27449,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 4428,
+    "upperBound": 28020,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 4107,
+    "upperBound": 27699,
+    "class": "cannot_fit"
+   }
+  },
+  "scikit-learn__scikit-learn-13328": {
+   "kanana": {
+    "lowerBound": 2486,
+    "upperBound": 26078,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 2585,
+    "upperBound": 26177,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 2587,
+    "upperBound": 26179,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 2971,
+    "upperBound": 26563,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 2580,
+    "upperBound": 26172,
+    "class": "depends_on_context"
+   }
+  },
+  "scikit-learn__scikit-learn-13496": {
+   "kanana": {
+    "lowerBound": 1480,
+    "upperBound": 25072,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1379,
+    "upperBound": 24971,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1381,
+    "upperBound": 24973,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1628,
+    "upperBound": 25220,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1458,
+    "upperBound": 25050,
+    "class": "depends_on_context"
+   }
+  },
+  "scikit-learn__scikit-learn-14053": {
+   "kanana": {
+    "lowerBound": 1969,
+    "upperBound": 25561,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1979,
+    "upperBound": 25571,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1981,
+    "upperBound": 25573,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 2242,
+    "upperBound": 25834,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1987,
+    "upperBound": 25579,
+    "class": "depends_on_context"
+   }
+  },
+  "scikit-learn__scikit-learn-25931": {
+   "kanana": {
+    "lowerBound": 1976,
+    "upperBound": 25568,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1980,
+    "upperBound": 25572,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1982,
+    "upperBound": 25574,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 2263,
+    "upperBound": 25855,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 2012,
+    "upperBound": 25604,
+    "class": "depends_on_context"
+   }
+  },
+  "sphinx-doc__sphinx-10673": {
+   "kanana": {
+    "lowerBound": 1499,
+    "upperBound": 25091,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1476,
+    "upperBound": 25068,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1478,
+    "upperBound": 25070,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1672,
+    "upperBound": 25264,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1512,
+    "upperBound": 25104,
+    "class": "depends_on_context"
+   }
+  },
+  "sphinx-doc__sphinx-11510": {
+   "kanana": {
+    "lowerBound": 2623,
+    "upperBound": 26215,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 2731,
+    "upperBound": 26323,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 2733,
+    "upperBound": 26325,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 3030,
+    "upperBound": 26622,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 2652,
+    "upperBound": 26244,
+    "class": "depends_on_context"
+   }
+  },
+  "sphinx-doc__sphinx-7910": {
+   "kanana": {
+    "lowerBound": 1466,
+    "upperBound": 25058,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1411,
+    "upperBound": 25003,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1413,
+    "upperBound": 25005,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1622,
+    "upperBound": 25214,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1480,
+    "upperBound": 25072,
+    "class": "depends_on_context"
+   }
+  },
+  "sphinx-doc__sphinx-7985": {
+   "kanana": {
+    "lowerBound": 1591,
+    "upperBound": 25183,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1565,
+    "upperBound": 25157,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1567,
+    "upperBound": 25159,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1754,
+    "upperBound": 25346,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1611,
+    "upperBound": 25203,
+    "class": "depends_on_context"
+   }
+  },
+  "sphinx-doc__sphinx-8035": {
+   "kanana": {
+    "lowerBound": 1315,
+    "upperBound": 24907,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1248,
+    "upperBound": 24840,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1250,
+    "upperBound": 24842,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1434,
+    "upperBound": 25026,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1312,
+    "upperBound": 24904,
+    "class": "depends_on_context"
+   }
+  },
+  "sphinx-doc__sphinx-8548": {
+   "kanana": {
+    "lowerBound": 1237,
+    "upperBound": 24829,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1195,
+    "upperBound": 24787,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1197,
+    "upperBound": 24789,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1375,
+    "upperBound": 24967,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1252,
+    "upperBound": 24844,
+    "class": "depends_on_context"
+   }
+  },
+  "sphinx-doc__sphinx-8551": {
+   "kanana": {
+    "lowerBound": 1718,
+    "upperBound": 25310,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1661,
+    "upperBound": 25253,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1663,
+    "upperBound": 25255,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1918,
+    "upperBound": 25510,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1698,
+    "upperBound": 25290,
+    "class": "depends_on_context"
+   }
+  },
+  "sphinx-doc__sphinx-8621": {
+   "kanana": {
+    "lowerBound": 1728,
+    "upperBound": 25320,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1700,
+    "upperBound": 25292,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1702,
+    "upperBound": 25294,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1886,
+    "upperBound": 25478,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1774,
+    "upperBound": 25366,
+    "class": "depends_on_context"
+   }
+  },
+  "sphinx-doc__sphinx-9461": {
+   "kanana": {
+    "lowerBound": 1687,
+    "upperBound": 25279,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1678,
+    "upperBound": 25270,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1680,
+    "upperBound": 25272,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1879,
+    "upperBound": 25471,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1689,
+    "upperBound": 25281,
+    "class": "depends_on_context"
+   }
+  },
+  "sympy__sympy-12489": {
+   "kanana": {
+    "lowerBound": 1410,
+    "upperBound": 25002,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1315,
+    "upperBound": 24907,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1317,
+    "upperBound": 24909,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1539,
+    "upperBound": 25131,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1392,
+    "upperBound": 24984,
+    "class": "depends_on_context"
+   }
+  },
+  "sympy__sympy-13877": {
+   "kanana": {
+    "lowerBound": 2543,
+    "upperBound": 26135,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 2534,
+    "upperBound": 26126,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 2536,
+    "upperBound": 26128,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 2806,
+    "upperBound": 26398,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 2546,
+    "upperBound": 26138,
+    "class": "depends_on_context"
+   }
+  },
+  "sympy__sympy-14248": {
+   "kanana": {
+    "lowerBound": 1336,
+    "upperBound": 24928,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1280,
+    "upperBound": 24872,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1282,
+    "upperBound": 24874,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1477,
+    "upperBound": 25069,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1338,
+    "upperBound": 24930,
+    "class": "depends_on_context"
+   }
+  },
+  "sympy__sympy-14531": {
+   "kanana": {
+    "lowerBound": 1371,
+    "upperBound": 24963,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1315,
+    "upperBound": 24907,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1317,
+    "upperBound": 24909,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1510,
+    "upperBound": 25102,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1374,
+    "upperBound": 24966,
+    "class": "depends_on_context"
+   }
+  },
+  "sympy__sympy-17655": {
+   "kanana": {
+    "lowerBound": 1630,
+    "upperBound": 25222,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1610,
+    "upperBound": 25202,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1612,
+    "upperBound": 25204,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1823,
+    "upperBound": 25415,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1649,
+    "upperBound": 25241,
+    "class": "depends_on_context"
+   }
+  },
+  "sympy__sympy-18189": {
+   "kanana": {
+    "lowerBound": 1463,
+    "upperBound": 25055,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1405,
+    "upperBound": 24997,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1407,
+    "upperBound": 24999,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1599,
+    "upperBound": 25191,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1452,
+    "upperBound": 25044,
+    "class": "depends_on_context"
+   }
+  },
+  "sympy__sympy-19346": {
+   "kanana": {
+    "lowerBound": 1297,
+    "upperBound": 24889,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1244,
+    "upperBound": 24836,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1246,
+    "upperBound": 24838,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1423,
+    "upperBound": 25015,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1302,
+    "upperBound": 24894,
+    "class": "depends_on_context"
+   }
+  },
+  "sympy__sympy-20590": {
+   "kanana": {
+    "lowerBound": 1341,
+    "upperBound": 24933,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1277,
+    "upperBound": 24869,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1279,
+    "upperBound": 24871,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1464,
+    "upperBound": 25056,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1336,
+    "upperBound": 24928,
+    "class": "depends_on_context"
+   }
+  },
+  "sympy__sympy-21596": {
+   "kanana": {
+    "lowerBound": 1400,
+    "upperBound": 24992,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1361,
+    "upperBound": 24953,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1363,
+    "upperBound": 24955,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1540,
+    "upperBound": 25132,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1402,
+    "upperBound": 24994,
+    "class": "depends_on_context"
+   }
+  },
+  "sympy__sympy-21612": {
+   "kanana": {
+    "lowerBound": 1400,
+    "upperBound": 24992,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1355,
+    "upperBound": 24947,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1357,
+    "upperBound": 24949,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1535,
+    "upperBound": 25127,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1404,
+    "upperBound": 24996,
+    "class": "depends_on_context"
+   }
+  },
+  "sympy__sympy-22080": {
+   "kanana": {
+    "lowerBound": 1355,
+    "upperBound": 24947,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1306,
+    "upperBound": 24898,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1308,
+    "upperBound": 24900,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1488,
+    "upperBound": 25080,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1362,
+    "upperBound": 24954,
+    "class": "depends_on_context"
+   }
+  },
+  "sympy__sympy-22914": {
+   "kanana": {
+    "lowerBound": 1320,
+    "upperBound": 24912,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1274,
+    "upperBound": 24866,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1276,
+    "upperBound": 24868,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1458,
+    "upperBound": 25050,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1316,
+    "upperBound": 24908,
+    "class": "depends_on_context"
+   }
+  },
+  "sympy__sympy-23413": {
+   "kanana": {
+    "lowerBound": 1282,
+    "upperBound": 24874,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1218,
+    "upperBound": 24810,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1220,
+    "upperBound": 24812,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1402,
+    "upperBound": 24994,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1271,
+    "upperBound": 24863,
+    "class": "depends_on_context"
+   }
+  },
+  "sympy__sympy-23534": {
+   "kanana": {
+    "lowerBound": 1330,
+    "upperBound": 24922,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1266,
+    "upperBound": 24858,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1268,
+    "upperBound": 24860,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1460,
+    "upperBound": 25052,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1325,
+    "upperBound": 24917,
+    "class": "depends_on_context"
+   }
+  },
+  "sympy__sympy-23824": {
+   "kanana": {
+    "lowerBound": 1717,
+    "upperBound": 25309,
+    "class": "depends_on_context"
+   },
+   "exaone": {
+    "lowerBound": 1657,
+    "upperBound": 25249,
+    "class": "depends_on_context"
+   },
+   "exaone-nothink": {
+    "lowerBound": 1659,
+    "upperBound": 25251,
+    "class": "depends_on_context"
+   },
+   "ax": {
+    "lowerBound": 1913,
+    "upperBound": 25505,
+    "class": "depends_on_context"
+   },
+   "solar-open2": {
+    "lowerBound": 1699,
+    "upperBound": 25291,
+    "class": "depends_on_context"
+   }
+  }
+ },
+ "projectInstructionFiles": {
+  "checked": "UPSTAGE.md, .upstage/UPSTAGE.md, AGENTS.md at each instance's base_commit (GitHub contents API, 2026-10-29)",
+  "instancesWithFiles": {}
+ }
+}

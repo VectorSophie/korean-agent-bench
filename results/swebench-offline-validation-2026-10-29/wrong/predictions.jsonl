@@ -1,0 +1,1 @@
+{"instance_id":"psf__requests-6028","model_name_or_path":"kab-offline-wrong","model_patch":"diff --git a/requests/utils.py b/requests/utils.py\nindex 1c2ae4e0..96e9db53 100644\n--- a/requests/utils.py\n+++ b/requests/utils.py\n@@ -1,3 +1,4 @@\n+# kab offline validation: intentionally ineffective change\n # -*- coding: utf-8 -*-\n \n \"\"\"\n"}

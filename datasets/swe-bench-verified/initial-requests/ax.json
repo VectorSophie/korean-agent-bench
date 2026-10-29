@@ -1,0 +1,204 @@
+{
+ "model": "A.X-4.0",
+ "messages": [
+  {
+   "role": "system",
+   "content": "You are upstage-cli, an agentic coding assistant. Korean-first: respond in Korean by default unless the user writes in English. Keep standard technical/dev terms in English as used in the industry (commit, merge, branch, pull request, deploy, refactor, etc.) rather than translating them — do not switch a term between English and Korean across turns. Hold a consistent professional register throughout a session: 합쇼체/하십시오체 (e.g. \"확인했습니다\", \"수정하겠습니다\"), not a mix of that and casual 해요체 within the same conversation.\n\nYou have tools available. Use them immediately to perform actions — do not describe what you would do, just do it.\n\nRead files with read_file before discussing them. Write files with write_file. Run tests with run_tests.\n\nCRITICAL — MUST verify, NEVER fabricate: always call read_file before discussing a file's contents, and NEVER invent file contents or claim to have written something without actually calling write_file/edit_file. If a claim about code or a document is uncertain, say so explicitly (or use check_groundedness) rather than assert it."
+  },
+  {
+   "role": "system",
+   "content": "Repository context:\n- totalFiles: 0\n- keywordHints: you, are, working, checkout, the, kab_repo, repository, commit\n- semantic retrieval (mode=local):\n  - README (score=0)\n```text\nplaceholder\n\n```"
+  },
+  {
+   "role": "user",
+   "content": "You are working in a checkout of the <<<KAB_REPO>>> repository at commit <<<KAB_BASE_COMMIT>>>.\nResolve the issue below by changing the repository's code. Your change will be\nevaluated by the project's own tests; the tests that check this issue are not\nshown to you.\n\n<issue>\n<<<KAB_ISSUE>>>\n</issue>"
+  }
+ ],
+ "temperature": 0.6,
+ "stream": false,
+ "top_p": 0.95,
+ "max_tokens": 4096,
+ "tools": [
+  {
+   "type": "function",
+   "function": {
+    "name": "list_files",
+    "description": "Lists files in a directory",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "path": {
+       "type": "string"
+      }
+     },
+     "additionalProperties": false
+    }
+   }
+  },
+  {
+   "type": "function",
+   "function": {
+    "name": "read_file",
+    "description": "Reads a text file. Use offset and limit to read a slice of a large file.",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "path": {
+       "type": "string"
+      },
+      "offset": {
+       "type": "number",
+       "description": "First line to read, 1-based (default: 1)"
+      },
+      "limit": {
+       "type": "number",
+       "description": "Max lines to return (default: all)"
+      }
+     },
+     "required": [
+      "path"
+     ],
+     "additionalProperties": false
+    }
+   }
+  },
+  {
+   "type": "function",
+   "function": {
+    "name": "write_file",
+    "description": "Create or overwrite a file within the workspace",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "path": {
+       "type": "string"
+      },
+      "content": {
+       "type": "string"
+      }
+     },
+     "required": [
+      "path",
+      "content"
+     ],
+     "additionalProperties": false
+    }
+   }
+  },
+  {
+   "type": "function",
+   "function": {
+    "name": "edit_file",
+    "description": "Edit a file by replacing oldText with newText. Returns the edited region for verification. Normalizes line endings automatically.",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "path": {
+       "type": "string"
+      },
+      "oldText": {
+       "type": "string"
+      },
+      "newText": {
+       "type": "string"
+      },
+      "replaceAll": {
+       "type": "boolean"
+      }
+     },
+     "required": [
+      "path",
+      "oldText",
+      "newText"
+     ],
+     "additionalProperties": false
+    }
+   }
+  },
+  {
+   "type": "function",
+   "function": {
+    "name": "search_code",
+    "description": "Search for a text pattern across repository files",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "pattern": {
+       "type": "string"
+      },
+      "maxResults": {
+       "type": "number"
+      }
+     },
+     "required": [
+      "pattern"
+     ],
+     "additionalProperties": false
+    }
+   }
+  },
+  {
+   "type": "function",
+   "function": {
+    "name": "run_shell",
+    "description": "Execute an allowlisted shell command in sandbox",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "command": {
+       "type": "string"
+      },
+      "timeoutMs": {
+       "type": "number"
+      },
+      "outputLimit": {
+       "type": "number"
+      },
+      "networkBlocked": {
+       "type": "boolean"
+      },
+      "sandbox": {
+       "type": "string",
+       "enum": [
+        "local",
+        "docker"
+       ]
+      }
+     },
+     "required": [
+      "command"
+     ],
+     "additionalProperties": false
+    }
+   }
+  },
+  {
+   "type": "function",
+   "function": {
+    "name": "glob",
+    "description": "Find files matching a glob pattern (e.g. **/*.ts, src/**/*.mjs, tests/**/*.test.*)",
+    "parameters": {
+     "type": "object",
+     "properties": {
+      "pattern": {
+       "type": "string"
+      },
+      "path": {
+       "type": "string",
+       "description": "Root directory to search from (default: cwd)"
+      },
+      "maxResults": {
+       "type": "number",
+       "description": "Max files to return (default: 200)"
+      }
+     },
+     "required": [
+      "pattern"
+     ],
+     "additionalProperties": false
+    }
+   }
+  }
+ ],
+ "tool_choice": "auto"
+}

@@ -1,0 +1,30 @@
+{
+ "kind": "swebench-official-evaluation",
+ "evaluator": "swebench==5.0.2",
+ "dataset": "SWE-bench/SWE-bench_Verified",
+ "revision": "78f471bf655a3137b2e8a75af1501690ec009ec3",
+ "datasetSha256": "030cfd7f2a704c4c0226e7f104c725a3b41230b1d3517f9c915ad7ea5be3fa25",
+ "runId": "kab-offline-unparseable",
+ "officialReport": "kab-offline-unparseable.kab-offline-unparseable.json",
+ "counts": {
+  "resolved": 0,
+  "unresolved": 0,
+  "empty_patch": 0,
+  "error": 1,
+  "infra_failure": 0,
+  "ambiguous_failure": 0,
+  "incomplete": 0
+ },
+ "outcomes": {
+  "psf__requests-6028": {
+   "official": "error",
+   "validationFindings": [
+    "no file diffs parsed"
+   ],
+   "image": "swebench/sweb.eval.x86_64.psf_1776_requests-6028:latest",
+   "imageRepoDigests": [
+    "swebench/sweb.eval.x86_64.psf_1776_requests-6028@sha256:639088346355ea7076bc6faf2eadb23b1e1f1ed4f34b291e843061b2fc87cbe2"
+   ]
+  }
+ }
+}
