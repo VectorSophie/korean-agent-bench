@@ -1,0 +1,21 @@
+{
+  "subset": "bfcl-v4-kab-subset-v1",
+  "seed": "korean-agent-bench/bfcl/subset-v1",
+  "frozenOn": "2026-10-29",
+  "method": "Per category, rank upstream entry ids by sha256(seed + ':' + id) and keep the first min(n, category size). Inputs are upstream ids only; no model output is read.",
+  "perCategoryCap": 100,
+  "sampleSizeRationale": "Per-category accuracy is the reported unit (no combined score). With n=100 the worst-case (p=0.5) 95% Wald half-width is 1.96*sqrt(0.25/100) = 9.8 percentage points; categories smaller than the cap are included whole and have wider intervals. Model comparisons use the same items (paired), so per-item differences can be tested with McNemar's test. The cap bounds cost: single-turn entries are one request each.",
+  "include": [
+    "simple_python", "simple_java", "simple_javascript", "multiple", "parallel", "parallel_multiple", "irrelevance",
+    "live_simple", "live_multiple", "live_parallel", "live_parallel_multiple", "live_irrelevance", "live_relevance",
+    "multi_turn_base"
+  ],
+  "exclude": {
+    "format_sensitivity": "Not applicable: bfcl-eval skips it for every function-calling (FC) model (_llm_response_generation.py).",
+    "web_search": "Needs a SerpAPI key and outbound search requests (multi_turn_eval/func_source_code/web_search.py).",
+    "memory": "Its vector backend loads the all-MiniLM-L6-v2 embedding model at import (memory_vector.py), i.e. a model download; not validated here.",
+    "multi_turn_long_context": "Designed for long contexts; exceeds the 8192-token context validated for Solar Open 2. Deferred to a separate, explicitly long-context condition, decided before any model run.",
+    "multi_turn_miss_func": "Deferred: resource bound for v1 (multi-turn entries take many requests). Decided before any model run.",
+    "multi_turn_miss_param": "Deferred: same as multi_turn_miss_func."
+  }
+}

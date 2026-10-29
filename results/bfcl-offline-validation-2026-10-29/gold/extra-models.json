@@ -1,0 +1,1 @@
+{"kab-offline-mock-FC": {"agent": "offline-mock", "servedModelName": "kab-offline-mock", "baseUrlEnv": ["KAB_MOCK_BASE_URL"], "defaultBaseUrl": "http://127.0.0.1:35003/v1", "chatTemplateKwargs": null}}
