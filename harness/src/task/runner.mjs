@@ -46,7 +46,7 @@ export function restoreTrustedPaths(fixtureRoot, workdir, trustedPaths, changedF
     if (changed.has(rel)) tampered.push(rel);
     try {
       rmSync(dest, { recursive: true, force: true }); // neutralise file→dir swaps
-      cpSync(src, dest, { recursive: true });
+      cpSync(src, dest, { recursive: true, verbatimSymlinks: true });
       restored.push(rel);
     } catch {
       missing.push(rel);
@@ -163,7 +163,10 @@ export class TaskRunner {
     process.once("SIGTERM", onSignal);
 
     try {
-      cpSync(repoPath, workdir, { recursive: true });
+      // verbatimSymlinks: keep relative links as committed. Node's default
+      // rewrites them to absolute paths into repoPath, which dangle inside the
+      // sandbox and turned into spurious hunks in every captured patch.
+      cpSync(repoPath, workdir, { recursive: true, verbatimSymlinks: true });
 
       const patchTracker = new PatchTracker(workdir);
       const initialCommit = await patchTracker.captureInitial({ commit: task.commit || null });

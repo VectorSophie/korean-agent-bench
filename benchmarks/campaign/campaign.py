@@ -395,6 +395,9 @@ def swebench_attempt(d, spec, model, iid, h):
     base = d / model / "swebench" / "attempts" / iid
     base.mkdir(parents=True, exist_ok=True)
     existing = sorted(base.glob("attempt-*.json"))
+    carried = carried_hashes(d, model)
+    if existing and json.loads(existing[-1].read_text())["final"] and json.loads(existing[-1].read_text())["configHash"] in carried:
+        return "skipped"  # unaffected by a protocol amendment; kept explicitly (see invalidate)
     for p in existing:
         rec = json.loads(p.read_text())
         if rec["configHash"] != h:
@@ -486,6 +489,51 @@ def prepare(name):
     if r.returncode != 0:
         sys.exit(f"prepare failed; see {d / 'prepare.log'}")
     print(r.stdout.strip().splitlines()[-1] if r.stdout.strip() else "prepared")
+
+
+def carried_hashes(d, model):
+    """Configuration hashes whose final SWE-bench attempts a protocol amendment
+    explicitly keeps (written by `invalidate`)."""
+    p = d / "amendments.json"
+    if not p.exists():
+        return set()
+    return {h for a in json.loads(p.read_text()) for h in a["carriedConfigHashes"].get(model, [])}
+
+
+def invalidate(name, amendment_path):
+    """Apply a protocol amendment: move every listed (model, instance) attempt
+    and its official evaluation logs aside (never deleted), and record which
+    configuration hashes the remaining final attempts were made under, so a
+    later run under the amended code re-runs exactly the invalidated cells and
+    keeps the rest. Idempotent."""
+    d, spec = campaign(name)
+    raw = (ROOT / amendment_path).read_bytes()
+    am = json.loads(raw)
+    tag = am["id"]
+    record_p = d / "amendments.json"
+    records = json.loads(record_p.read_text()) if record_p.exists() else []
+    if any(r["id"] == tag for r in records):
+        print(f"{tag} already applied")
+        return
+    moved, carried = [], {}
+    for model in am["invalidated"]["models"]:
+        sw = d / model / "swebench"
+        for iid in am["invalidated"]["swebench"]:
+            src = sw / "attempts" / iid
+            if src.exists():
+                dst = sw / "attempts-invalidated" / tag / iid
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                src.rename(dst)
+                moved.append(f"{model}/{iid}")
+            for logdir in (sw / "eval" / "logs" / "run_evaluation").glob(f"*/*/{iid}"):
+                dst = sw / "eval-invalidated" / tag / logdir.relative_to(sw / "eval")
+                dst.parent.mkdir(parents=True, exist_ok=True)
+                logdir.rename(dst)
+        carried[model] = sorted({json.loads(a.read_text())["configHash"] for a in (sw / "attempts").glob("*/attempt-*.json")})
+    records.append({"id": tag, "file": str(amendment_path), "sha256": hashlib.sha256(raw).hexdigest(), "appliedAt": now(),
+                    "moved": moved, "carriedConfigHashes": carried})
+    atomic_write(record_p, records)
+    print(f"{tag}: moved {len(moved)} attempts aside; carried hashes {carried}")
 
 
 def stage_ids(spec, stage):
@@ -628,6 +676,8 @@ def main():
         return pull_images(a.campaign)
     if a.cmd == "prepare":
         return prepare(a.campaign)
+    if a.cmd == "invalidate":
+        return invalidate(a.campaign, a.model)  # second positional: amendment file
     if a.model not in SERVE:
         sys.exit(f"model must be one of {list(SERVE)}")
     {"inspect": lambda: print(json.dumps(inspect(a.campaign, a.model), indent=1)),

@@ -5,11 +5,12 @@
 import { describe, it, beforeEach, afterEach } from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, rmSync, writeFileSync, readFileSync, cpSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync, readFileSync, cpSync, readlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { buildTask, buildPrompt, toPrediction, ReplayPatchAgent, PROMPT_TEMPLATE_SHA256, ENVELOPE, prepareSnapshot } from "../src/benchmarks/swebench.mjs";
 import { TaskRunner } from "../src/task/runner.mjs";
+import { removeEscapingSymlinks } from "../src/agent/sandboxed-tools.mjs";
 import { validate } from "../src/task/schema.mjs";
 
 const git = (args, cwd) => execFileSync("git", ["-c", "user.name=t", "-c", "user.email=t@t", ...args], { cwd, stdio: "pipe" }).toString();
@@ -76,6 +77,39 @@ describe("run → prediction", () => {
   it("no change → empty model_patch (the official evaluator classifies it)", async () => {
     const pred = toPrediction(await replay(""), "kab-test");
     assert.equal(pred.model_patch, "");
+  });
+
+  it("keeps relative symlinks verbatim: an agent change yields a patch with no symlink entries that applies to the real repository", async () => {
+    // django/matplotlib carry relative symlinks; a workspace copy that rewrote
+    // them to absolute host paths put spurious symlink hunks into every patch,
+    // so the official evaluator could not apply it (main-v1 amendment 1).
+    execFileSync("mkdir", ["-p", join(repo, "docs", "a"), join(repo, "docs", "b")]);
+    writeFileSync(join(repo, "docs", "a", "icon.png"), "png");
+    execFileSync("ln", ["-s", "../a/icon.png", join(repo, "docs", "b", "icon.png")]);
+    git(["add", "."], repo);
+    git(["commit", "-q", "-m", "links"], repo);
+    base = git(["rev-parse", "HEAD"], repo).trim();
+    // the agent's workspace must hold the link exactly as committed (not an
+    // absolute path to the source checkout, which dangles inside a container);
+    // the sandboxed tools' escaping-symlink guard must then have nothing to
+    // remove (on Docker tasks it runs before the first turn and removed
+    // exactly these links in main-v1 stage 1)
+    let seen = null, removed = null;
+    const probe = { name: "probe", async run(_task, ctx) {
+      seen = readlinkSync(join(ctx.workdir, "docs", "b", "icon.png"));
+      removed = removeEscapingSymlinks(ctx.workdir);
+      return { ok: true, turns: 0, toolCalls: 0, usage: null, events: [] };
+    } };
+    await new TaskRunner().run({ ...buildTask(instance(), { repoDir: repo }), sandbox: { type: "native", timeout: 60 } }, probe);
+    assert.equal(seen, "../a/icon.png");
+    assert.deepEqual(removed, []);
+    const run = await replay(PATCH);
+    const pred = toPrediction(run, "kab-test");
+    assert.ok(!pred.model_patch.includes("icon.png"), pred.model_patch.slice(0, 400));
+    const fresh = join(dir, "fresh");
+    execFileSync("git", ["clone", "-q", repo, fresh]);
+    execFileSync("git", ["apply", "--check", "-"], { cwd: fresh, input: pred.model_patch });
+    assert.equal(toPrediction(await replay(""), "kab-test").model_patch, "", "no change → empty patch even with symlinks");
   });
 
   it("rejects records that are not SWE-bench runs", () => {
