@@ -58,3 +58,17 @@ A.X 2.27, Solar 2.12 (medians 0.97–1.24).
 - Tests: upstage-cli `tests/m49` (11, two mutation-checked);
   harness `tests/h30` (the budget reaches the real loop; request within
   budget; unfittable task never sent and not classified as infrastructure).
+
+## Amendment (2026-10-29, M2 pilot)
+
+The first live pilot showed the worst-case calibration was too pessimistic
+for typical content: on Kanana 2 (16K), after one file read the loop
+estimated the next request at 8,024 tokens against an input budget of 7,372
+and stopped with `context_exhausted`, while the server had counted the first
+request at ~1.7K tokens. upstage-cli#16 (`23f8136`) therefore calibrates from
+the server: after each completion the ratio of `usage.prompt_tokens` to the
+base heuristic of exactly what was sent (max over the run, clamped to
+[0.25, 4]) replaces the calibrated chars/token, plus 10%. The worst-case
+calibration still governs the first request. Shared infrastructure, applied
+identically to every model; made before the protocol freeze.
+
