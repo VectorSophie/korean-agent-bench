@@ -16,15 +16,20 @@ korean-agent-bench/
 │   ├── src/sandbox/         native + Docker sandboxes, trusted read-only mount registry
 │   ├── src/evaluation/      checks, trusted evaluators, scorer, pass@k, failure taxonomy
 │   ├── src/benchmark/       benchmark-v1 manifest, fixture QA
-│   ├── tasks/ fixtures/     synthetic development task sets (datasets/registry.json)
+│   ├── src/benchmarks/      SWE-bench Verified prediction generation (no scoring)
+│   ├── src/preflight/       serving preflight: declared vs observed (ADR 0008)
+│   ├── tasks/ fixtures/     synthetic regression fixtures (datasets/registry.json)
 │   ├── benchmarks/v1/       benchmark-v1 manifest + reference solutions
 │   ├── docs/                harness docs and research reports (history preserved)
-│   └── tests/               h1–h25 (unit tier + Docker tier)
+│   └── tests/               h1–h29 (unit tier + Docker tier)
 ├── vendor/upstage-cli/      git submodule, pinned — the agent under test
-├── datasets/registry.json   what each task set is and whether it may be compared on (ADR 0003)
+├── benchmarks/              official-tooling integration: setup.sh, bfcl/, swebench/ (ADR 0009)
+├── datasets/                registry.json (ADR 0003); bfcl/ and swe-bench-verified/ subsets, index, feasibility
+├── models/serving/          maintained launchers (ADR 0008)
 ├── models/serving-records/  model-serving evidence, verbatim + SHA256SUMS (ADR 0005)
-├── results/                 raw run records, verbatim + SHA256SUMS (ADR 0005)
-└── docs/                    STATUS, ARCHITECTURE, MIGRATION, VERIFY, adr/, models/, protocol/, research/
+├── results/                 run records and validation evidence, verbatim + SHA256SUMS (ADR 0005)
+├── scripts/                 check-evidence.sh (disclosure guard)
+└── docs/                    STATUS, ARCHITECTURE, MIGRATION, VERIFY, adr/, audits/, models/, protocol/, research/
 ```
 
 ## Dependency boundary
@@ -90,6 +95,29 @@ Nothing in upstage-cli imports the harness.
    task spec hash, repo commits, agent, model configuration as declared in
    `local-models.mjs`, limits, tools, environment image.
 
+## External benchmark data flow (ADR 0009)
+
+```mermaid
+flowchart LR
+    subgraph bfcl["BFCL official track"]
+        W["bfcl-eval wheel<br/>(sha256-verified; data inside)"] --> SS["select_subset.py<br/>subset-v1.json"]
+        SS --> GEN["kab_bfcl.py generate<br/>(upstream OpenAICompletionsHandler, FC)"]
+        GEN -->|chat completions + tools| SRV1["model server"]
+        GEN --> RES["result/*.json"] --> EV["kab_bfcl.py evaluate --partial-eval<br/>(upstream checkers)"]
+    end
+    subgraph swe["SWE-bench Verified"]
+        PQ["parquet @ pinned HF revision<br/>(sha256-verified, .cache/)"] --> SUB["subset-v1.json"]
+        SUB --> RUN["harness swebench run<br/>(upstage-cli agent, official image, no local checks)"]
+        RUN -->|chat completions| SRV2["model server"]
+        RUN --> PRED["harness swebench predictions<br/>(official schema)"]
+        PRED --> OFF["evaluate.py → swebench.harness.run_evaluation<br/>(official images, log parsers)"]
+    end
+```
+
+BFCL generation never involves upstage-cli; SWE-bench generation always does.
+Scoring is upstream code in both. Preflight (`harness preflight`) precedes any
+live run of either.
+
 ## Where things are decided
 
 | Concern | Lives in |
@@ -99,3 +127,6 @@ Nothing in upstage-cli imports the harness.
 | What a task set may be used for | `datasets/registry.json` |
 | How an agent behaves (loop, tools, prompts) | `vendor/upstage-cli` at its pin |
 | How a run is conducted and reported | `docs/protocol/EXPERIMENT_PROTOCOL.md` |
+| External benchmark versions, subsets, licenses | `datasets/registry.json`, `datasets/*/subset-v1.json` |
+| How external benchmarks are run and scored | `benchmarks/README.md`, ADR 0009 |
+| Whether the live server matches the declaration | `harness preflight` (ADR 0008) |

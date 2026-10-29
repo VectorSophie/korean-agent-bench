@@ -5,6 +5,7 @@ import { replayCommand } from "./commands/replay.mjs";
 import { reviewCommand } from "./commands/review.mjs";
 import { importCommand } from "./commands/import.mjs";
 import { preflightCommand } from "./commands/preflight.mjs";
+import { swebenchCommand } from "./commands/swebench.mjs";
 
 function parseArgs(argv) {
   const positional = [];
@@ -62,6 +63,9 @@ export async function main() {
     case "preflight":
       await preflightCommand(rest, options);
       break;
+    case "swebench":
+      await swebenchCommand(rest, options);
+      break;
     default:
       console.log(`harness — upstage-cli evaluation harness v2.4.0
 
@@ -73,6 +77,7 @@ Commands:
   harness review  <run.json>
   harness import  <swebench|aider> <source> [--out-dir tasks/]
   harness preflight --agent <local model> [--base-url URL] [--container NAME] [--json]
+  harness swebench run|predictions ...   (SWE-bench Verified prediction generation)
 
 Options:
   --agent          Agent to use (default: mock); repeat for compare

@@ -22,11 +22,14 @@ export class PatchTracker {
     this.workdir = workdir;
   }
 
-  _git(args, { allowFail = false } = {}) {
+  // raw: keep stdout byte-exact (a unified diff's trailing newline and a final
+  // blank context line " " are part of the patch; trimming corrupts the hunk).
+  _git(args, { allowFail = false, raw = false } = {}) {
+    const out = (buf) => (raw ? buf.toString("utf8") : buf.toString("utf8").trim());
     try {
-      return execFileSync("git", [...IDENT, ...args], { cwd: this.workdir, stdio: "pipe", maxBuffer: 64 * 1024 * 1024 }).toString("utf8").trim();
+      return out(execFileSync("git", [...IDENT, ...args], { cwd: this.workdir, stdio: "pipe", maxBuffer: 64 * 1024 * 1024 }));
     } catch (err) {
-      if (allowFail) return err.stdout ? err.stdout.toString("utf8").trim() : "";
+      if (allowFail) return err.stdout ? out(err.stdout) : "";
       throw new Error(`git ${args.join(" ")} failed: ${err.stderr?.toString("utf8") || err.message}`, { cause: err });
     }
   }
@@ -92,7 +95,7 @@ export class PatchTracker {
     // Stage all changes so diff is accurate even without agent committing
     this._git(["add", "-A"], { allowFail: true });
 
-    const unifiedDiff = this._git(["diff", "--cached", initialCommit], { allowFail: true });
+    const unifiedDiff = this._git(["diff", "--cached", initialCommit], { allowFail: true, raw: true });
     const numstat = this._git(["diff", "--cached", "--numstat", initialCommit], { allowFail: true });
     const filesChanged = this._git(["diff", "--cached", "--name-only", initialCommit], { allowFail: true }).split("\n").filter(Boolean);
 

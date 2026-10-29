@@ -1,0 +1,395 @@
+{
+ "mode": "invalid",
+ "servedModelName": "kab-offline-mock",
+ "entries": {
+  "Find the area of a triangle with a base of 10 units and height of 5 units.": {
+   "id": "simple_python_0",
+   "kind": "single",
+   "calls": [
+    {
+     "name": "calculate_triangle_area",
+     "args": {
+      "base": 10,
+      "height": 5,
+      "unit": "units"
+     }
+    }
+   ]
+  },
+  "Calculate the hypotenuse of a right triangle given the lengths of the other two sides as 4 and 5.": {
+   "id": "simple_python_2",
+   "kind": "single",
+   "calls": [
+    {
+     "name": "math_hypot",
+     "args": {
+      "x": 4,
+      "y": 5
+     }
+    }
+   ]
+  },
+  "Solve a quadratic equation where a=2, b=6, and c=5": {
+   "id": "simple_python_4",
+   "kind": "single",
+   "calls": [
+    {
+     "name": "solve_quadratic_equation",
+     "args": {
+      "a": 2,
+      "b": 6,
+      "c": 5
+     }
+    }
+   ]
+  },
+  "Help me initialize the GIS geometry presentation in a user interface, providing a specific result set controller `mapController` and a composite UI element `mapArea` to display the GIS data?": {
+   "id": "simple_java_0",
+   "kind": "single",
+   "calls": [
+    {
+     "name": "GeometryPresentation_createPresentation",
+     "args": {
+      "controller": "mapController",
+      "parent": "mapArea"
+     }
+    }
+   ]
+  },
+  "Help me validate user input in a form field with the ID 'userInputField' after the user has finished typing?": {
+   "id": "simple_javascript_0",
+   "kind": "single",
+   "calls": [
+    {
+     "name": "validateUserInput",
+     "args": {
+      "inputField": "userInputField",
+      "isComplete": "true"
+     }
+    }
+   ]
+  },
+  "Calculate the area of a triangle, given the lengths of its three sides: 3, 4, and 5.": {
+   "id": "multiple_1",
+   "kind": "single",
+   "calls": [
+    {
+     "name": "math_triangle_area_heron",
+     "args": {
+      "side1": 3,
+      "side2": 4,
+      "side3": 5
+     }
+    }
+   ]
+  },
+  "What is the capital of Brazil?": {
+   "id": "multiple_2",
+   "kind": "single",
+   "calls": [
+    {
+     "name": "country_info_capital",
+     "args": {
+      "country": "Brazil"
+     }
+    }
+   ]
+  },
+  "Get the protein sequence of human HbA1c, normal hemoglobin, and rat hemoglobin and their 3D models": {
+   "id": "parallel_3",
+   "kind": "single",
+   "calls": [
+    {
+     "name": "protein_info_get_sequence_and_3D",
+     "args": {
+      "protein_name": "human HbA1c",
+      "model_3d": true
+     }
+    },
+    {
+     "name": "protein_info_get_sequence_and_3D",
+     "args": {
+      "protein_name": "normal hemoglobin",
+      "model_3d": true
+     }
+    },
+    {
+     "name": "protein_info_get_sequence_and_3D",
+     "args": {
+      "protein_name": "rat hemoglobin",
+      "model_3d": true
+     }
+    }
+   ]
+  },
+  "Calculate the body mass index for a person who is 6 feet tall and weighs 80 kg, also for a person who is 5.6 feet and weighs 60 kg.": {
+   "id": "parallel_4",
+   "kind": "single",
+   "calls": [
+    {
+     "name": "calculate_bmi",
+     "args": {
+      "height": 6.0,
+      "weight": 80
+     }
+    },
+    {
+     "name": "calculate_bmi",
+     "args": {
+      "height": 5.6,
+      "weight": 60
+     }
+    }
+   ]
+  },
+  "Find the sum of all the multiples of 3 and 5 between 1 and 1000. Also find the product of the first five prime numbers.": {
+   "id": "parallel_multiple_0",
+   "kind": "single",
+   "calls": [
+    {
+     "name": "math_toolkit_sum_of_multiples",
+     "args": {
+      "lower_limit": 1,
+      "upper_limit": 1000,
+      "multiples": [
+       3,
+       5
+      ]
+     }
+    },
+    {
+     "name": "math_toolkit_product_of_primes",
+     "args": {
+      "count": 5
+     }
+    }
+   ]
+  },
+  "Find the area and perimeter of a circle with a radius of 5 and also find the circumference of a circle with diameter of 10.": {
+   "id": "parallel_multiple_2",
+   "kind": "single",
+   "calls": [
+    {
+     "name": "circle_calculate_area",
+     "args": {
+      "radius": 5
+     }
+    },
+    {
+     "name": "circle_calculate_circumference",
+     "args": {
+      "diameter": 10
+     }
+    }
+   ]
+  },
+  "Compute the derivative of the function '2x' within the at 1.": {
+   "id": "irrelevance_10",
+   "kind": "single",
+   "calls": []
+  },
+  "Calculate the prime factors of 100.": {
+   "id": "irrelevance_13",
+   "kind": "single",
+   "calls": []
+  },
+  "I need a Comfort Uber ride from 2020 Addison Street, Berkeley, CA, USA, and I can wait up to 600 seconds for it.": {
+   "id": "live_simple_2-2-0",
+   "kind": "single",
+   "calls": [
+    {
+     "name": "uber_ride",
+     "args": {
+      "loc": "2020 Addison Street, Berkeley, CA, USA",
+      "type": "comfort",
+      "time": 600
+     }
+    }
+   ]
+  },
+  "Im at Riga, Latvia, Can you tell me the current temperature?": {
+   "id": "live_simple_7-3-3",
+   "kind": "single",
+   "calls": [
+    {
+     "name": "get_current_weather",
+     "args": {
+      "location": "Riga, Latvia",
+      "unit": "fahrenheit"
+     }
+    }
+   ]
+  },
+  "NO SUGAR in my coffee loll. Can you change my drink with drink id '1234' order to have no sweetness, and also make sure it's served hot?": {
+   "id": "live_multiple_1-0-1",
+   "kind": "single",
+   "calls": [
+    {
+     "name": "ChaDri_change_drink",
+     "args": {
+      "drink_id": "1234",
+      "new_preferences": {
+       "sweetness_level": "none",
+       "temperature": "hot"
+      }
+     }
+    }
+   ]
+  },
+  "T\u00ecm chuy\u1ebfn xe cho t\u00f4i t\u1eeb H\u00e0 N\u1ed9i lo\u1ea1i Plus trong 10 ph\u00fat n\u1eefa. Address: 123 Hanoi Street": {
+   "id": "live_multiple_4-2-1",
+   "kind": "single",
+   "calls": [
+    {
+     "name": "uber_ride",
+     "args": {
+      "loc": "123 Hanoi Street",
+      "type": "plus",
+      "time": 10
+     }
+    }
+   ]
+  },
+  "I want to go to whistler for skiing. Can you give me the 5 day forecast for both the top and bottom of the mountain.": {
+   "id": "live_irrelevance_9-0-9",
+   "kind": "single",
+   "calls": []
+  },
+  "Using 'api_key_2', retrieve the IDs of graphs containing IP 145.34.45.56 on VirusTotal. Don't forget to set the cursor as 'cursor_b' and limit the results to 8.": {
+   "id": "live_irrelevance_15-2-3",
+   "kind": "single",
+   "calls": []
+  },
+  "I'd like to have a digital painting created. The image should be a detailed portrait of a masked woman, including bright peacock feathers, with an elegant and highly detailed style. It should have a fluid illustration quality, with green highlighted lines and complex patterns, reminiscent of cyberpunk and Alphonse Mucha's art.": {
+   "id": "live_relevance_0-0-0",
+   "kind": "relevance",
+   "calls": [
+    {
+     "name": "search_engine_query",
+     "args": {}
+    }
+   ]
+  },
+  "Move 'final_report.pdf' within document directory to 'temp' directory in document. Make sure to create the directory": {
+   "id": "multi_turn_base_0",
+   "kind": "multi",
+   "turns": [
+    [
+     {
+      "name": "cd",
+      "args": {
+       "folder": "document"
+      }
+     },
+     {
+      "name": "mkdir",
+      "args": {
+       "dir_name": "temp"
+      }
+     },
+     {
+      "name": "mv",
+      "args": {
+       "source": "final_report.pdf",
+       "destination": "temp"
+      }
+     }
+    ],
+    [
+     {
+      "name": "cd",
+      "args": {
+       "folder": "temp"
+      }
+     },
+     {
+      "name": "grep",
+      "args": {
+       "file_name": "final_report.pdf",
+       "pattern": "budget analysis"
+      }
+     }
+    ],
+    [
+     {
+      "name": "sort",
+      "args": {
+       "file_name": "final_report.pdf"
+      }
+     }
+    ],
+    [
+     {
+      "name": "cd",
+      "args": {
+       "folder": ".."
+      }
+     },
+     {
+      "name": "mv",
+      "args": {
+       "source": "previous_report.pdf",
+       "destination": "temp"
+      }
+     },
+     {
+      "name": "cd",
+      "args": {
+       "folder": "temp"
+      }
+     },
+     {
+      "name": "diff",
+      "args": {
+       "file_name1": "final_report.pdf",
+       "file_name2": "previous_report.pdf"
+      }
+     }
+    ]
+   ]
+  },
+  "As part of my latest photography project, I need to gather files that have 'test' in their name from any folder in my current directory. Could you help me locate those?": {
+   "id": "multi_turn_base_3",
+   "kind": "multi",
+   "turns": [
+    [
+     {
+      "name": "find",
+      "args": {
+       "path": ".",
+       "name": "test"
+      }
+     }
+    ],
+    [
+     {
+      "name": "cd",
+      "args": {
+       "folder": "projects"
+      }
+     },
+     {
+      "name": "cd",
+      "args": {
+       "folder": "photography"
+      }
+     },
+     {
+      "name": "cp",
+      "args": {
+       "source": "test_image1.jpg",
+       "destination": "backup_tests"
+      }
+     },
+     {
+      "name": "cp",
+      "args": {
+       "source": "test_document.txt",
+       "destination": "backup_tests"
+      }
+     }
+    ]
+   ]
+  }
+ }
+}

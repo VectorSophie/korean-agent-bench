@@ -17,6 +17,7 @@ fairness in detail.
 | Unit / Docker tests | none (mock agent) | harness correctness | no |
 | Fixture QA | synthetic-dev, reference solutions | evaluator and fixture validity | no |
 | Pilot | synthetic-dev | model integration, feasibility | no — "pilot, not a benchmark" |
+| Official-tool offline validation | external data, mock model / replayed patches | pipeline correctness | no — never a score |
 | Main comparison | external, `mainComparison: admitted` | model comparison | yes, under the admitting ADR |
 
 ## 2. Before serving a model
@@ -71,9 +72,18 @@ integrity, free GPU memory at run time.
 - A summary is written after its records are committed with `SHA256SUMS`,
   and it cites them.
 
-## 6. Open items before a main comparison
+## 6. External benchmarks
 
-Tracked in `docs/STATUS.md`. In short: choose external benchmarks and fixed
-subsets (ADR), integrate them with their upstream evaluators, automate the
-section 3 checks, decide repetitions/seeds and the statistical analysis, and
-decide how infeasible items (context limits) are reported.
+Run and score only as in `benchmarks/README.md` (ADR 0009): BFCL through
+bfcl-eval's own generator and checker; SWE-bench predictions from the harness,
+scored only by `swebench.harness.run_evaluation`. Use the frozen subset files;
+never re-select after seeing results. Report BFCL per category and SWE-bench
+resolve rate in separate tables, each with infeasible (context) and
+infrastructure errors as their own columns; never drop infeasible instances
+from the denominator.
+
+## 7. Open items before a main comparison
+
+Tracked in `docs/STATUS.md` ("Blockers"): upstage-cli context limits for the
+local models, a live preflight, frozen envelopes and admission by ADR, the
+statistical analysis, and the Korean condition.

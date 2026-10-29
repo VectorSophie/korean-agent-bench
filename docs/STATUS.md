@@ -1,82 +1,82 @@
 # Status
 
-Snapshot as of **2026-10-29**, immediately after the migration from
-upstage-cli. Update this file with a new date whenever a claim below
-changes; do not edit history in place.
+Snapshot as of **2026-10-29** (end of the consolidation session). Update with
+a new date whenever a claim below changes. Legend: **implemented** (code
+exists) · **tested** (automated tests) · **verified** (exercised against the
+real upstream tool or data) · **not executed** · **planned** · **unsupported**.
 
-## What exists
+## Repository state
 
-- **A working evaluation harness** that drives upstage-cli's own agent loop
-  and tools (pinned submodule, ADR 0002) against the Upstage API or four
-  locally served Korean models, in native or Docker sandboxes, with trusted
-  evaluators, fail-closed isolation and per-run provenance.
-- **Four models integrated** — Kanana 2, EXAONE 4.5 (thinking on/off),
-  A.X 4.0, Solar Open 2 (unofficial Nota NVFP4) — documented in
-  [`models/`](models/README.md). All `serving_ready` and
-  `harness_integrated`; **none `benchmark_ready`**.
-- **Synthetic regression fixtures**: benchmark-v1, 15 rows / 12 families,
-  all images digest-pinned (ADR 0007).
-- **A dataset registry** that excludes every synthetic set from the main
-  comparison and lists BFCL and SWE-bench Verified as pinned, planned
-  candidates (ADR 0003).
-- **Evidence under version control**: model-serving records and the raw
-  records of the 2026-10 pilot, with checksums (ADR 0005).
+| Area | State | Evidence |
+|---|---|---|
+| Harness extracted from upstage-cli with history (41 commits) | verified | `docs/MIGRATION.md` |
+| upstage-cli as pinned submodule `7380ef6` (harness removed upstream) | verified | ADR 0002 pin history; `h24` (incl. every imported name exported at the pin) |
+| upstage-cli#12 closed unmerged; held-out candidates retired as disclosed | done | `docs/MIGRATION.md` "PR #12" |
+| upstage-cli#13 (cleanup) and #14 (session-index fix) merged | done | upstage-cli `7380ef6`, `160292b` |
+| Synthetic fixtures reduced to 15 rows / 12 families, all excluded from comparison | tested | ADR 0007; `h20`, `h25` |
+| Run provenance: harness + upstage-cli commit/pin/dirty | tested | `h24` |
+| Serving preflight (declared vs observed, fail closed) | tested against fakes; **not executed against a live server** | ADR 0008; `h26`, `h27` |
+| Solar launcher by digest at 8192 | tested (`print-config`, fake docker); **not executed** | `models/serving/kserve-solar.sh`; `h27` |
+| Evidence disclosure audit; CI guard | done | `docs/audits/2026-10-29-evidence-disclosure-audit.md`; `scripts/check-evidence.sh` |
+| BFCL official pipeline | verified offline (official generate + evaluate, mock model) | ADR 0009; `results/bfcl-offline-validation-2026-10-29/` |
+| SWE-bench Verified official scoring | verified offline on 1 instance (official evaluator, official image) | `results/swebench-offline-validation-2026-10-29/` |
+| SWE-bench agent prediction pipeline | verified with a replay agent; tested (`h29`) | same |
+| Context feasibility for the SWE-bench subset | computed (preregistered) | `datasets/swe-bench-verified/context-feasibility-v1.json` |
+| Any live model inference in this repository | **not executed** (the 2026-10 pilot predates it) | `results/pilot-2026-10/` |
 
-## Verified (2026-10-29)
+## Verified on 2026-10-29
 
-Commands in [`VERIFY.md`](VERIFY.md); full table and baseline comparison in
-[`MIGRATION.md`](MIGRATION.md#verification). On `main`: check, lint, unit
-361/361, Docker tier 35/35, smoke, `benchmark:validate`, evidence checksums.
-After korean-agent-bench#1: unit 371/371, Docker 35/35, `benchmark:qa`
-15/15. Not run: any GPU workload, model server or live inference.
+Local (Node v24.21.0, Python 3.12.3, Docker): harness unit **405/405**,
+Docker tier **35/35**, lint, check, smoke, `benchmark:validate` (15, 0
+warnings), `benchmark:qa` 15/15, evidence checksums (4 directories), evidence
+guard. BFCL offline validation: official scorer gold **22/22**, invalid
+**0/22** across 12 categories. SWE-bench offline validation: official
+evaluator gold-via-agent-pipeline **resolved**, empty **empty_patch**, wrong
+**unresolved**, malformed **error**. GitHub CI results per PR are listed in
+`docs/MIGRATION.md`.
 
-GitHub CI (Node 22) is green on `main` (unit 361/361, Docker 35/35, evidence
-checksums; run 40829975387) and on the PR #12 import
-([#1](https://github.com/VectorSophie/korean-agent-bench/pull/1)).
+## Blockers before a reportable model comparison
 
-## Not yet established (blocking a main comparison)
-
-1. **External benchmarks are not integrated.** BFCL and SWE-bench Verified
-   are pinned in `datasets/registry.json` but nothing downloads, runs or
-   scores them. Needed: drive the four models through the upstream
-   evaluators (`bfcl_eval`; SWE-bench predictions + `run_evaluation`) without
-   altering evaluation semantics. `harness import swebench` is not this — its
-   checks are pytest approximations (`officialEvalCompatible: false`).
-2. **No benchmark, subset or budget is chosen.** Requires an ADR (ADR 0003,
-   point 5).
-3. **Korean condition undefined.** Both candidates are English. Whether and
-   how to build Korean variants (and who translates/reviews) is open.
-4. **Serving preflight not yet run live.** `harness preflight` and
-   `run --preflight` (ADR 0008) compare declared with observed serving
-   configuration and block mismatches; tested against fakes only (h26, h27).
-5. **Repetitions, seeds and statistics.** Samples are unseeded; the pilot was
-   one attempt per cell. `harness/docs/BENCHMARK_V1_STATISTICS.md` is a draft
-   for the fixture set, not for external benchmarks.
-6. **Context feasibility.** Solar Open 2 is validated only to 8K on this
-   hardware (others 16K). SWE-bench prompts may not fit; how infeasible items
-   are reported must be decided before running.
+1. **upstage-cli context limits for local models.** upstage-cli has no
+   capability entries for `Kanana-2`, `EXAONE-4.5`, `A.X-4.0`,
+   `solar-open2-250b` and uses a 65,536-token fallback. Its repository-context
+   cap (23,592 chars) and context management therefore ignore the validated
+   8K/16K windows. Affects every agent run (SWE-bench especially); not BFCL's
+   official track, which does not use upstage-cli. Fix upstream, move the pin.
+2. **Live preflight.** `harness preflight` has only run against fakes and
+   against this machine with no server up (correctly BLOCKED). The first
+   controlled live session must start with it and keep its output.
+3. **Frozen envelopes.** SWE-bench agent envelope (30 turns, 1800 s, tool
+   set) and BFCL settings are provisional; an ADR must freeze them, admit
+   datasets (`mainComparison: admitted`) and fix the statistical analysis.
+4. **Korean condition undefined.** BFCL and SWE-bench are English; how a
+   Korean variant is produced and reviewed is open (ADR 0003).
 
 ## Known limits
 
-- **One machine, shared.** Measurements are tagged `contended`; models are
-  served one at a time; A.X and Solar need both GPUs.
-- **Solar Open 2 is an unofficial quantization**; quality relative to the
-  official weights is unmeasured. Its launcher runs by image tag (verified on
-  2026-10-29 to resolve to the recorded digest) and defaults to the wrong
-  context length (4096; must be 8192).
-- **Benchmark-v1 tranche v1-initial uses unpinned `node:22-alpine` tags**
-  (14 validate warnings). Tranche v1-dataset pins by digest.
-- **upstage-cli dependencies are installed with Bun** inside the submodule;
-  that `node_modules` is not pinned by this repository beyond upstage-cli's
-  own `bun.lock`.
-- **The live pilot is not reproducible bit-for-bit**: unseeded sampling,
-  contended GPUs, and the run records predate the `upstageCli` provenance
-  field (their `provenance.harness.commit` is an upstage-cli commit).
+- Serving: one machine, shared; contended timings; models served one at a
+  time. Quantization and sampling are `declared_only` in preflight; the
+  checkpoint check is by snapshot directory name.
+- Solar Open 2 is an unofficial NVFP4 quantization and is validated to 8K
+  context; 1 of 100 SWE-bench subset instances is certainly infeasible for it,
+  99 depend on the retrieved repository context.
+- BFCL: subset scored with `--partial-eval` (not comparable to the public
+  leaderboard); `memory`, `web_search`, `format_sensitivity`,
+  `multi_turn_long_context`, `multi_turn_miss_*` not covered; generation has
+  only been exercised against a mock server.
+- SWE-bench: official images are `:latest` tags (digest recorded per run);
+  only one instance was evaluated offline; full-subset evaluation needs about
+  100 images (~1 GB compressed each).
+- An agent-mediated BFCL track is not built.
+- SWE-bench Verified declares no dataset license, so its content is not
+  committed.
+- Synthetic fixtures remain AI-authored; they validate the harness only.
 
-## Open owner decisions
+## Ready for a first live evaluation?
 
-- **Resolved 2026-10-29:** upstage-cli#12 closed unmerged and its branch
-  deleted; its held-out candidates are retired as disclosed;
-  korean-agent-bench#1 reduced and merged (`MIGRATION.md`, "PR #12").
-- **Resolved 2026-10-29:** upstage-cli#13 merged (`7380ef6`); submodule pin
-  moved to it (`MIGRATION.md`, "upstage-cli cleanup").
+**Conditionally, and only for BFCL.** The BFCL official track does not depend
+on blocker 1. A controlled first run of one model on a small BFCL slice is
+technically possible after serving with `models/serving/`, a REPORTABLE
+`harness preflight`, and recording outputs under `results/`. Its numbers would
+be a pilot, not a main-comparison result (blocker 3). SWE-bench agent runs
+should wait for blocker 1.
