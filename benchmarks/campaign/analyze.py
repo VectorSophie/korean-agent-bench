@@ -210,17 +210,23 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("campaign")
     ap.add_argument("--out")
+    ap.add_argument("--stage", type=int, help="SWE-bench: analyze the first N frozen stages (ADR 0011)")
     a = ap.parse_args()
     d = CAMPAIGNS / a.campaign
     spec = json.loads((d / "campaign.json").read_text())
     if spec.get("kind") == "dryrun":
         raise SystemExit("dry-run campaigns are never analyzed")
+    if a.stage:
+        stages = spec["swebench"].get("stages") or []
+        if not 1 <= a.stage <= len(stages):
+            raise SystemExit(f"campaign has no stage {a.stage}")
+        spec["swebench"]["ids"] = [i for s in stages[:a.stage] for i in s]
     out = pathlib.Path(a.out) if a.out else ROOT / "results" / a.campaign
     out.mkdir(parents=True, exist_ok=True)
     models = spec["models"]
     index = json.loads((ROOT / "datasets/swe-bench-verified/index.json").read_text())["instances"]
     repo_of = {x["instance_id"]: x["repo"] for x in index}
-    summary = {"campaign": a.campaign, "kind": spec.get("kind"), "protocolSha256": spec.get("protocolSha256"), "models": models, "bfcl": {}, "swebench": {}}
+    summary = {"campaign": a.campaign, "kind": spec.get("kind"), "protocolSha256": spec.get("protocolSha256"), "models": models, "swebenchStage": a.stage, "bfcl": {}, "swebench": {}}
     all_rows = []
 
     # BFCL

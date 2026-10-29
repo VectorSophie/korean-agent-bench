@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createHash } from "node:crypto";
 
 const REPO_ROOT = resolve(fileURLToPath(import.meta.url), "../../..");
 const registry = JSON.parse(readFileSync(join(REPO_ROOT, "datasets/registry.json"), "utf8"));
@@ -48,6 +49,15 @@ describe("dataset registry", () => {
   it("admits nothing without an ADR", () => {
     for (const d of registry.datasets.filter((x) => x.mainComparison === "admitted")) {
       assert.ok(d.admittedBy && existsSync(join(REPO_ROOT, d.admittedBy)), `${d.id}: admittedBy must name an ADR file`);
+    }
+  });
+
+  it("keeps each admitting protocol frozen (sha256 recorded at the freeze)", () => {
+    for (const d of registry.datasets.filter((x) => x.mainComparison === "admitted")) {
+      assert.ok(d.protocol, `${d.id}: admitted without a protocol file`);
+      const body = readFileSync(join(REPO_ROOT, d.protocol));
+      const frozen = readFileSync(join(REPO_ROOT, `${d.protocol}.sha256`), "utf8").trim().split(/\s+/)[0];
+      assert.equal(createHash("sha256").update(body).digest("hex"), frozen, `${d.protocol} changed after the freeze`);
     }
   });
 

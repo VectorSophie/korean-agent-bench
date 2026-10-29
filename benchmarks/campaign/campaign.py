@@ -470,7 +470,9 @@ def instance_rows():
     return _ROWS
 
 
-SWE_AGENT_TIMEOUT_S = 1800
+# Must match ENVELOPE.timeoutSec (harness/src/benchmarks/swebench.mjs); the outer
+# subprocess timeout adds 15 minutes so the agent's own wall clock always binds first.
+SWE_AGENT_TIMEOUT_S = 2700
 
 
 def prepare(name):
@@ -486,17 +488,32 @@ def prepare(name):
     print(r.stdout.strip().splitlines()[-1] if r.stdout.strip() else "prepared")
 
 
-def swebench(name, model, concurrency):
+def stage_ids(spec, stage):
+    """Nested stages (ADR 0011): stage N = the first N frozen stages. Without a
+    stage, all ids."""
+    stages = spec["swebench"].get("stages")
+    if stage is None:
+        return spec["swebench"]["ids"]
+    if not stages or not 1 <= stage <= len(stages):
+        sys.exit(f"campaign has no stage {stage}")
+    return [i for s in stages[:stage] for i in s]
+
+
+def swebench(name, model, concurrency, stage=None):
     d, spec = campaign(name)
     require_session(d, model)
     require_clean(spec)
     with Lock(d / model / "swebench.lock"):
-        return _swebench(d, spec, model, concurrency)
+        return _swebench(d, spec, model, concurrency, stage_ids(spec, stage))
 
 
-def _swebench(d, spec, model, concurrency):
+def _swebench(d, spec, model, concurrency, ids):
+    env_t = sh(["node", "-e", "import('./harness/src/benchmarks/swebench.mjs').then(m => console.log(m.ENVELOPE.timeoutSec))"]).stdout.strip()
+    if env_t != str(SWE_AGENT_TIMEOUT_S):
+        sys.exit(f"SWE_AGENT_TIMEOUT_S {SWE_AGENT_TIMEOUT_S} != ENVELOPE.timeoutSec {env_t}")
+    # the configuration hash covers the whole frozen spec (all stages), so
+    # running stage 2 later resumes the same configuration
     h = config_hash(spec, model, "swebench")
-    ids = spec["swebench"]["ids"]
 
     def work(iid):
         while True:
@@ -517,13 +534,13 @@ def final_attempt(d, model, iid):
     return json.loads(p[-1].read_text()) if p else None
 
 
-def swebench_eval(name, model, workers):
+def swebench_eval(name, model, workers, stage=None):
     d, spec = campaign(name)
     require_clean(spec)
     out = d / model / "swebench" / "eval"
     preds = d / model / "swebench" / "predictions.jsonl"
     rows, runs, accounting = [], [], {}
-    for iid in spec["swebench"]["ids"]:
+    for iid in stage_ids(spec, stage):
         a = final_attempt(d, model, iid)
         if not a or not a.get("final"):
             sys.exit(f"{iid}: no final attempt yet; finish the swebench step first")
@@ -605,6 +622,7 @@ def main():
     ap.add_argument("--threads", type=int, default=8)
     ap.add_argument("--concurrency", type=int, default=4)
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--stage", type=int)
     a = ap.parse_args()
     if a.cmd == "pull-images":
         return pull_images(a.campaign)
@@ -616,8 +634,8 @@ def main():
      "serve": lambda: serve(a.campaign, a.model),
      "stop": lambda: stop(a.campaign, a.model),
      "bfcl": lambda: bfcl(a.campaign, a.model, a.threads),
-     "swebench": lambda: swebench(a.campaign, a.model, a.concurrency),
-     "swebench-eval": lambda: swebench_eval(a.campaign, a.model, a.workers)}[a.cmd]()
+     "swebench": lambda: swebench(a.campaign, a.model, a.concurrency, a.stage),
+     "swebench-eval": lambda: swebench_eval(a.campaign, a.model, a.workers, a.stage)}[a.cmd]()
 
 
 if __name__ == "__main__":

@@ -14,8 +14,10 @@ provenance in every run record, REPORTABLE preflights, and that the summary
 agrees. Writes verification.json next to the summary; exits 1 on any failure.
 """
 import argparse
+import hashlib
 import json
 import pathlib
+import subprocess
 import sys
 from collections import Counter
 
@@ -46,6 +48,36 @@ def main():
         checks.append({"check": name, "ok": bool(ok), "detail": detail})
         if not ok:
             failures.append(f"{name}: {detail}")
+
+    # ── frozen protocol (main campaigns) ──
+    if spec.get("kind") == "main":
+        proto_p = ROOT / spec["protocol"]
+        raw = proto_p.read_bytes() if proto_p.exists() else b""
+        check("protocol: file sha256 == campaign protocolSha256", hashlib.sha256(raw).hexdigest() == spec.get("protocolSha256"))
+        if raw:
+            proto = json.loads(raw)
+            check("protocol: models", spec["models"] == proto["models"]["primary"])
+            check("protocol: BFCL ids", spec["bfcl"]["ids"] == proto["bfcl"]["ids"])
+            check("protocol: SWE-bench ids and stages", spec["swebench"]["ids"] == proto["swebench"]["ids"]
+                  and spec["swebench"]["stages"] == [proto["swebench"]["stage1"], proto["swebench"]["stage2"]])
+            # every BFCL session and SWE-bench attempt ran on a commit whose code
+            # trees equal the frozen ones (documentation commits may differ)
+            def trees_at(commit, _c={}):
+                if commit not in _c:
+                    _c[commit] = {k: subprocess.run(["git", "rev-parse", f"{commit}:{k}"], cwd=ROOT, capture_output=True, text=True).stdout.strip()
+                                  for k in proto["code"]["trees"]}
+                return _c[commit]
+            for m in spec["models"]:
+                commits = set()
+                rp = d / m / "bfcl" / "run.json"
+                if rp.exists():
+                    commits |= {s_["git"]["commit"] for s_ in json.loads(rp.read_text()).get("sessions", [])}
+                for ap_ in (d / m / "swebench" / "attempts").glob("*/attempt-*.json"):
+                    a_ = json.loads(ap_.read_text())
+                    if a_.get("run"):
+                        commits.add(json.loads((d / a_["run"]).read_text())["provenance"]["harness"]["commit"])
+                bad = sorted(c for c in commits if trees_at(c) != proto["code"]["trees"])
+                check(f"protocol: {m} ran on the frozen code", commits and not bad, f"{len(commits)} commits, mismatched {bad}")
 
     # ── BFCL ──
     wanted = {i for ids in spec["bfcl"]["ids"].values() for i in ids}
@@ -85,6 +117,9 @@ def main():
 
     # ── SWE-bench ──
     swe_ids = spec["swebench"]["ids"]
+    stage = summary.get("swebenchStage")
+    if stage:
+        swe_ids = [i for s in spec["swebench"]["stages"][:stage] for i in s]
     check("swebench: subset ids unique", len(set(swe_ids)) == len(swe_ids))
     for m in spec["models"]:
         base = d / m / "swebench"
@@ -92,6 +127,8 @@ def main():
             check(f"swebench/{m}: reported as not executed", summary["swebench"].get(m, {}).get("status") == "not executed")
             continue
         cfg = cfgs[m]
+        acc = json.loads((base / "accounting.json").read_text()) if (base / "accounting.json").exists() else {}
+        check(f"swebench/{m}: evaluated ids == analyzed ids", sorted(acc) == sorted(swe_ids), f"{len(acc)} vs {len(swe_ids)}")
         missing, over, prov_bad, pf_bad = [], [], [], []
         for iid in swe_ids:
             att = sorted((base / "attempts" / iid).glob("attempt-*.json"))
