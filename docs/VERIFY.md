@@ -35,14 +35,27 @@ npm run benchmark:qa                 # Docker: each fixture fails at baseline, p
 ```
 
 Expected on `main` as of 2026-10-29 (submodule at `7380ef6`): unit
-372/372, Docker 35/35, `validate: OK (15 tasks, 0 warnings)`, `qa: 15/15`.
+405/405, Docker 35/35, `validate: OK (15 tasks, 0 warnings)`, `qa: 15/15`.
 
-## Evidence integrity
+## Evidence integrity and disclosure
 
 ```bash
-(cd models/serving-records && sha256sum -c SHA256SUMS)
-(cd results/pilot-2026-10 && sha256sum -c SHA256SUMS)
+for d in models/serving-records results/*/; do (cd "$d" && sha256sum -c --quiet SHA256SUMS) && echo "ok $d"; done
+scripts/check-evidence.sh
 ```
+
+## External benchmarks (official tooling, offline)
+
+```bash
+benchmarks/setup.sh all                                            # wheel sha256 enforced
+.cache/venv-bfcl/bin/python benchmarks/bfcl/select_subset.py --check
+.cache/venv-bfcl/bin/python benchmarks/bfcl/validate_offline.py    # expect PASS: gold 1.0, invalid 0.0 per category
+.cache/venv-swebench/bin/python benchmarks/swebench/acquire.py --check --export
+python3 benchmarks/swebench/select_subset.py --check
+.cache/venv-swebench/bin/python benchmarks/swebench/validate_offline.py --allow-pull   # Docker; ~1 GB image
+```
+
+Expected: both validations PASS (see `results/*-offline-validation-2026-10-29/summary.json`).
 
 ## Provenance of the migrated history
 

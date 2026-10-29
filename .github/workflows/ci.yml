@@ -66,5 +66,28 @@ jobs:
       - uses: actions/checkout@v4
       - run: (cd models/serving-records && sha256sum -c SHA256SUMS)
       - run: (cd results/pilot-2026-10 && sha256sum -c SHA256SUMS)
+      - run: (cd results/bfcl-offline-validation-2026-10-29 && sha256sum -c SHA256SUMS)
+      - run: (cd results/swebench-offline-validation-2026-10-29 && sha256sum -c SHA256SUMS)
       - name: Evidence disclosure guard
         run: scripts/check-evidence.sh
+
+  external-benchmarks:
+    name: External benchmarks (offline, official tooling)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Pinned tool environments (wheel sha256 enforced)
+        run: benchmarks/setup.sh all
+      - name: BFCL subset reproduces from the pinned data
+        run: .cache/venv-bfcl/bin/python benchmarks/bfcl/select_subset.py --check
+      - name: BFCL official generate + evaluate against a mock
+        run: .cache/venv-bfcl/bin/python benchmarks/bfcl/validate_offline.py
+      - name: SWE-bench Verified parquet sha256 and metadata index
+        run: .cache/venv-swebench/bin/python benchmarks/swebench/acquire.py --check
+      - name: SWE-bench subset reproduces from the index
+        run: python3 benchmarks/swebench/select_subset.py --check
+      # The official SWE-bench evaluator run (benchmarks/swebench/validate_offline.py)
+      # pulls a ~1 GB instance image and is run locally, not in CI.

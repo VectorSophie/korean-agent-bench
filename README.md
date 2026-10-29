@@ -6,11 +6,12 @@ agent loop and tools of [upstage-cli](https://github.com/VectorSophie/upstage-cl
 in isolated sandboxes, with trusted evaluators and per-run provenance.
 
 **Status (2026-10-29): infrastructure verified, no model comparison yet.**
-The harness, model integration and development fixtures work; the main
-comparison will use established external benchmarks (BFCL, SWE-bench
-Verified), which are pinned but not yet integrated. All task sets in this
-repository are AI-authored development fixtures and are excluded from model
-comparison. See [`docs/STATUS.md`](docs/STATUS.md).
+BFCL and SWE-bench Verified are integrated with their official evaluators and
+validated offline (mock model / replayed patches); no model has been run on
+them. A serving preflight checks live servers against their declared
+configuration. The repository's own task sets are AI-authored regression
+fixtures, excluded from model comparison. Blockers and readiness:
+[`docs/STATUS.md`](docs/STATUS.md).
 
 ## Quick start
 
@@ -37,8 +38,11 @@ requires serving it first: [`docs/protocol/EXPERIMENT_PROTOCOL.md`](docs/protoco
 | [`docs/protocol/`](docs/protocol/EXPERIMENT_PROTOCOL.md) | how runs are prepared, executed and reported |
 | [`docs/research/`](docs/research/README.md) | dated research history (pilot, benchmark-v1 audit, trace evaluation) |
 | [`docs/MIGRATION.md`](docs/MIGRATION.md) | what moved from upstage-cli, how, and how it was verified |
-| [`datasets/registry.json`](datasets/registry.json) | every task set, its origin and permitted use |
+| [`benchmarks/`](benchmarks/README.md) | BFCL and SWE-bench Verified: acquisition, generation, official scoring |
+| [`datasets/registry.json`](datasets/registry.json) | every task set, its origin, version, license and permitted use |
+| [`docs/audits/`](docs/audits/) | dated audits (evidence disclosure) |
 | [`harness/`](harness/) | the harness ([`harness/docs/HARNESS.md`](harness/docs/HARNESS.md)) |
+| [`models/serving/`](models/serving/) | maintained model launchers |
 | [`models/serving-records/`](models/serving-records/) | model-serving evidence (verbatim, checksummed) |
 | [`results/`](results/) | raw run records (verbatim, checksummed) |
 | `vendor/upstage-cli` | the agent under test, pinned submodule |

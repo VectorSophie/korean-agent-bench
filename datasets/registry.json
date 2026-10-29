@@ -7,9 +7,18 @@
       "id": "bench-v1-initial",
       "kind": "synthetic-dev",
       "origin": "ai-authored",
-      "locations": ["harness/tasks/benchmark-v1", "harness/fixtures/benchmark-v1", "harness/benchmarks/v1"],
+      "locations": [
+        "harness/tasks/benchmark-v1",
+        "harness/fixtures/benchmark-v1",
+        "harness/benchmarks/v1"
+      ],
       "mainComparison": "excluded",
-      "allowedUses": ["harness development", "evaluator QA", "calibration", "infrastructure pilots"],
+      "allowedUses": [
+        "harness development",
+        "evaluator QA",
+        "calibration",
+        "infrastructure pilots"
+      ],
       "provenance": "Tranche v1-initial: upstage-cli PR #11 (merged 2026-10-29). Tranche v1-dataset: one row (bv1-tr1-json-field) kept from upstage-cli PR #12 (closed unmerged; korean-agent-bench#1, ADR 0007). Authored with an AI coding assistant, then audited (harness/docs/BENCHMARK_V1_SEMANTIC_AUDIT.md, BENCHMARK_V1_DATASET.md). No independent human review.",
       "notes": "Harness regression fixtures: 15 rows / 12 independent families / 2 language pairs (node bin/benchmark.mjs report). See BENCHMARK_V1_DATASET.md for what was dropped and why."
     },
@@ -17,9 +26,21 @@
       "id": "harness-pilot-tasks",
       "kind": "synthetic-dev",
       "origin": "ai-authored",
-      "locations": ["harness/tasks/local", "harness/fixtures/flaky-test", "harness/fixtures/tool-select", "harness/fixtures/multi-step", "harness/fixtures/tool-continuation", "harness/fixtures/tool-continuation-v2", "harness/fixtures/tool-continuation-v3", "harness/fixtures/missing-import"],
+      "locations": [
+        "harness/tasks/local",
+        "harness/fixtures/flaky-test",
+        "harness/fixtures/tool-select",
+        "harness/fixtures/multi-step",
+        "harness/fixtures/tool-continuation",
+        "harness/fixtures/tool-continuation-v2",
+        "harness/fixtures/tool-continuation-v3",
+        "harness/fixtures/missing-import"
+      ],
       "mainComparison": "excluded",
-      "allowedUses": ["model integration pilots", "harness development"],
+      "allowedUses": [
+        "model integration pilots",
+        "harness development"
+      ],
       "provenance": "upstage-cli PR #10 (merged 2026-10-26); used by the live 4x4 pilot (harness/docs/PILOT_REPORT.md).",
       "notes": "Compatibility/feasibility only. The pilot report itself states it is not a benchmark."
     },
@@ -27,9 +48,17 @@
       "id": "harness-examples",
       "kind": "synthetic-dev",
       "origin": "ai-authored",
-      "locations": ["harness/tasks/fix-flaky-test.yaml", "harness/tasks/fix-missing-import.yaml", "harness/tasks/fix-security-bug.yaml", "harness/fixtures/security-bug"],
+      "locations": [
+        "harness/tasks/fix-flaky-test.yaml",
+        "harness/tasks/fix-missing-import.yaml",
+        "harness/tasks/fix-security-bug.yaml",
+        "harness/fixtures/security-bug"
+      ],
       "mainComparison": "excluded",
-      "allowedUses": ["smoke tests", "harness development"],
+      "allowedUses": [
+        "smoke tests",
+        "harness development"
+      ],
       "provenance": "upstage-cli harness Phase A-C (2026-04-27 onward).",
       "notes": "fix-flaky-test.yaml is the CI smoke task."
     },
@@ -38,42 +67,85 @@
       "kind": "external",
       "origin": "published-benchmark",
       "mainComparison": "candidate",
-      "status": "planned",
+      "status": "integrated: official pipeline validated offline with a deterministic mock; no model run",
       "source": {
         "name": "Berkeley Function Calling Leaderboard (BFCL)",
         "repository": "https://github.com/ShishirPatil/gorilla",
         "subdirectory": "berkeley-function-call-leaderboard",
         "revision": "6ea57973c7a6097fd7c5915698c54c17c5b1b6c8",
-        "revisionNote": "Most recent commit touching berkeley-function-call-leaderboard/ as of 2026-10-29 (committed 2026-03-23). Matches PyPI bfcl-eval 2026.3.23.",
+        "revisionNote": "Verified 2026-10-29: most recent commit touching berkeley-function-call-leaderboard/ (2026-03-23); bfcl-eval 2026.3.23 was uploaded to PyPI the same minute. Unchanged from the first recording.",
         "package": "bfcl-eval==2026.3.23",
         "license": "Apache-2.0 (repository)"
       },
       "evaluation": {
-        "upstreamEvaluator": "bfcl_eval (AST checker / executable checker / multi-turn state checker, per category)",
+        "upstreamEvaluator": "bfcl_eval `bfcl evaluate` (AST checker for single-turn categories, relevance/irrelevance checkers, multi-turn state/response checker)",
         "reimplemented": false,
         "taskIdentity": "Upstream category + entry id are kept verbatim; no renumbering, filtering or rewriting without a recorded, reasoned subset definition."
       },
       "localCopy": null,
       "openQuestions": [
-        "Which categories (single-turn AST, multi-turn, live, irrelevance) belong to the main comparison.",
-        "How the four local models are registered with bfcl_eval (OpenAI-compatible handler vs prompt mode); a model's tool parser must not be changed to suit the benchmark.",
-        "Korean: BFCL is English. Any Korean variant is a derived condition and must be reported separately (ADR 0003)."
-      ]
+        "Korean: BFCL is English. Any Korean variant is a derived condition and must be reported separately (ADR 0003).",
+        "Excluded categories (memory, web_search, multi_turn_long_context, multi_turn_miss_*) need their own decision before inclusion."
+      ],
+      "officialEvaluationCompatibility": "upstream-compatible: bfcl-eval's own generate (OpenAICompletionsHandler, FC mode) and evaluate; local models registered through MODEL_CONFIG_MAPPING; subset scored with --partial-eval (upstream warns that partial scores differ from the leaderboard). No overall score is computed.",
+      "publisher": "UC Berkeley Gorilla project (ShishirPatil/gorilla)",
+      "acquisition": {
+        "method": "Data ships inside the pinned bfcl-eval wheel; benchmarks/setup.sh downloads it and verifies the wheel sha256 before installing.",
+        "wheel": "bfcl_eval-2026.3.23-py3-none-any.whl",
+        "wheelSha256": "3bb6dfa5f0c68ad403c9ec50b00db2bb3b4cc9b38ab1ff33f48fe30d853d3a0a",
+        "dataFileSha256": "datasets/bfcl/subset-v1.json -> source.dataFilesSha256",
+        "verifiedOn": "2026-10-29"
+      },
+      "subset": {
+        "file": "datasets/bfcl/subset-v1.json",
+        "selected": 1106,
+        "available": 3841,
+        "categories": {
+          "simple_python": "100/400",
+          "simple_java": "100/100",
+          "simple_javascript": "50/50",
+          "multiple": "100/200",
+          "parallel": "100/200",
+          "parallel_multiple": "100/200",
+          "irrelevance": "100/240",
+          "live_simple": "100/258",
+          "live_multiple": "100/1053",
+          "live_parallel": "16/16",
+          "live_parallel_multiple": "24/24",
+          "live_irrelevance": "100/884",
+          "live_relevance": "16/16",
+          "multi_turn_base": "100/200"
+        },
+        "excludedCategories": {
+          "format_sensitivity": "Not applicable: bfcl-eval skips it for every function-calling (FC) model (_llm_response_generation.py).",
+          "web_search": "Needs a SerpAPI key and outbound search requests (multi_turn_eval/func_source_code/web_search.py).",
+          "memory": "Its vector backend loads the all-MiniLM-L6-v2 embedding model at import (memory_vector.py), i.e. a model download; not validated here.",
+          "multi_turn_long_context": "Designed for long contexts; exceeds the 8192-token context validated for Solar Open 2. Deferred to a separate, explicitly long-context condition, decided before any model run.",
+          "multi_turn_miss_func": "Deferred: resource bound for v1 (multi-turn entries take many requests). Decided before any model run.",
+          "multi_turn_miss_param": "Deferred: same as multi_turn_miss_func."
+        },
+        "method": "Per category, rank upstream entry ids by sha256(seed + ':' + id) and keep the first min(n, category size). Inputs are upstream ids only; no model output is read.",
+        "rationale": "benchmarks/bfcl/subset-v1.config.json sampleSizeRationale"
+      },
+      "transformation": "None to data, prompts or ground truth. Tool names with '.' become '_' (upstream behaviour for OpenAI-style FC; underscore_to_dot=True maps them back in the checker). Temperature is BFCL's default (0.001), not the vendor sampling used by the harness. exaone/exaone-nothink send chat_template_kwargs {enable_thinking} via extra_body (declared adapter, benchmarks/bfcl/kab_bfcl.py).",
+      "contaminationRisk": "BFCL data has been public since 2024 (live categories are user-contributed and also public). Any of the four models may have seen it in training; results are conditional on that and are not presented as contamination-free.",
+      "redistribution": "Apache-2.0 (repository). Small result/score files containing BFCL prompts are committed as validation evidence under that license.",
+      "validationEvidence": "results/bfcl-offline-validation-2026-10-29/"
     },
     {
       "id": "swe-bench-verified",
       "kind": "external",
       "origin": "published-benchmark",
       "mainComparison": "candidate",
-      "status": "planned",
+      "status": "integrated: official evaluator invoked offline on one instance (gold / empty / wrong / malformed predictions); agent prediction pipeline validated with a replay agent; no model run",
       "source": {
         "name": "SWE-bench Verified",
         "repository": "https://huggingface.co/datasets/SWE-bench/SWE-bench_Verified",
         "revision": "78f471bf655a3137b2e8a75af1501690ec009ec3",
-        "revisionNote": "HF dataset sha as of 2026-10-29 (lastModified 2026-08-16). The older princeton-nlp/SWE-bench_Verified is a different repository (sha c104f840cc67f8b6eec6f759ebc8b2693d585d4a, 2025-02-18); do not mix the two.",
+        "revisionNote": "Verified 2026-10-29: HF dataset sha unchanged since the first recording (lastModified 2026-08-16). The older princeton-nlp/SWE-bench_Verified is a different repository; not used.",
         "evaluatorRepository": "https://github.com/SWE-bench/SWE-bench",
-        "evaluatorRevision": "87ab1f6ced28f75ba73ca899dc759b019310944a",
-        "evaluatorRevisionNote": "Tag v5.0.1 (latest git tag on 2026-10-29). PyPI also has swebench 5.0.2 without a matching tag; choose one at protocol freeze.",
+        "evaluatorRevision": "490635b2e9e775dca1e1d6b40ce9dbcff91e780f",
+        "evaluatorRevisionNote": "swebench==5.0.2 (PyPI; untagged commit 'Release 5.0.2'). Replaces the first recording, tag v5.0.1 (87ab1f6ced28f75ba73ca899dc759b019310944a): 5.0.2 is what is installed and run, and its only functional change filters gold predictions to the requested instances (ADR 0009).",
         "license": "Evaluator: MIT. Dataset: no license declared in the HF card metadata; confirm before redistributing anything derived from it."
       },
       "evaluation": {
@@ -84,10 +156,48 @@
       },
       "localCopy": null,
       "openQuestions": [
-        "Subset size given local inference throughput (see models/*.md hardware notes); any subset must be fixed before running and published with its selection rule.",
-        "Context budget: Solar Open 2 is validated only to 8K context on this hardware; SWE-bench prompts may not fit. Decide between excluding, truncating with a recorded rule, or reporting as infeasible.",
+        "BLOCKER for a reportable run: upstage-cli (pinned 7380ef6) has no capability entries for the four served model ids and uses a 65,536-token fallback, so its repository-context cap (23,592 chars) and context management ignore the validated 8K/16K windows (context-feasibility-v1.json).",
+        "Agent envelope (maxTurns 30, timeout 1800 s, tools) is provisional; freeze by ADR before running.",
         "Korean: the issues are English. Any Korean variant is a derived condition and must be reported separately (ADR 0003)."
-      ]
+      ],
+      "officialEvaluationCompatibility": "upstream-compatible scoring: swebench.harness.run_evaluation on the sha256-verified parquet, official per-instance images (dataset `image` column) and log parsers; outcomes copied from the official report. Prediction generation (agent through upstage-cli) is this project's; prompt template recorded below.",
+      "publisher": "SWE-bench team (Princeton/Stanford; Verified subset with OpenAI)",
+      "acquisition": {
+        "method": "benchmarks/swebench/acquire.py downloads the single parquet at the pinned revision into .cache/ (not committed) and verifies its sha256.",
+        "file": "data/test-00000-of-00001.parquet",
+        "sha256": "030cfd7f2a704c4c0226e7f104c725a3b41230b1d3517f9c915ad7ea5be3fa25",
+        "bytes": 6304616,
+        "rows": 500,
+        "acquiredAt": "2026-10-29T07:34:53+00:00",
+        "evaluatorWheelSha256": "b7f0416a1e686eca22c2f749b5f816685a202835032f6683080e2b53545bbb62",
+        "metadataIndex": "datasets/swe-bench-verified/index.json (ids, repos, base commits, versions, difficulty; no issue text, patches or tests)"
+      },
+      "subset": {
+        "file": "datasets/swe-bench-verified/subset-v1.json",
+        "selected": 100,
+        "available": 500,
+        "allocation": {
+          "astropy/astropy": 4,
+          "django/django": 46,
+          "matplotlib/matplotlib": 7,
+          "mwaskom/seaborn": 1,
+          "pallets/flask": 1,
+          "psf/requests": 1,
+          "pydata/xarray": 4,
+          "pylint-dev/pylint": 2,
+          "pytest-dev/pytest": 4,
+          "scikit-learn/scikit-learn": 6,
+          "sphinx-doc/sphinx": 9,
+          "sympy/sympy": 15
+        },
+        "method": "Repository-stratified: proportional allocation (largest remainder, >=1 per repository); within a repository, rank by sha256(seed + ':' + instance_id). Inputs: instance ids and repository names only.",
+        "rationale": "Resolve rate is reported per model on the same instances (paired). n=100 gives a worst-case 95% Wald half-width of 9.8 points for a single model; paired model differences are tested per instance (McNemar). Each instance is a full agent episode plus an evaluation container, so 100 bounds cost; the full 500 remain runnable."
+      },
+      "transformation": "Issue text wrapped in prompt template kab-swebench-prompt-v1 (harness/src/benchmarks/swebench.mjs; sha256 recorded in each run); hints_text not given; no other change. The agent works in the official instance image with network none. Patches are captured byte-exact against base_commit.",
+      "contextFeasibility": "datasets/swe-bench-verified/context-feasibility-v1.json (preregistered; infeasible instances stay in the denominator)",
+      "contaminationRisk": "Issues and fixes are public GitHub history (instance created_at 2013-01-25 to 2023-08-07); models trained after that may have seen them. Results are not presented as contamination-free.",
+      "redistribution": "Evaluator: MIT. Dataset card declares no license: the parquet, issue texts and gold patches are not committed; only ids/metadata and our own artifacts.",
+      "validationEvidence": "results/swebench-offline-validation-2026-10-29/"
     }
   ]
 }
