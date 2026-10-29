@@ -116,7 +116,8 @@ def main():
         "kind": "swebench-official-evaluation",
         "evaluator": f"swebench=={md.version('swebench')}", "dataset": SOURCE["dataset"], "revision": SOURCE["revision"],
         "datasetSha256": SOURCE["sha256"], "runId": a.run_id, "officialReport": reports[0].name,
-        "counts": {c: sum(1 for o in outcomes.values() if o["official"] == c) for c in CATEGORIES},
+        "counts": {**{c: sum(1 for o in outcomes.values() if o["official"] == c) for c in CATEGORIES},
+                   "not_reported": sum(1 for o in outcomes.values() if o["official"] not in CATEGORIES)},
         "outcomes": outcomes,
     }
     (out / "outcomes.json").write_text(json.dumps(summary, indent=1) + "\n")

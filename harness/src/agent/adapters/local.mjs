@@ -4,6 +4,7 @@ import { buildAgentRegistry, extractUsage } from "./upstage.mjs";
 import { getLocalModelConfig, LOCAL_MODEL_IDS } from "../local-models.mjs";
 
 export const CONTEXT_SAFETY_MARGIN_RATIO = 0.05;
+const MODEL_PROTOCOL_ERROR = /\[protocol\][^\n]*(tool call|neither content nor tool|content has invalid type)/i;
 
 import { importFromCli } from "../../upstream.mjs";
 
@@ -153,6 +154,12 @@ export class LocalModelAgent extends CodingAgent {
     if (!result?.ok && stopReason === "model_error") {
       if (/\[deadline\]/.test(errMsg)) {
         stopReason = "budget_exhausted";
+      } else if (MODEL_PROTOCOL_ERROR.test(errMsg)) {
+        // The model's own turn was unusable (no content and no tool call, or a
+        // malformed tool call): model behaviour, recorded as an outcome — not
+        // an infrastructure failure to retry. Body-level protocol errors
+        // (invalid JSON, no choices) still re-throw below.
+        stopReason = "model_protocol_error";
       } else {
         throw new Error(errMsg || "local model adapter error");
       }

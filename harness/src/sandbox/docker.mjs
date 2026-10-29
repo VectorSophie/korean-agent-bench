@@ -35,6 +35,8 @@ export class SandboxConfigError extends Error {
  *     HARNESS_ALLOW_DEPENDENCY_BUILD=1, otherwise setup fails closed. A task
  *     file alone can never turn it on.
  */
+const TASK_ENV_ALLOWED = new Set(["PATH"]);
+
 export class DockerSandbox {
   constructor(task) {
     this.task = task;
@@ -58,6 +60,13 @@ export class DockerSandbox {
     // Host paths are resolved by the task loader; container paths must be
     // absolute and outside the workspace (buildDockerRunArgs enforces this).
     this.readonlyMounts = Array.isArray(this.sandbox.readonlyMounts) ? this.sandbox.readonlyMounts : [];
+    // Task-level environment: PATH only (selects an image's interpreter; no
+    // credentials or arbitrary variables reach the container from a task).
+    const taskEnv = this.sandbox.env || {};
+    for (const key of Object.keys(taskEnv)) {
+      if (!TASK_ENV_ALLOWED.has(key)) throw new SandboxConfigError(`sandbox.env.${key} is not allowed (allowed: ${[...TASK_ENV_ALLOWED].join(", ")})`);
+    }
+    this.taskEnv = taskEnv;
     this.dependencies = this.sandbox.dependencies || "image";
     if (!["image", "build"].includes(this.dependencies)) {
       throw new SandboxConfigError(`sandbox.dependencies must be "image" or "build", got: ${this.dependencies}`);
@@ -104,7 +113,7 @@ export class DockerSandbox {
       network: this.network,
       memory: this.memory,
       cpus: this.cpus,
-      env,
+      env: { ...this.taskEnv, ...(env || {}) },
       command,
       commandArgs: args,
       name,
