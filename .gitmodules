@@ -1,0 +1,3 @@
+[submodule "vendor/upstage-cli"]
+	path = vendor/upstage-cli
+	url = https://github.com/VectorSophie/upstage-cli.git

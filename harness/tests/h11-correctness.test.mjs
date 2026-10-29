@@ -26,7 +26,7 @@ import { NativeSandbox } from "../src/sandbox/native.mjs";
 import { DockerSandbox } from "../src/sandbox/docker.mjs";
 import { loadSwebenchFile } from "../src/task/loaders/swebench.mjs";
 import { redactSecrets, writeReport } from "../src/report/generator.mjs";
-import { ToolRegistry } from "../../src/tools/registry.mjs";
+import { ToolRegistry } from "../../vendor/upstage-cli/src/tools/registry.mjs";
 
 const HERE = fileURLToPath(new URL(".", import.meta.url));
 const FLAKY = resolve(HERE, "../fixtures/flaky-test");

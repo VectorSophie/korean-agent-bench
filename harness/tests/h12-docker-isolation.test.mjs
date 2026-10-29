@@ -15,9 +15,9 @@ import { MockAgent } from "../src/agent/adapters/mock.mjs";
 import { CodingAgent } from "../src/agent/interface.mjs";
 import { confineRegistryToSandbox } from "../src/agent/sandboxed-tools.mjs";
 import { buildAgentRegistry } from "../src/agent/adapters/upstage.mjs";
-import { ToolRegistry } from "../../src/tools/registry.mjs";
-import { runShellTool } from "../../src/tools/builtin/run-shell.mjs";
-import { readFileTool } from "../../src/tools/builtin/read-file.mjs";
+import { ToolRegistry } from "../../vendor/upstage-cli/src/tools/registry.mjs";
+import { runShellTool } from "../../vendor/upstage-cli/src/tools/builtin/run-shell.mjs";
+import { readFileTool } from "../../vendor/upstage-cli/src/tools/builtin/read-file.mjs";
 
 const DOCKER = process.env.SKIP_DOCKER !== "1" && DockerSandbox.isAvailable();
 const skip = DOCKER ? false : "Docker not available — NOT EXECUTED";

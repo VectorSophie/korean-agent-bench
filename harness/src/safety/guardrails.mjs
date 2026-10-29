@@ -1,11 +1,4 @@
-import { fileURLToPath, pathToFileURL } from "node:url";
-import { resolve } from "node:path";
-
-const CLI_ROOT = resolve(fileURLToPath(import.meta.url), "../../../../src");
-
-async function importFromCli(relPath) {
-  return import(pathToFileURL(resolve(CLI_ROOT, relPath)).href);
-}
+import { importFromCli } from "../upstream.mjs";
 
 // Patterns for secret exfiltration detection in tool calls
 const SECRET_EXFIL_RE = /\b(API_KEY|TOKEN|PASSWORD|SECRET|PRIVATE_KEY|ACCESS_KEY)\b/i;

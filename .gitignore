@@ -1,0 +1,14 @@
+node_modules/
+coverage/
+# Harness run output and agent checkpoints
+harness/runs/
+harness/predictions/
+harness/.upstage/
+runs/
+# Private held-out packs live OUTSIDE this repository (ADR 0004). This guard
+# only catches an accidental copy; it is not the confidentiality mechanism.
+holdout/
+*.holdout/
+private/
+.env
+.env.*

@@ -1,15 +1,9 @@
 import { createHash } from "node:crypto";
-import { resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
 import { CodingAgent } from "../interface.mjs";
 import { buildAgentRegistry, extractUsage } from "./upstage.mjs";
 import { getLocalModelConfig, LOCAL_MODEL_IDS } from "../local-models.mjs";
 
-const CLI_ROOT = resolve(fileURLToPath(import.meta.url), "../../../../../src");
-
-async function importFromCli(relPath) {
-  return import(pathToFileURL(resolve(CLI_ROOT, relPath)).href);
-}
+import { importFromCli } from "../../upstream.mjs";
 
 /**
  * LocalModelAgent — one shared adapter for all four locally served, OpenAI-

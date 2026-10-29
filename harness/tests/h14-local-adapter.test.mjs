@@ -7,7 +7,7 @@ import {
   reasoningMetrics,
   classifyError,
   isContextLengthError
-} from "../../src/model/local-openai-adapter.mjs";
+} from "../../vendor/upstage-cli/src/model/local-openai-adapter.mjs";
 
 // ── fetch stubbing ────────────────────────────────────────────────────────────
 // Each test installs a handler that receives (url, opts) and returns either a
@@ -276,7 +276,7 @@ describe("LocalOpenAIAdapter — payload and auth", () => {
 
 // ── P1-B: response validation ────────────────────────────────────────────────
 
-import { validateChatResponse, ProtocolError } from "../../src/model/local-openai-adapter.mjs";
+import { validateChatResponse, ProtocolError } from "../../vendor/upstage-cli/src/model/local-openai-adapter.mjs";
 
 describe("validateChatResponse — structural validation (P1-B)", () => {
   const ok = (message, extra = {}) => ({ choices: [{ message, finish_reason: "stop" }], ...extra });

@@ -5,9 +5,9 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { buildAgentRegistry } from "../src/agent/adapters/upstage.mjs";
-import { runAgentLoop, collectAgentLoop } from "../../src/agent/loop.mjs";
-import { createSession } from "../../src/runtime/session.mjs";
-import { DEFAULT_LOOP_BUDGET } from "../../src/config/defaults.mjs";
+import { runAgentLoop, collectAgentLoop } from "../../vendor/upstage-cli/src/agent/loop.mjs";
+import { createSession } from "../../vendor/upstage-cli/src/runtime/session.mjs";
+import { DEFAULT_LOOP_BUDGET } from "../../vendor/upstage-cli/src/config/defaults.mjs";
 
 // P1-A: the shared agent loop must honor finish_reason. A truncated generation
 // (finish_reason=length / content_filter) must NEVER be reported as an ordinary

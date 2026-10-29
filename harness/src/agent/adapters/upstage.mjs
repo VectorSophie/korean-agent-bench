@@ -1,16 +1,9 @@
 import { createHash } from "node:crypto";
-import { resolve } from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
 import { CodingAgent } from "../interface.mjs";
 import { createToolPolicy, enforceToolPolicy } from "../tool-policy.mjs";
 import { confineRegistryToSandbox, confineFileTools, removeEscapingSymlinks } from "../sandboxed-tools.mjs";
 
-const CLI_ROOT = resolve(fileURLToPath(import.meta.url), "../../../../../src");
-
-async function importFromCli(relPath) {
-  const absPath = resolve(CLI_ROOT, relPath);
-  return import(pathToFileURL(absPath).href);
-}
+import { importFromCli } from "../../upstream.mjs";
 
 /**
  * The tool registry an agent gets for one attempt — the same one the live

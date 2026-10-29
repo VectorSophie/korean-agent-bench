@@ -13,7 +13,7 @@ import { DOCKER_SAFE_TOOLS, PATH_ARGS } from "../src/agent/sandboxed-tools.mjs";
 import { DockerSandbox, SandboxConfigError } from "../src/sandbox/docker.mjs";
 import { validate } from "../src/task/schema.mjs";
 import { PatchTracker } from "../src/tracking/patch-tracker.mjs";
-import { createRegistry } from "../../src/tools/create-registry.mjs";
+import { createRegistry } from "../../vendor/upstage-cli/src/tools/create-registry.mjs";
 
 const TASK = { id: "h13", agent: { tools: { allow: [], deny: [] } } };
 
