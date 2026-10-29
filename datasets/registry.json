@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "asOf": "2026-10-29",
+  "policy": "ADR 0003. Synthetic (AI-authored) task sets are development fixtures and are never part of the main model comparison. Main-comparison candidates are established external benchmarks, referenced by pinned upstream revision and scored by their upstream evaluator. Nothing is 'admitted' until the protocol is frozen by an ADR.",
+  "datasets": [
+    {
+      "id": "bench-v1-initial",
+      "kind": "synthetic-dev",
+      "origin": "ai-authored",
+      "locations": ["harness/tasks/benchmark-v1", "harness/fixtures/benchmark-v1", "harness/benchmarks/v1"],
+      "mainComparison": "excluded",
+      "allowedUses": ["harness development", "evaluator QA", "calibration", "infrastructure pilots"],
+      "provenance": "upstage-cli PR #11 (merged 2026-10-29); authored with an AI coding assistant, then audited (harness/docs/BENCHMARK_V1_SEMANTIC_AUDIT.md). No independent human review.",
+      "notes": "14 rows / small number of families; see BENCHMARK_V1_PROTOCOL.md and BENCHMARK_V1_STATISTICS.md."
+    },
+    {
+      "id": "harness-pilot-tasks",
+      "kind": "synthetic-dev",
+      "origin": "ai-authored",
+      "locations": ["harness/tasks/local", "harness/fixtures/flaky-test", "harness/fixtures/tool-select", "harness/fixtures/multi-step", "harness/fixtures/tool-continuation", "harness/fixtures/tool-continuation-v2", "harness/fixtures/tool-continuation-v3", "harness/fixtures/missing-import"],
+      "mainComparison": "excluded",
+      "allowedUses": ["model integration pilots", "harness development"],
+      "provenance": "upstage-cli PR #10 (merged 2026-10-26); used by the live 4x4 pilot (harness/docs/PILOT_REPORT.md).",
+      "notes": "Compatibility/feasibility only. The pilot report itself states it is not a benchmark."
+    },
+    {
+      "id": "harness-examples",
+      "kind": "synthetic-dev",
+      "origin": "ai-authored",
+      "locations": ["harness/tasks/fix-flaky-test.yaml", "harness/tasks/fix-missing-import.yaml", "harness/tasks/fix-security-bug.yaml", "harness/fixtures/security-bug"],
+      "mainComparison": "excluded",
+      "allowedUses": ["smoke tests", "harness development"],
+      "provenance": "upstage-cli harness Phase A-C (2026-04-27 onward).",
+      "notes": "fix-flaky-test.yaml is the CI smoke task."
+    },
+    {
+      "id": "bfcl",
+      "kind": "external",
+      "origin": "published-benchmark",
+      "mainComparison": "candidate",
+      "status": "planned",
+      "source": {
+        "name": "Berkeley Function Calling Leaderboard (BFCL)",
+        "repository": "https://github.com/ShishirPatil/gorilla",
+        "subdirectory": "berkeley-function-call-leaderboard",
+        "revision": "6ea57973c7a6097fd7c5915698c54c17c5b1b6c8",
+        "revisionNote": "Most recent commit touching berkeley-function-call-leaderboard/ as of 2026-10-29 (committed 2026-03-23). Matches PyPI bfcl-eval 2026.3.23.",
+        "package": "bfcl-eval==2026.3.23",
+        "license": "Apache-2.0 (repository)"
+      },
+      "evaluation": {
+        "upstreamEvaluator": "bfcl_eval (AST checker / executable checker / multi-turn state checker, per category)",
+        "reimplemented": false,
+        "taskIdentity": "Upstream category + entry id are kept verbatim; no renumbering, filtering or rewriting without a recorded, reasoned subset definition."
+      },
+      "localCopy": null,
+      "openQuestions": [
+        "Which categories (single-turn AST, multi-turn, live, irrelevance) belong to the main comparison.",
+        "How the four local models are registered with bfcl_eval (OpenAI-compatible handler vs prompt mode); a model's tool parser must not be changed to suit the benchmark.",
+        "Korean: BFCL is English. Any Korean variant is a derived condition and must be reported separately (ADR 0003)."
+      ]
+    },
+    {
+      "id": "swe-bench-verified",
+      "kind": "external",
+      "origin": "published-benchmark",
+      "mainComparison": "candidate",
+      "status": "planned",
+      "source": {
+        "name": "SWE-bench Verified",
+        "repository": "https://huggingface.co/datasets/SWE-bench/SWE-bench_Verified",
+        "revision": "78f471bf655a3137b2e8a75af1501690ec009ec3",
+        "revisionNote": "HF dataset sha as of 2026-10-29 (lastModified 2026-08-16). The older princeton-nlp/SWE-bench_Verified is a different repository (sha c104f840cc67f8b6eec6f759ebc8b2693d585d4a, 2025-02-18); do not mix the two.",
+        "evaluatorRepository": "https://github.com/SWE-bench/SWE-bench",
+        "evaluatorRevision": "87ab1f6ced28f75ba73ca899dc759b019310944a",
+        "evaluatorRevisionNote": "Tag v5.0.1 (latest git tag on 2026-10-29). PyPI also has swebench 5.0.2 without a matching tag; choose one at protocol freeze.",
+        "license": "Evaluator: MIT. Dataset: no license declared in the HF card metadata; confirm before redistributing anything derived from it."
+      },
+      "evaluation": {
+        "upstreamEvaluator": "swebench.harness.run_evaluation (per-instance Docker environments, per-repo log parsers, FAIL_TO_PASS/PASS_TO_PASS)",
+        "reimplemented": false,
+        "taskIdentity": "instance_id kept verbatim. The agent produces a model_patch; scoring is done by the upstream evaluator on a predictions file.",
+        "knownNonEquivalent": "harness/src/task/loaders/swebench.mjs (harness import swebench) produces pytest approximations and marks them officialEvalCompatible:false. It must not be used for main-comparison scores."
+      },
+      "localCopy": null,
+      "openQuestions": [
+        "Subset size given local inference throughput (see models/*.md hardware notes); any subset must be fixed before running and published with its selection rule.",
+        "Context budget: Solar Open 2 is validated only to 8K context on this hardware; SWE-bench prompts may not fit. Decide between excluding, truncating with a recorded rule, or reporting as infeasible.",
+        "Korean: the issues are English. Any Korean variant is a derived condition and must be reported separately (ADR 0003)."
+      ]
+    }
+  ]
+}
