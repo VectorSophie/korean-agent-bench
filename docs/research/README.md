@@ -16,6 +16,7 @@ should be read, that is noted below.
 | 2026-10-29 | [`BENCHMARK_V1_SEMANTIC_AUDIT.md`](../../harness/docs/BENCHMARK_V1_SEMANTIC_AUDIT.md) | Semantic audit and evaluator-integrity fix |
 | 2026-10-29 | [`BENCHMARK_V1_STATISTICS.md`](../../harness/docs/BENCHMARK_V1_STATISTICS.md) | Metrics and statistical protocol (draft) |
 | 2026-10-29 | [`BENCHMARK_V1_TASK_QA.md`](../../harness/docs/BENCHMARK_V1_TASK_QA.md) | Task QA and dataset quality |
+| 2026-10-29 | [`BENCHMARK_V1_DATASET.md`](../../harness/docs/BENCHMARK_V1_DATASET.md) | Disposition of upstage-cli PR #12's `v1-dataset` tranche: what was kept and dropped (ADR 0007) |
 
 ## Reading notes (2026-10-29)
 

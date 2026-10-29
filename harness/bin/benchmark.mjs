@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // Benchmark v1 candidate-set tooling (no model inference).
-//   build     — (re)generate benchmarks/v1/manifest.json from the task files
-//   validate  — CPU-only: manifest ↔ tasks consistency + quality gates
-//   qa        — Docker: baseline-fails / solution-passes / no-op-fails per task
+//   build           — (re)generate benchmarks/v1/manifest.json from the tasks
+//   validate        — CPU-only: manifest ↔ tasks consistency + quality gates
+//   qa              — Docker: baseline-fails / solution-passes / no-op-fails
+//   report          — CPU-only: independence/family/tranche report (statistical)
 import { writeFileSync } from "node:fs";
 import { buildManifest, validateManifest, loadManifest, MANIFEST_PATH, TASKS_DIR } from "../src/benchmark/manifest.mjs";
 import { loadTaskDir } from "../src/task/loader.mjs";
@@ -38,7 +39,27 @@ async function main() {
     if (failed) process.exit(1);
     return;
   }
-  console.error("usage: benchmark.mjs {build|validate|qa}");
+  if (cmd === "report") {
+    const m = buildManifest({ withImageDigests: false });
+    const fams = Object.entries(m.families);
+    const variantFams = fams.filter(([, ids]) => ids.length > 1);
+    console.log(`Benchmark v1 — independence report`);
+    console.log(`  task rows ............... ${m.counts.total}`);
+    console.log(`  independent families .... ${m.counts.independentFamilies}`);
+    console.log(`  language pairs .......... ${m.counts.languagePairs}`);
+    console.log(`  by tranche .............. ${JSON.stringify(m.counts.byTranche)}`);
+    console.log(`  by category ............. ${JSON.stringify(m.counts.byCategory)}`);
+    console.log(`  by difficulty ........... ${JSON.stringify(m.counts.byDifficulty)}`);
+    console.log(`\n  NON-independent families (>1 row — NOT independent evidence):`);
+    if (variantFams.length === 0) console.log("    (none)");
+    for (const [fam, ids] of variantFams) console.log(`    ${fam}: ${ids.join(", ")}`);
+    const holdoutRows = m.tasks.filter((t) => t.split === "holdout").length;
+    console.log(`\n  split: dev=${m.tasks.filter((t) => t.split === "dev").length}  holdout(in-repo)=${holdoutRows}`);
+    console.log(`  review: independentHumanReviewed=${m.tasks.filter((t) => t.review.independentHumanReviewed).length}/${m.counts.total} (must be 0 pre-freeze)`);
+    console.log(`\n  Effective sample size for power/precision = INDEPENDENT FAMILIES (${m.counts.independentFamilies}), not rows (${m.counts.total}).`);
+    return;
+  }
+  console.error("usage: benchmark.mjs {build|validate|qa|report}");
   process.exit(2);
 }
 

@@ -48,6 +48,12 @@ const TRUSTED_MOUNT_ASSETS = {
   "bench-d2-token": {
     host: join(FIXTURES_DIR, "benchmark-v1", "d2-token", "gen.mjs"),
     container: "/opt/bench/d2.mjs"
+  },
+  // Benchmark v1 dataset tranche — tool-result INTERPRETATION generator
+  // (structured JSON; the agent must select a value, not copy stdout).
+  "bench-tr1-json": {
+    host: join(FIXTURES_DIR, "benchmark-v1", "tr1-json", "gen.mjs"),
+    container: "/opt/bench/tr1.mjs"
   }
 };
 

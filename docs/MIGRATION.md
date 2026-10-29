@@ -47,13 +47,24 @@ No harness behavior, task, fixture, evaluator or scoring logic was changed.
 
 ## PR #12
 
-Not merged upstream and not merged here. Its content is on branch
-`import/upstage-cli-pr-12`, open for review as draft
-[#1](https://github.com/VectorSophie/korean-agent-bench/pull/1). Excluded,
-per ADR 0004:
+**Final disposition (2026-10-29):**
 
-- `harness/benchmarks/v1/holdout-pack.public.json`;
-- `harness/docs/BENCHMARK_V1_DATASET.md` §4.2 (replaced by a redaction note).
+- **upstage-cli#12** (`feat/harness-benchmark-v1-dataset`, head
+  `f4c574fef12512686577a029c6b657ea45a63275`) was **closed without merging**
+  with a comment linking here. Before closing, all 86 files it changed were
+  compared with the import: 83 byte-identical, `package.json` merged,
+  `holdout-pack.public.json` excluded and `BENCHMARK_V1_DATASET.md` §4.2
+  redacted (ADR 0004). The branch had no commits beyond `f4c574f` and was
+  then deleted; the commit stays reachable at `refs/pull/12/head`.
+- The held-out candidates that PR published (3 built, 5 designed) are
+  **disclosed and retired** from any official held-out pool. Deleting the
+  branch does not undo the disclosure.
+- **korean-agent-bench#1** imported the PR (commit `33c84e4`), then reduced
+  it (ADR 0007): kept the `tool-result-selection` evaluator, its adversarial
+  tests, digest pinning, family/tranche accounting and one end-to-end
+  fixture (`bv1-tr1-json-field`); dropped 13 synthetic rows and the
+  held-out pack loader. Per-component table:
+  [`harness/docs/BENCHMARK_V1_DATASET.md`](../harness/docs/BENCHMARK_V1_DATASET.md).
 
 Upstream history for PR #12 was **not** carried over (its commit contains
 the excluded files). The import commit names the original SHA in its

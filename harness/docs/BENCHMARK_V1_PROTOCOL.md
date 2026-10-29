@@ -157,9 +157,18 @@ time (load amortised across all its tasks):
 - [ ] Expand to the full stratified set (~60–100), balanced, difficulty-labelled.
 - [ ] Author and **freeze a held-out** split; keep reference solutions out of any
       agent-visible path (as the candidate set already does).
-- [ ] Pin every task's Docker image **by digest** (candidates use the
-      `node:22-alpine` tag; the validator warns until pinned).
+- [x] Pin every task's Docker image **by digest** (done 2026-10-29 in
+      korean-agent-bench#1: `node:22-alpine@sha256:fe4f6d74…`; validator now
+      reports 0 unpinned-image warnings).
 - [ ] Freeze Track A and Track B envelopes (all budgets) and record them.
 - [ ] Independent **human** review of each task (current review state = `auto`).
 - [ ] Finalise the statistical plan (sample size / precision; see STATISTICS).
 - [ ] Decide capability-failure vs infrastructure-failure accounting policy.
+
+---
+
+**Note (2026-10-29, korean-agent-bench).** Under ADR 0003 every task in this set
+is an AI-authored development fixture and is excluded from the main model
+comparison; the "~60–100 tasks" design target above is therefore superseded.
+The set is now kept as a small regression suite for the harness (ADR 0007):
+14 `v1-initial` rows plus one `v1-dataset` row (`bv1-tr1-json-field`).

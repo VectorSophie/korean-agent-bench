@@ -69,7 +69,13 @@ const META = {
   "bv1-e1-syntax-error": { category: "E", split: "dev", family: "e1-syntax-error", langVariant: "en", measuredConstruct: "guided syntax repair (instruction-following)", promptDisclosure: "high", auditAction: "RECLASSIFY", reclassification: "instruction-following repair, NOT autonomous failure recovery — the prompt names broken.mjs, states it is a syntax error, and gives the required behaviour; the agent does not discover or diagnose the failure.", integrity: "trusted-path-restore", justification: "Acceptance initially errors (SyntaxError), but the prompt discloses the file, the defect class, and the target behaviour, so it measures guided repair. Genuine recovery would withhold the diagnosis." },
   "bv1-e2-missing-module": { category: "E", split: "dev", family: "e2-missing-module", langVariant: "en", measuredConstruct: "spec-driven module creation (instruction-following)", promptDisclosure: "high", auditAction: "RECLASSIFY", reclassification: "instruction-following module creation, NOT failure recovery — the prompt states the module is missing and gives its full slugify spec.", integrity: "trusted-path-restore", justification: "A required module is absent so the test errors, but the prompt discloses the missing file and the exact behaviour to implement; the agent follows a spec rather than diagnosing an unexpected failure." },
   "bv1-f1-csv-two-bugs": { category: "F", split: "dev", family: "f1-csv-two-bugs", langVariant: "en", measuredConstruct: "compound localized repair (two disclosed defects, weak step dependency)", promptDisclosure: "high", auditAction: "RECLASSIFY", reclassification: "compound repair, NOT genuine multi-step planning — both defects are disclosed and fixed within one short function with little inter-step dependency.", integrity: "trusted-path-restore", justification: "Two defects (delimiter + trim) in one function; both are named in the prompt. Limited planning demand; retained as a compound-repair calibration item." },
-  "bv1-f2-stack-two-bugs": { category: "F", split: "dev", family: "f2-stack-two-bugs", langVariant: "en", measuredConstruct: "compound repair across two methods (two disclosed defects)", promptDisclosure: "high", auditAction: "RECLASSIFY", reclassification: "compound repair + verification, NOT dependent multi-step planning — the two method fixes are largely independent and both are disclosed.", integrity: "trusted-path-restore", justification: "Two defects across methods (pop semantics + size). Both disclosed; fixes are nearly independent, so planning demand is modest. Retained as compound-repair + verification." }
+  "bv1-f2-stack-two-bugs": { category: "F", split: "dev", family: "f2-stack-two-bugs", langVariant: "en", measuredConstruct: "compound repair across two methods (two disclosed defects)", promptDisclosure: "high", auditAction: "RECLASSIFY", reclassification: "compound repair + verification, NOT dependent multi-step planning — the two method fixes are largely independent and both are disclosed.", integrity: "trusted-path-restore", justification: "Two defects across methods (pop semantics + size). Both disclosed; fixes are nearly independent, so planning demand is modest. Retained as compound-repair + verification." },
+
+  // ── v1-dataset tranche ────────────────────────────────────────────────────
+  // upstage-cli PR #12 added 14 rows here; korean-agent-bench#1 keeps only the
+  // one fixture that exercises a mechanism no other row does (the
+  // tool-result-selection trusted evaluator). See BENCHMARK_V1_DATASET.md.
+  "bv1-tr1-json-field": { category: "D", split: "dev", tranche: "v1-dataset", family: "tr1-json", langVariant: "en", measuredConstruct: "tool-result interpretation — select the correct JSON field (api service's port) from runtime output", promptDisclosure: "medium", auditAction: "KEEP", integrity: "trace-evaluator-immutable-mount", justification: "Beyond copying stdout: the trusted evaluator recomputes the api port from the qualifying run's own JSON, so copying the whole output or any other port fails. Dynamic CSPRNG tokens; read-only mounted generator." }
 };
 
 function sha256(buf) { return createHash("sha256").update(buf).digest("hex"); }
@@ -149,6 +155,7 @@ export function buildManifest({ withImageDigests = true } = {}) {
       difficulty: task.difficulty || null,
       language: task.language || "en",
       split: meta.split,
+      tranche: meta.tranche || "v1-initial",
       // Structured review state — the Phase-8 distinction. autoValidated +
       // assistantSemanticReviewed are TRUE; independentHumanReviewed is FALSE for
       // every candidate (a freeze prerequisite) and is never claimed here.
@@ -178,12 +185,18 @@ export function buildManifest({ withImageDigests = true } = {}) {
   });
   const byCategory = {};
   for (const e of entries) byCategory[e.category] = (byCategory[e.category] || 0) + 1;
+  const byTranche = {};
+  for (const e of entries) byTranche[e.tranche] = (byTranche[e.tranche] || 0) + 1;
+  const byDifficulty = {};
+  for (const e of entries) byDifficulty[e.difficulty || "?"] = (byDifficulty[e.difficulty || "?"] || 0) + 1;
   // Family / language-pair rollup: how many INDEPENDENT underlying problems the
   // rows represent (ko/en pairs and d1/d2 collapse to one family each).
   const families = {};
   for (const e of entries) (families[e.family] ||= []).push(e.id);
   const languagePairs = {};
   for (const e of entries) if (e.pairId) (languagePairs[e.pairId] ||= []).push(e.id);
+  // A language pair is a REPLICATE pair only when it has ≥2 members here.
+  const realPairs = Object.fromEntries(Object.entries(languagePairs).filter(([, v]) => v.length >= 2));
   return {
     manifestVersion: MANIFEST_VERSION,
     generatedFrom: "tasks/benchmark-v1",
@@ -191,12 +204,14 @@ export function buildManifest({ withImageDigests = true } = {}) {
     counts: {
       total: entries.length,
       byCategory,
+      byTranche,
+      byDifficulty,
       independentFamilies: Object.keys(families).length,
-      languagePairs: Object.keys(languagePairs).length
+      languagePairs: Object.keys(realPairs).length
     },
     categories: CATEGORIES,
     families,
-    languagePairs,
+    languagePairs: realPairs,
     tasks: entries
   };
 }
