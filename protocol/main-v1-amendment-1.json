@@ -1,0 +1,64 @@
+{
+ "id": "main-v1-amendment-1",
+ "amends": {
+  "file": "protocol/main-v1.json",
+  "sha256": "898410beb3a59af55ee551d371e7e0ec5087f10b0a2b4e9f0dd78c3030eb3c16"
+ },
+ "date": "2026-10-30",
+ "adr": "docs/adr/0011-main-protocol-freeze.md (Amendment 1)",
+ "defect": "harness/src/task/runner.mjs copied the workspace with cpSync({recursive:true}); Node rewrites relative symlinks to absolute paths into the source snapshot, i.e. outside the workspace. The escaping-symlink guard (harness/src/agent/sandboxed-tools.mjs removeEscapingSymlinks, correct security behaviour), which runs on Docker tasks when the agent's tool registry is built (harness/src/agent/adapters/upstage.mjs) and after every sandbox command, then removed them before the agent's first turn, so every captured patch for a repository with symlinks contained spurious symlink deletions whose pre-image does not exist upstream, and swebench.harness.run_evaluation failed with 'Patch Apply Failed'. The offline validation (replay agent, no tool registry) did not exercise the guard.",
+ "evidence": "Stage 1: for each of the four models the set of instances classified 'error' by the official evaluator equals exactly the set of stage-1 instances whose base_commit tree contains a symlink (26 of 50: django 23, matplotlib 3). Reproduced on the real django__django-11119 snapshot: old copy + guard removes the same 4 links that appear in the failing patches; fixed copy + guard removes none. Regression test h29 (fails without the fix).",
+ "fix": "cpSync(..., {recursive: true, verbatimSymlinks: true}) for the workspace copy and the evaluation-file restore; nothing else changes (model settings, envelope, prompt, subset, scoring unchanged).",
+ "scope": {
+  "affectsAllModelsAlike": true,
+  "bfcl": "not affected (BFCL does not use the harness task runner); BFCL results stand",
+  "swebenchUnaffected": "stage-1 instances without symlinks: the workspace copy is identical with or without the fix, so their attempts stand"
+ },
+ "invalidated": {
+  "criterion": "stage-1 instance whose base_commit tree contains a git mode 120000 entry",
+  "models": [
+   "kanana",
+   "exaone",
+   "ax",
+   "solar-open2"
+  ],
+  "swebench": [
+   "django__django-11119",
+   "django__django-11149",
+   "django__django-11239",
+   "django__django-11734",
+   "django__django-11848",
+   "django__django-12754",
+   "django__django-13343",
+   "django__django-13590",
+   "django__django-13786",
+   "django__django-13794",
+   "django__django-13820",
+   "django__django-14017",
+   "django__django-14631",
+   "django__django-14792",
+   "django__django-15268",
+   "django__django-15499",
+   "django__django-15629",
+   "django__django-15863",
+   "django__django-15930",
+   "django__django-16145",
+   "django__django-16429",
+   "django__django-16612",
+   "django__django-16877",
+   "matplotlib__matplotlib-25287",
+   "matplotlib__matplotlib-25479",
+   "matplotlib__matplotlib-25775"
+  ]
+ },
+ "rerun": "Every invalidated (model, instance) cell is re-run once under the amended code with the frozen envelope; previous attempts and evaluation logs are kept under attempts-invalidated/ and eval-invalidated/. Stage 2 (if run) uses the amended code.",
+ "code": {
+  "generatedAtCommit": "78f0eb402f7426f04b179ef396aa93fa0aa2fe19",
+  "upstageCli": "802cddd1cbc40f1f3436b73fc0d1875b6aaaa356",
+  "trees": {
+   "harness": "1c4adfb87cf995d43d89dd316e15a956b2697b3e",
+   "benchmarks": "4f07aabc139b7b9256cde8f6603921a83c3cd018",
+   "models/serving": "187211621eca69e6b0f97cd6366c649a0da978fa"
+  }
+ }
+}
