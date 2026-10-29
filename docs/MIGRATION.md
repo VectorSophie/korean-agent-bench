@@ -153,5 +153,6 @@ Not done: deleting the merged branches `import/upstage-cli-pr-12`,
 `chore/pin-upstage-cli-cleanup`, `feat/evidence-audit-and-preflight`,
 `feat/external-benchmarks` here, and upstage-cli's
 `chore/move-harness-to-korean-agent-bench`, `fix/session-index-robustness`
-(branch deletion was not permitted in this session's tool policy; all are
-fully merged).
+(deleting `import/upstage-cli-pr-12` was denied by the session's permission
+policy, so the others were not attempted; all are fully merged and safe to
+delete).
