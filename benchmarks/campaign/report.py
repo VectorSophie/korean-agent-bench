@@ -65,9 +65,12 @@ def main():
     spec = json.loads((d / "campaign.json").read_text())
     models = s["models"]
     stage = s.get("swebenchStage")
+    am_p = d / "amendments.json"
+    amendments = json.loads(am_p.read_text()) if am_p.exists() else []
     md = [f"# {a.campaign} — results", "",
           f"Protocol `{spec.get('protocol')}` sha256 `{s.get('protocolSha256')}` (ADR 0011). "
           f"Independent recomputation: {sum(c['ok'] for c in v['checks'])}/{len(v['checks'])} checks passed (`verification.json`).", "",
+          *([f"Protocol amendments applied: " + "; ".join(f"`{r['file']}` (sha256 `{r['sha256'][:12]}…`, {len(r['moved'])} cells re-run)" for r in amendments) + ".", ""] if amendments else []),
           "BFCL and SWE-bench are reported separately and never combined. Both are English benchmarks; nothing here "
           "measures Korean-language ability. Solar Open 2 is a separately constrained arm (8K context, unofficial "
           "quantization, different runtime).", ""]
@@ -136,7 +139,9 @@ def main():
 
     # provenance
     prov = {"campaign": a.campaign, "protocol": spec.get("protocol"), "protocolSha256": spec.get("protocolSha256"),
-            "swebenchStage": stage, "models": {}}
+            "swebenchStage": stage,
+            "amendments": [{k: r[k] for k in ("id", "file", "sha256", "appliedAt", "carriedConfigHashes")} | {"cellsInvalidated": len(r["moved"])} for r in amendments],
+            "models": {}}
     for m in models:
         rt = d / m / "runtime"
         pre = [json.loads(p.read_text()) for p in sorted(rt.glob("preflight-*.json"))] if rt.exists() else []
