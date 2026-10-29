@@ -1,0 +1,296 @@
+{
+  "id": "run_20261028T014208_local-pilot-t3-tool-continuation_local-kanana_26cbc0",
+  "instance_id": "local-pilot-t3-tool-continuation",
+  "taskId": "local-pilot-t3-tool-continuation",
+  "agentId": "local-kanana",
+  "startedAt": 1793151728581,
+  "completedAt": 1793151744760,
+  "durationMs": 16179,
+  "status": "fail",
+  "outcome": {
+    "status": "fail",
+    "reason": "required_check_failed",
+    "detail": "out-has-token"
+  },
+  "evaluation": {
+    "score": 0.4,
+    "failToPassRate": 0,
+    "passToPassRate": 1,
+    "checks": {
+      "fail_to_pass": [
+        {
+          "id": "out-has-token",
+          "passed": false,
+          "exitCode": 1,
+          "timedOut": false,
+          "infraError": null,
+          "durationMs": 5,
+          "stdout": "",
+          "stderr": "",
+          "weight": 1,
+          "required": true
+        }
+      ],
+      "pass_to_pass": [
+        {
+          "id": "gen-exists",
+          "passed": true,
+          "exitCode": 0,
+          "timedOut": false,
+          "infraError": null,
+          "durationMs": 3,
+          "stdout": "",
+          "stderr": "",
+          "weight": 0,
+          "required": true
+        }
+      ],
+      "custom": []
+    },
+    "breakdown": {
+      "checksScore": 0.3,
+      "patchMinimalityScore": 0.5906161091496412,
+      "toolCallScore": 0.4765053580405044,
+      "costScore": null,
+      "speedScore": 0.94607
+    },
+    "compositeIsAuthoritative": false,
+    "baseline": {
+      "pass_to_pass": [
+        {
+          "id": "gen-exists",
+          "passed": true,
+          "exitCode": 0,
+          "timedOut": false,
+          "durationMs": 4
+        }
+      ],
+      "fail_to_pass": [
+        {
+          "id": "out-has-token",
+          "passed": false,
+          "exitCode": 2,
+          "timedOut": false,
+          "durationMs": 3
+        }
+      ]
+    },
+    "passAtK": {
+      "k1": 0
+    }
+  },
+  "metrics": {
+    "toolCalls": 2,
+    "turns": 3,
+    "promptTokens": 2675,
+    "completionTokens": 2204,
+    "totalTokens": 4879,
+    "estimatedCostUsd": null,
+    "costPerSuccessfulFix": null,
+    "agentDurationMs": 16104,
+    "patch": {
+      "filesChanged": 1,
+      "linesAdded": 1,
+      "linesRemoved": 0
+    }
+  },
+  "trace": {
+    "turns": [
+      {
+        "index": 0,
+        "toolCalls": [],
+        "thoughtSummary": "Calling model",
+        "response": ""
+      }
+    ],
+    "toolCalls": [
+      {
+        "tool": "run_shell",
+        "args": {
+          "outputLimit": 1,
+          "command": "node gen.mjs",
+          "sandbox": "local"
+        },
+        "durationMs": 0,
+        "ok": true,
+        "result": "{\"ok\":true,\"code\":0,\"stdout\":\"T\",\"stderr\":\"\",\"truncated\":true,\"timedOut\":false}"
+      },
+      {
+        "tool": "write_file",
+        "args": {
+          "content": "T",
+          "path": "out.txt"
+        },
+        "durationMs": 0,
+        "ok": true,
+        "result": "{\"path\":\"out.txt\",\"bytesWritten\":1,\"totalLines\":1,\"preview\":\"T\"}"
+      }
+    ],
+    "compactions": [],
+    "contextStrategyUsed": "default",
+    "stopReason": "done",
+    "agentOk": true,
+    "agentError": null
+  },
+  "patch": {
+    "initialCommit": "2565473cdb1e3e72f6f982761f291e39d961a4e5",
+    "model_patch": "diff --git a/out.txt b/out.txt\nnew file mode 100644\nindex 0000000..96583aa\n--- /dev/null\n+++ b/out.txt\n@@ -0,0 +1 @@\n+T\n\\ No newline at end of file",
+    "filesChanged": [
+      "out.txt"
+    ]
+  },
+  "sandbox": {
+    "type": "native",
+    "trusted": true,
+    "network": {
+      "requested": "none",
+      "enforced": false
+    },
+    "enforced": {
+      "network": false,
+      "filesystem": false,
+      "cpu": false,
+      "memory": false,
+      "pids": false,
+      "time": true,
+      "secretEnvScrubbed": true
+    },
+    "warnings": [
+      "sandbox.network=none is NOT enforced by the native sandbox; use type: docker for untrusted execution"
+    ]
+  },
+  "provenance": {
+    "harness": {
+      "version": "2.4.0",
+      "commit": "1a4bf27fe9e3fc9ac516df200444ec733a38bd5d",
+      "dirty": true,
+      "node": "v24.21.0",
+      "platform": "linux-x64"
+    },
+    "task": {
+      "id": "local-pilot-t3-tool-continuation",
+      "version": 1,
+      "specSha256": "2165489a098a57abaa2877f65320c45fe530fa6d12ecfb73ca278614a309fb22",
+      "dataset": null,
+      "datasetVersion": null
+    },
+    "repo": {
+      "source": "/home/jackb/workspace/upstage-cli/harness/fixtures/tool-continuation",
+      "pinnedCommit": null,
+      "initialCommit": "2565473cdb1e3e72f6f982761f291e39d961a4e5",
+      "testPatchApplied": false
+    },
+    "agent": {
+      "id": "local-kanana",
+      "adapter": "LocalModelAgent",
+      "displayName": "Kanana 2 30B-A3B Thinking (local vLLM)"
+    },
+    "model": {
+      "provider": "local-vllm",
+      "id": "Kanana-2",
+      "hfRepo": "kakaocorp/kanana-2-30b-a3b-thinking-2601",
+      "revision": "cdcbf8b811c21366f20f8a10a1f83183433c0844",
+      "quantization": "bf16",
+      "official": true,
+      "quantizationSource": null,
+      "servingRuntime": "vLLM v0.32.0 (CUDA 13.0.2)",
+      "servingImage": "vllm/vllm-openai@sha256:6ee133356d49ed24cee03dd0cda3d3980279a11c107ce3e752c89e76540f41c9",
+      "tensorParallel": 1,
+      "reasoningParser": "deepseek_r1",
+      "toolCallParser": "hermes",
+      "logitsProcessor": null,
+      "maxNumSeqs": null,
+      "baseUrl": "http://127.0.0.1:8101/v1",
+      "lastFinishReason": "stop",
+      "sampling": {
+        "temperature": 0.6,
+        "topP": 0.95,
+        "topK": 20,
+        "presencePenalty": null,
+        "seed": null
+      },
+      "chatTemplateKwargs": null,
+      "maxOutputTokens": 8192,
+      "contextLimit": 16384,
+      "reasoning": {
+        "reasoningChars": 9164,
+        "tokenizerReasoningTokens": null,
+        "providerReasoningTokens": null
+      },
+      "gpuContended": true
+    },
+    "limits": {
+      "maxTurns": 8,
+      "maxTokens": 8192,
+      "timeoutSec": 300
+    },
+    "tools": {
+      "advertised": [
+        "read_file",
+        "run_shell",
+        "write_file"
+      ],
+      "removedByPolicy": [
+        "apply_patch",
+        "browser_click",
+        "browser_close",
+        "browser_console",
+        "browser_open",
+        "browser_screenshot",
+        "browser_snapshot",
+        "browser_type",
+        "check_groundedness",
+        "create_patch",
+        "delete_file",
+        "echo",
+        "edit_file",
+        "find_references",
+        "find_symbol",
+        "gh_issue_comment",
+        "gh_issue_read",
+        "gh_pr_create",
+        "gh_pr_review",
+        "glob",
+        "grep",
+        "index_health",
+        "list_files",
+        "list_modules",
+        "load_skill",
+        "multi_edit",
+        "read_document",
+        "rename_file",
+        "repo_map",
+        "run_linter",
+        "run_subagent",
+        "run_tests",
+        "run_typecheck",
+        "run_verification",
+        "search_code",
+        "semantic_search",
+        "todo_read",
+        "todo_write",
+        "web_fetch",
+        "web_search"
+      ],
+      "removedForIsolation": [],
+      "schemaHash": "3b20eb91a587b4ecc930a0ae394ee251466f61166c9adecb056c1efbd5bd080b"
+    },
+    "environment": {
+      "image": null,
+      "envImage": null,
+      "envImageId": null,
+      "dependencies": null
+    },
+    "seed": null
+  },
+  "safety": {
+    "riskFlags": [],
+    "secretsDetected": false
+  },
+  "failure": {
+    "dimension": "tooling",
+    "symptom": "incomplete_patch",
+    "evidence": "linesChanged=1, filesChanged=1"
+  },
+  "humanReview": null
+}

@@ -1,0 +1,348 @@
+{
+  "id": "run_20261028T014646_local-pilot-flaky-test_local-exaone_4473b1",
+  "instance_id": "local-pilot-flaky-test",
+  "taskId": "local-pilot-flaky-test",
+  "agentId": "local-exaone",
+  "startedAt": 1793152006811,
+  "completedAt": 1793152171487,
+  "durationMs": 164676,
+  "status": "pass",
+  "outcome": {
+    "status": "pass",
+    "reason": "all_required_checks_passed",
+    "detail": null
+  },
+  "evaluation": {
+    "score": 0.85,
+    "failToPassRate": 1,
+    "passToPassRate": 1,
+    "checks": {
+      "fail_to_pass": [
+        {
+          "id": "test-data-fetch",
+          "passed": true,
+          "exitCode": 0,
+          "timedOut": false,
+          "infraError": null,
+          "durationMs": 92,
+          "stdout": "",
+          "stderr": "",
+          "weight": 0.7,
+          "required": true
+        }
+      ],
+      "pass_to_pass": [
+        {
+          "id": "test-config-parse",
+          "passed": true,
+          "exitCode": 0,
+          "timedOut": false,
+          "infraError": null,
+          "durationMs": 89,
+          "stdout": "",
+          "stderr": "",
+          "weight": 0.3,
+          "required": true
+        }
+      ],
+      "custom": []
+    },
+    "breakdown": {
+      "checksScore": 1,
+      "patchMinimalityScore": 0.4765053580405044,
+      "toolCallScore": 0.312771272649591,
+      "costScore": null,
+      "speedScore": 0.45108000000000004
+    },
+    "compositeIsAuthoritative": false,
+    "baseline": {
+      "pass_to_pass": [
+        {
+          "id": "test-config-parse",
+          "passed": true,
+          "exitCode": 0,
+          "timedOut": false,
+          "durationMs": 85
+        }
+      ],
+      "fail_to_pass": [
+        {
+          "id": "test-data-fetch",
+          "passed": false,
+          "exitCode": 1,
+          "timedOut": false,
+          "durationMs": 90
+        }
+      ]
+    },
+    "passAtK": {
+      "k1": 1
+    }
+  },
+  "metrics": {
+    "toolCalls": 8,
+    "turns": 8,
+    "promptTokens": 23259,
+    "completionTokens": 5429,
+    "totalTokens": 28688,
+    "estimatedCostUsd": null,
+    "costPerSuccessfulFix": null,
+    "agentDurationMs": 164250,
+    "patch": {
+      "filesChanged": 1,
+      "linesAdded": 1,
+      "linesRemoved": 1
+    }
+  },
+  "trace": {
+    "turns": [
+      {
+        "index": 0,
+        "toolCalls": [],
+        "thoughtSummary": "Executing tool: search_code",
+        "response": ""
+      }
+    ],
+    "toolCalls": [
+      {
+        "tool": "read_file",
+        "args": {
+          "path": "tests/fetcher.test.mjs"
+        },
+        "durationMs": 0,
+        "ok": true,
+        "result": "{\"filePath\":\"tests/fetcher.test.mjs\",\"content\":\"import { describe, it } from \\\"node:test\\\";\\nimport assert from \\\"node:assert/strict\\\";\\nimport { fetchData, parseConfig } from \\\"../fetcher.mjs\\\";\\n\\ndescribe(\\\"fetchData\\\", () => {\\n  it(\\\"test_data_fetch — returns data array\\\", async () => {\\n    // BUG: missing `await` — result is a Promise, not the resolved value\\n    const result = fetchData(\\\"https://example.com/api\\\");\\n    assert.ok(Array.isArray(result.data), \\\"data should be an array\\\");\\n  });\\n});\\n\\ndescribe(\\\"parseConfig\\\", () => {\\n  it(\\\"test_config — parses valid JSON string\\\", () => {\\n    const cfg = parseConfig('{\\\"debug\\\":true,\\\"port\\\":3000}');\\n    assert.equal(cfg.debug, true);\\n    assert.equal(cfg.port, 3000);\\n  });\\n\\n  it(\\\"test_parse — throws on non-string input\\\", () => {\\n    assert.throws(() => parseConfig(123), /config must be a string/);\\n  });\\n});\\n\",\"totalLines\":24}"
+      },
+      {
+        "tool": "write_file",
+        "args": {
+          "path": "tests/fetcher.test.mjs",
+          "content": "import { describe, it } from \"node:test\";\nimport assert from \"node:assert/strict\";\nimport { fetchData, parseConfig } from \"../fetcher.mjs\";\n\ndescribe(\"fetchData\", () => {\n  it(\"test_data_fetch — returns data array\", async () => {\n    // BUG: missing `await` — result is a Promise, not the resolved value\n    const result = await fetchData(\"https://example.com/api\");\n    assert.ok(Array.isArray(result.data), \"data should be an array\");\n  });\n});\n\ndescribe(\"parseConfig\", () => {\n  it(\"test_config — parses valid JSON string\", () => {\n    const cfg = parseConfig('{\"debug\":true,\"port\":3000}');\n    assert.equal(cfg.debug, true);\n    assert.equal(cfg.port, 3000);\n  });\n\n  it(\"test_parse — throws on non-string input\", () => {\n    assert.throws(() => parseConfig(123), /config must be a string/);\n  });\n});\n"
+        },
+        "durationMs": 0,
+        "ok": true,
+        "result": "{\"path\":\"tests/fetcher.test.mjs\",\"bytesWritten\":814,\"totalLines\":24,\"preview\":\"import { describe, it } from \\\"node:test\\\";\\nimport assert from \\\"node:assert/strict\\\";\\nimport { fetchData, parseConfig } from \\\"../fetcher.mjs\\\";\\n\\ndescribe(\\\"fetchData\\\", () => {\\n  it(\\\"test_data_fetch — returns data array\\\", async () => {\\n… (24 lines total)\"}"
+      },
+      {
+        "tool": "read_file",
+        "args": {
+          "path": "fetcher.mjs"
+        },
+        "durationMs": 0,
+        "ok": true,
+        "result": "{\"filePath\":\"fetcher.mjs\",\"content\":\"export async function fetchData(url) {\\n  // Simulates an async fetch with a small delay\\n  return new Promise((resolve) => {\\n    setTimeout(() => resolve({ url, data: [1, 2, 3] }), 10);\\n  });\\n}\\n\\nexport function parseConfig(raw) {\\n  if (typeof raw !== \\\"string\\\") throw new TypeError(\\\"config must be a string\\\");\\n  return JSON.parse(raw);\\n}\\n\",\"totalLines\":12}"
+      },
+      {
+        "tool": "repo_map",
+        "args": {
+          "maxFiles": 10
+        },
+        "durationMs": 0,
+        "ok": true,
+        "result": "{\"totalFiles\":4,\"map\":\"README.fixture.md\\nfetcher.mjs (async function fetchData(url) {\\n  // Simulates an async fetch with a small delay\\n  return new Promise((resolve) => {\\n    setTimeout(() => resolve({ url, data: [1, 2, 3] }), 10);\\n  });\\n}, fetchData, function parseConfig(raw) {\\n  if (typeof raw !== \\\"string\\\") throw new TypeError(\\\"config must be a string\\\");\\n  return JSON.parse(raw);\\n}, parseConfig)\\npackage.json\\ntests/fetcher.test.mjs\"}"
+      },
+      {
+        "tool": "read_file",
+        "args": {
+          "path": "tests/fetcher.test.mjs"
+        },
+        "durationMs": 0,
+        "ok": true,
+        "result": "{\"filePath\":\"tests/fetcher.test.mjs\",\"content\":\"import { describe, it } from \\\"node:test\\\";\\nimport assert from \\\"node:assert/strict\\\";\\nimport { fetchData, parseConfig } from \\\"../fetcher.mjs\\\";\\n\\ndescribe(\\\"fetchData\\\", () => {\\n  it(\\\"test_data_fetch — returns data array\\\", async () => {\\n    // BUG: missing `await` — result is a Promise, not the resolved value\\n    const result = await fetchData(\\\"https://example.com/api\\\");\\n    assert.ok(Array.isArray(result.data), \\\"data should be an array\\\");\\n  });\\n});\\n\\ndescribe(\\\"parseConfig\\\", () => {\\n  it(\\\"test_config — parses valid JSON string\\\", () => {\\n    const cfg = parseConfig('{\\\"debug\\\":true,\\\"port\\\":3000}');\\n    assert.equal(cfg.debug, true);\\n    assert.equal(cfg.port, 3000);\\n  });\\n\\n  it(\\\"test_parse — throws on non-string input\\\", () => {\\n    assert.throws(() => parseConfig(123), /config must be a string/);\\n  });\\n});\\n\",\"totalLines\":24}"
+      },
+      {
+        "tool": "read_file",
+        "args": {
+          "path": "README.fixture.md"
+        },
+        "durationMs": 0,
+        "ok": true,
+        "result": "{\"filePath\":\"README.fixture.md\",\"content\":\"# flaky-test fixture\\n\\n## Bug\\n\\n`tests/fetcher.test.mjs::test_data_fetch` is missing `await` before `fetchData(...)`.\\nThe test receives a `Promise` object instead of the resolved value, so `result.data`\\nis `undefined` and `Array.isArray(undefined)` is `false` — the assertion always fails.\\n\\n## Expected Fix\\n\\nAdd `await` to the `fetchData` call.\\n\\n### file: tests/fetcher.test.mjs\\n```\\nimport { describe, it } from \\\"node:test\\\";\\nimport assert from \\\"node:assert/strict\\\";\\nimport { fetchData, parseConfig } from \\\"../fetcher.mjs\\\";\\n\\ndescribe(\\\"fetchData\\\", () => {\\n  it(\\\"test_data_fetch — returns data array\\\", async () => {\\n    const result = await fetchData(\\\"https://example.com/api\\\");\\n    assert.ok(Array.isArray(result.data), \\\"data should be an array\\\");\\n  });\\n});\\n\\ndescribe(\\\"parseConfig\\\", () => {\\n  it(\\\"test_config — parses valid JSON string\\\", () => {\\n    const cfg = parseConfig('{\\\"debug\\\":true,\\\"port\\\":3000}');\\n    assert.equal(cfg.debug, true);\\n    assert.equal(cfg.port, 3000);\\n  });\\n\\n  it(\\\"test_parse — throws on non-string input\\\", () => {\\n    assert.throws(() => parseConfig(123), /config must be a string/);\\n  });\\n});\\n```\\n\\n## Test Split\\n\\n- **fail_to_pass**: `node --test tests/fetcher.test.mjs --test-name-pattern \\\"test_data_fetch\\\"`\\n- **pass_to_pass**: `node --test tests/fetcher.test.mjs --test-name-pattern \\\"test_config|test_parse\\\"`\\n\",\"totalLines\":43}"
+      },
+      {
+        "tool": "search_code",
+        "args": {
+          "pattern": "result.data",
+          "maxResults": 5
+        },
+        "durationMs": 0,
+        "ok": true,
+        "result": "{\"pattern\":\"result.data\",\"matches\":[{\"path\":\"README.fixture.md\",\"line\":6,\"text\":\"The test receives a `Promise` object instead of the resolved value, so `result.data`\"},{\"path\":\"README.fixture.md\",\"line\":22,\"text\":\"    assert.ok(Array.isArray(result.data), \\\"data should be an array\\\");\"},{\"path\":\"tests/fetcher.test.mjs\",\"line\":9,\"text\":\"    assert.ok(Array.isArray(result.data), \\\"data should be an array\\\");\"}]}"
+      },
+      {
+        "tool": "search_code",
+        "args": {
+          "pattern": "fetchData",
+          "maxResults": 10
+        },
+        "durationMs": 0,
+        "ok": true,
+        "result": "{\"pattern\":\"fetchData\",\"matches\":[{\"path\":\"README.fixture.md\",\"line\":5,\"text\":\"`tests/fetcher.test.mjs::test_data_fetch` is missing `await` before `fetchData(...)`.\"},{\"path\":\"README.fixture.md\",\"line\":11,\"text\":\"Add `await` to the `fetchData` call.\"},{\"path\":\"README.fixture.md\",\"line\":17,\"text\":\"import { fetchData, parseConfig } from \\\"../fetcher.mjs\\\";\"},{\"path\":\"README.fixture.md\",\"line\":19,\"text\":\"describe(\\\"fetchData\\\", () => {\"},{\"path\":\"README.fixture.md\",\"line\":21,\"text\":\"    const result = await fetchData(\\\"https://example.com/api\\\");\"},{\"path\":\"fetcher.mjs\",\"line\":1,\"text\":\"export async function fetchData(url) {\"},{\"path\":\"tests/fetcher.test.mjs\",\"line\":3,\"text\":\"import { fetchData, parseConfig } from \\\"../fetcher.mjs\\\";\"},{\"path\":\"tests/fetcher.test.mjs\",\"line\":5,\"text\":\"describe(\\\"fetchData\\\", () => {\"},{\"path\":\"tests/fetcher.test.mjs\",\"line\":8,\"text\":\"    const result = await fetchData(\\\"https://example.com/api\\\");\"}]}"
+      }
+    ],
+    "compactions": [],
+    "contextStrategyUsed": "default",
+    "stopReason": "budget_exhausted",
+    "agentOk": false,
+    "agentError": "Stopped: step budget exhausted."
+  },
+  "patch": {
+    "initialCommit": "eba78fb7e0411a494afe20727cd54ac654b394fe",
+    "model_patch": "diff --git a/tests/fetcher.test.mjs b/tests/fetcher.test.mjs\nindex 9c14267..d52fd3d 100644\n--- a/tests/fetcher.test.mjs\n+++ b/tests/fetcher.test.mjs\n@@ -5,7 +5,7 @@ import { fetchData, parseConfig } from \"../fetcher.mjs\";\n describe(\"fetchData\", () => {\n   it(\"test_data_fetch — returns data array\", async () => {\n     // BUG: missing `await` — result is a Promise, not the resolved value\n-    const result = fetchData(\"https://example.com/api\");\n+    const result = await fetchData(\"https://example.com/api\");\n     assert.ok(Array.isArray(result.data), \"data should be an array\");\n   });\n });",
+    "filesChanged": [
+      "tests/fetcher.test.mjs"
+    ]
+  },
+  "sandbox": {
+    "type": "native",
+    "trusted": true,
+    "network": {
+      "requested": "none",
+      "enforced": false
+    },
+    "enforced": {
+      "network": false,
+      "filesystem": false,
+      "cpu": false,
+      "memory": false,
+      "pids": false,
+      "time": true,
+      "secretEnvScrubbed": true
+    },
+    "warnings": [
+      "sandbox.network=none is NOT enforced by the native sandbox; use type: docker for untrusted execution"
+    ]
+  },
+  "provenance": {
+    "harness": {
+      "version": "2.4.0",
+      "commit": "1a4bf27fe9e3fc9ac516df200444ec733a38bd5d",
+      "dirty": true,
+      "node": "v24.21.0",
+      "platform": "linux-x64"
+    },
+    "task": {
+      "id": "local-pilot-flaky-test",
+      "version": 1,
+      "specSha256": "259d4c3a7f58242d9f71434c47e520eac152abff8406c3071fa37b8ea7adb12a",
+      "dataset": null,
+      "datasetVersion": null
+    },
+    "repo": {
+      "source": "/home/jackb/workspace/upstage-cli/harness/fixtures/flaky-test",
+      "pinnedCommit": null,
+      "initialCommit": "eba78fb7e0411a494afe20727cd54ac654b394fe",
+      "testPatchApplied": false
+    },
+    "agent": {
+      "id": "local-exaone",
+      "adapter": "LocalModelAgent",
+      "displayName": "EXAONE 4.5 33B FP8 (local vLLM)"
+    },
+    "model": {
+      "provider": "local-vllm",
+      "id": "EXAONE-4.5",
+      "hfRepo": "LGAI-EXAONE/EXAONE-4.5-33B-FP8",
+      "revision": "69570ad5d9a5159816ef267f2f4d37e36447f1be",
+      "quantization": "fp8",
+      "official": true,
+      "quantizationSource": null,
+      "servingRuntime": "vLLM v0.32.0 (CUDA 13.0.2)",
+      "servingImage": "vllm/vllm-openai@sha256:6ee133356d49ed24cee03dd0cda3d3980279a11c107ce3e752c89e76540f41c9",
+      "tensorParallel": 1,
+      "reasoningParser": "qwen3",
+      "toolCallParser": "hermes",
+      "logitsProcessor": null,
+      "maxNumSeqs": null,
+      "baseUrl": "http://127.0.0.1:8101/v1",
+      "lastFinishReason": "tool_calls",
+      "sampling": {
+        "temperature": 0.6,
+        "topP": 0.95,
+        "topK": 20,
+        "presencePenalty": 1.5,
+        "seed": null
+      },
+      "chatTemplateKwargs": {
+        "enable_thinking": true
+      },
+      "maxOutputTokens": 8192,
+      "contextLimit": 16384,
+      "reasoning": {
+        "reasoningChars": 24484,
+        "tokenizerReasoningTokens": null,
+        "providerReasoningTokens": 4959
+      },
+      "gpuContended": true
+    },
+    "limits": {
+      "maxTurns": 8,
+      "maxTokens": 8192,
+      "timeoutSec": 300
+    },
+    "tools": {
+      "advertised": [
+        "read_file",
+        "repo_map",
+        "search_code",
+        "write_file"
+      ],
+      "removedByPolicy": [
+        "apply_patch",
+        "browser_click",
+        "browser_close",
+        "browser_console",
+        "browser_open",
+        "browser_screenshot",
+        "browser_snapshot",
+        "browser_type",
+        "check_groundedness",
+        "create_patch",
+        "delete_file",
+        "echo",
+        "edit_file",
+        "find_references",
+        "find_symbol",
+        "gh_issue_comment",
+        "gh_issue_read",
+        "gh_pr_create",
+        "gh_pr_review",
+        "glob",
+        "grep",
+        "index_health",
+        "list_files",
+        "list_modules",
+        "load_skill",
+        "multi_edit",
+        "read_document",
+        "rename_file",
+        "run_linter",
+        "run_shell",
+        "run_subagent",
+        "run_tests",
+        "run_typecheck",
+        "run_verification",
+        "semantic_search",
+        "todo_read",
+        "todo_write",
+        "web_fetch",
+        "web_search"
+      ],
+      "removedForIsolation": [],
+      "schemaHash": "a01d1e1f4bb40c6ed9895fbbecb212f1b29b044b0f80d0a59e45f6454a55bb46"
+    },
+    "environment": {
+      "image": null,
+      "envImage": null,
+      "envImageId": null,
+      "dependencies": null
+    },
+    "seed": null
+  },
+  "safety": {
+    "riskFlags": [],
+    "secretsDetected": false
+  },
+  "failure": null,
+  "humanReview": null
+}

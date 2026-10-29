@@ -1,0 +1,327 @@
+{
+  "id": "run_20261028T082226_local-pilot-t3-tool-continuation-v3_local-ax_f7b112",
+  "instance_id": "local-pilot-t3-tool-continuation-v3",
+  "taskId": "local-pilot-t3-tool-continuation-v3",
+  "agentId": "local-ax",
+  "startedAt": 1793175746704,
+  "completedAt": 1793175761600,
+  "durationMs": 14896,
+  "status": "pass",
+  "outcome": {
+    "status": "pass",
+    "reason": "all_required_checks_passed",
+    "detail": null
+  },
+  "evaluation": {
+    "score": 0.87,
+    "failToPassRate": 1,
+    "passToPassRate": 1,
+    "checks": {
+      "fail_to_pass": [],
+      "pass_to_pass": [
+        {
+          "id": "gen-readonly-mounted",
+          "passed": true,
+          "exitCode": 0,
+          "timedOut": false,
+          "infraError": null,
+          "durationMs": 261,
+          "stdout": "",
+          "stderr": "",
+          "weight": 0,
+          "required": true
+        }
+      ],
+      "custom": [
+        {
+          "id": "tool-result-continuation",
+          "passed": true,
+          "exitCode": 0,
+          "timedOut": false,
+          "infraError": null,
+          "durationMs": 0,
+          "stdout": "exact command `node /opt/t3/challenge.mjs` executed, stdout token consumed into 'out.txt' (read-only generator)",
+          "stderr": "",
+          "weight": 1,
+          "required": true,
+          "detail": "exact command `node /opt/t3/challenge.mjs` executed, stdout token consumed into 'out.txt' (read-only generator)"
+        }
+      ]
+    },
+    "breakdown": {
+      "checksScore": 1,
+      "patchMinimalityScore": 0.5906161091496412,
+      "toolCallScore": 0.4765053580405044,
+      "costScore": null,
+      "speedScore": 0.9503466666666667
+    },
+    "compositeIsAuthoritative": false,
+    "baseline": {
+      "pass_to_pass": [
+        {
+          "id": "gen-readonly-mounted",
+          "passed": true,
+          "exitCode": 0,
+          "timedOut": false,
+          "durationMs": 398
+        }
+      ],
+      "fail_to_pass": [],
+      "custom": [
+        {
+          "id": "tool-result-continuation",
+          "passed": false,
+          "exitCode": 1,
+          "timedOut": false,
+          "durationMs": 0
+        }
+      ]
+    },
+    "passAtK": {
+      "k1": 1
+    }
+  },
+  "metrics": {
+    "toolCalls": 2,
+    "turns": 3,
+    "promptTokens": 3253,
+    "completionTokens": 224,
+    "totalTokens": 3477,
+    "estimatedCostUsd": null,
+    "costPerSuccessfulFix": null,
+    "agentDurationMs": 14177,
+    "patch": {
+      "filesChanged": 1,
+      "linesAdded": 1,
+      "linesRemoved": 0
+    }
+  },
+  "trace": {
+    "turns": [
+      {
+        "index": 0,
+        "toolCalls": [],
+        "thoughtSummary": "Calling model",
+        "response": ""
+      }
+    ],
+    "toolCalls": [
+      {
+        "tool": "run_shell",
+        "args": {
+          "command": "node /opt/t3/challenge.mjs"
+        },
+        "durationMs": 0,
+        "ok": true,
+        "result": "{\"ok\":true,\"code\":0,\"stdout\":\"T3-740cd38991cf026ff6e71db01ce3b4a7\\n\",\"stderr\":\"\",\"timedOut\":false,\"sandbox\":\"docker\"}",
+        "resultData": {
+          "ok": true,
+          "code": 0,
+          "stdout": "T3-740cd38991cf026ff6e71db01ce3b4a7\n",
+          "stderr": "",
+          "timedOut": false,
+          "truncated": false
+        }
+      },
+      {
+        "tool": "write_file",
+        "args": {
+          "path": "out.txt",
+          "content": "T3-740cd38991cf026ff6e71db01ce3b4a7"
+        },
+        "durationMs": 0,
+        "ok": true,
+        "result": "{\"path\":\"out.txt\",\"bytesWritten\":35,\"totalLines\":1,\"preview\":\"T3-740cd38991cf026ff6e71db01ce3b4a7\"}"
+      }
+    ],
+    "compactions": [],
+    "contextStrategyUsed": "default",
+    "stopReason": "done",
+    "agentOk": true,
+    "agentError": null
+  },
+  "patch": {
+    "initialCommit": "1537882fe03b08f266858c9fd18c897c32a3e70e",
+    "model_patch": "diff --git a/out.txt b/out.txt\nnew file mode 100644\nindex 0000000..d00d52a\n--- /dev/null\n+++ b/out.txt\n@@ -0,0 +1 @@\n+T3-740cd38991cf026ff6e71db01ce3b4a7\n\\ No newline at end of file",
+    "filesChanged": [
+      "out.txt"
+    ]
+  },
+  "sandbox": {
+    "type": "docker",
+    "trusted": false,
+    "image": "node:22-alpine",
+    "envImage": "node:22-alpine",
+    "envImageId": "sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914",
+    "dependencies": {
+      "mode": "image",
+      "method": "none",
+      "network": null,
+      "depFile": null,
+      "depFileSha256": null
+    },
+    "network": {
+      "requested": "none",
+      "effective": "none",
+      "enforced": true
+    },
+    "memory": "512m",
+    "cpus": "1",
+    "pidsLimit": 256,
+    "timeoutMs": 300000,
+    "readonlyMounts": [
+      {
+        "container": "/opt/t3/challenge.mjs"
+      }
+    ],
+    "user": "1005:1005",
+    "enforced": {
+      "network": true,
+      "filesystem": true,
+      "cpu": true,
+      "memory": true,
+      "pids": true,
+      "time": true,
+      "readOnlyRoot": true,
+      "capDropAll": true
+    },
+    "warnings": []
+  },
+  "provenance": {
+    "harness": {
+      "version": "2.4.0",
+      "commit": "57856878d7a8f16c03209743c7f276cca18ab465",
+      "dirty": false,
+      "node": "v24.21.0",
+      "platform": "linux-x64"
+    },
+    "task": {
+      "id": "local-pilot-t3-tool-continuation-v3",
+      "version": 3,
+      "specSha256": "a273cbc2c9d06178c888e25b956b8e7f77b920061fc64442c1d4ee7976b127bf",
+      "dataset": null,
+      "datasetVersion": null
+    },
+    "repo": {
+      "source": "/home/jackb/workspace/upstage-cli/harness/fixtures/tool-continuation-v3/repo",
+      "pinnedCommit": null,
+      "initialCommit": "1537882fe03b08f266858c9fd18c897c32a3e70e",
+      "testPatchApplied": false
+    },
+    "agent": {
+      "id": "local-ax",
+      "adapter": "LocalModelAgent",
+      "displayName": "A.X 4.0 72B (local vLLM, TP2)"
+    },
+    "model": {
+      "provider": "local-vllm",
+      "id": "A.X-4.0",
+      "hfRepo": "skt/A.X-4.0",
+      "revision": "a3393fd67bf09a34a85e66dfd2c2da61c4497b67",
+      "quantization": "bf16",
+      "official": true,
+      "quantizationSource": null,
+      "servingRuntime": "vLLM v0.32.0 (CUDA 13.0.2)",
+      "servingImage": "vllm/vllm-openai@sha256:6ee133356d49ed24cee03dd0cda3d3980279a11c107ce3e752c89e76540f41c9",
+      "tensorParallel": 2,
+      "reasoningParser": null,
+      "toolCallParser": "hermes",
+      "logitsProcessor": null,
+      "maxNumSeqs": null,
+      "baseUrl": "http://127.0.0.1:8101/v1",
+      "lastFinishReason": "stop",
+      "sampling": {
+        "temperature": 0.6,
+        "topP": 0.95,
+        "topK": null,
+        "presencePenalty": null,
+        "seed": null
+      },
+      "chatTemplateKwargs": null,
+      "maxOutputTokens": 4096,
+      "contextLimit": 16384,
+      "reasoning": {
+        "reasoningChars": null,
+        "tokenizerReasoningTokens": null,
+        "providerReasoningTokens": null
+      },
+      "gpuContended": true
+    },
+    "limits": {
+      "maxTurns": 8,
+      "maxTokens": 8192,
+      "timeoutSec": 300
+    },
+    "tools": {
+      "advertised": [
+        "read_file",
+        "run_shell",
+        "write_file"
+      ],
+      "removedByPolicy": [
+        "apply_patch",
+        "create_patch",
+        "delete_file",
+        "echo",
+        "edit_file",
+        "find_references",
+        "find_symbol",
+        "glob",
+        "index_health",
+        "list_files",
+        "list_modules",
+        "multi_edit",
+        "rename_file",
+        "repo_map",
+        "run_tests",
+        "search_code",
+        "todo_read",
+        "todo_write"
+      ],
+      "removedForIsolation": [
+        "browser_click",
+        "browser_close",
+        "browser_console",
+        "browser_open",
+        "browser_screenshot",
+        "browser_snapshot",
+        "browser_type",
+        "check_groundedness",
+        "gh_issue_comment",
+        "gh_issue_read",
+        "gh_pr_create",
+        "gh_pr_review",
+        "grep",
+        "load_skill",
+        "read_document",
+        "run_linter",
+        "run_subagent",
+        "run_typecheck",
+        "run_verification",
+        "semantic_search",
+        "web_fetch",
+        "web_search"
+      ],
+      "schemaHash": "ec2ea4b62e39e12fdb565aff6d7f7c1fb5b69a4a6bf0004d09a1f1e20bd5aec8"
+    },
+    "environment": {
+      "image": "node:22-alpine",
+      "envImage": "node:22-alpine",
+      "envImageId": "sha256:fe4f6d74e20370acb04ad889077d14d0f64a9c8ea6a42bc60cddf1e844699914",
+      "dependencies": {
+        "mode": "image",
+        "method": "none",
+        "network": null,
+        "depFile": null,
+        "depFileSha256": null
+      }
+    },
+    "seed": null
+  },
+  "safety": {
+    "riskFlags": [],
+    "secretsDetected": false
+  },
+  "failure": null,
+  "humanReview": null
+}

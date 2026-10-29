@@ -1,0 +1,292 @@
+{
+  "id": "run_20261028T064729_local-pilot-t3-tool-continuation-v2_local-ax_d4cd25",
+  "instance_id": "local-pilot-t3-tool-continuation-v2",
+  "taskId": "local-pilot-t3-tool-continuation-v2",
+  "agentId": "local-ax",
+  "startedAt": 1793170049918,
+  "completedAt": 1793170063013,
+  "durationMs": 13095,
+  "status": "pass",
+  "outcome": {
+    "status": "pass",
+    "reason": "all_required_checks_passed",
+    "detail": null
+  },
+  "evaluation": {
+    "score": 0.87,
+    "failToPassRate": 1,
+    "passToPassRate": 1,
+    "checks": {
+      "fail_to_pass": [],
+      "pass_to_pass": [
+        {
+          "id": "gen-exists",
+          "passed": true,
+          "exitCode": 0,
+          "timedOut": false,
+          "infraError": null,
+          "durationMs": 5,
+          "stdout": "",
+          "stderr": "",
+          "weight": 0,
+          "required": true
+        }
+      ],
+      "custom": [
+        {
+          "id": "tool-result-continuation",
+          "passed": true,
+          "exitCode": 0,
+          "timedOut": false,
+          "infraError": null,
+          "durationMs": 0,
+          "stdout": "challenge 'challenge.mjs' executed 1×, generator intact, 'out.txt' matches the emitted token",
+          "stderr": "",
+          "weight": 1,
+          "required": true,
+          "detail": "challenge 'challenge.mjs' executed 1×, generator intact, 'out.txt' matches the emitted token"
+        }
+      ]
+    },
+    "breakdown": {
+      "checksScore": 1,
+      "patchMinimalityScore": 0.5906161091496412,
+      "toolCallScore": 0.4765053580405044,
+      "costScore": null,
+      "speedScore": 0.95635
+    },
+    "compositeIsAuthoritative": false,
+    "baseline": {
+      "pass_to_pass": [
+        {
+          "id": "gen-exists",
+          "passed": true,
+          "exitCode": 0,
+          "timedOut": false,
+          "durationMs": 4
+        }
+      ],
+      "fail_to_pass": [],
+      "custom": [
+        {
+          "id": "tool-result-continuation",
+          "passed": false,
+          "exitCode": 1,
+          "timedOut": false,
+          "durationMs": 0
+        }
+      ]
+    },
+    "passAtK": {
+      "k1": 1
+    }
+  },
+  "metrics": {
+    "toolCalls": 2,
+    "turns": 3,
+    "promptTokens": 3782,
+    "completionTokens": 209,
+    "totalTokens": 3991,
+    "estimatedCostUsd": null,
+    "costPerSuccessfulFix": null,
+    "agentDurationMs": 13030,
+    "patch": {
+      "filesChanged": 1,
+      "linesAdded": 1,
+      "linesRemoved": 0
+    }
+  },
+  "trace": {
+    "turns": [
+      {
+        "index": 0,
+        "toolCalls": [],
+        "thoughtSummary": "Calling model",
+        "response": ""
+      }
+    ],
+    "toolCalls": [
+      {
+        "tool": "run_shell",
+        "args": {
+          "command": "node challenge.mjs"
+        },
+        "durationMs": 0,
+        "ok": true,
+        "result": "{\"ok\":true,\"code\":0,\"stdout\":\"T3-090b42cd068000675a6847c80775186b\\n\",\"stderr\":\"\",\"truncated\":false,\"timedOut\":false}"
+      },
+      {
+        "tool": "write_file",
+        "args": {
+          "path": "out.txt",
+          "content": "T3-090b42cd068000675a6847c80775186b"
+        },
+        "durationMs": 0,
+        "ok": true,
+        "result": "{\"path\":\"out.txt\",\"bytesWritten\":35,\"totalLines\":1,\"preview\":\"T3-090b42cd068000675a6847c80775186b\"}"
+      }
+    ],
+    "compactions": [],
+    "contextStrategyUsed": "default",
+    "stopReason": "done",
+    "agentOk": true,
+    "agentError": null
+  },
+  "patch": {
+    "initialCommit": "aac958ef77eb2e5ee3bf4694b46a9655e2ae799a",
+    "model_patch": "diff --git a/out.txt b/out.txt\nnew file mode 100644\nindex 0000000..b62e872\n--- /dev/null\n+++ b/out.txt\n@@ -0,0 +1 @@\n+T3-090b42cd068000675a6847c80775186b\n\\ No newline at end of file",
+    "filesChanged": [
+      "out.txt"
+    ]
+  },
+  "sandbox": {
+    "type": "native",
+    "trusted": true,
+    "network": {
+      "requested": "none",
+      "enforced": false
+    },
+    "enforced": {
+      "network": false,
+      "filesystem": false,
+      "cpu": false,
+      "memory": false,
+      "pids": false,
+      "time": true,
+      "secretEnvScrubbed": true
+    },
+    "warnings": [
+      "sandbox.network=none is NOT enforced by the native sandbox; use type: docker for untrusted execution"
+    ]
+  },
+  "provenance": {
+    "harness": {
+      "version": "2.4.0",
+      "commit": "e7f74810d4e2463f0c8d1ac60807dd35d11fa6a9",
+      "dirty": true,
+      "node": "v24.21.0",
+      "platform": "linux-x64"
+    },
+    "task": {
+      "id": "local-pilot-t3-tool-continuation-v2",
+      "version": 2,
+      "specSha256": "26b829cff66cebff450bb33624ea156cdcb2fb72b9f34486e31e1821a7836b74",
+      "dataset": null,
+      "datasetVersion": null
+    },
+    "repo": {
+      "source": "/home/jackb/workspace/upstage-cli/harness/fixtures/tool-continuation-v2",
+      "pinnedCommit": null,
+      "initialCommit": "aac958ef77eb2e5ee3bf4694b46a9655e2ae799a",
+      "testPatchApplied": false
+    },
+    "agent": {
+      "id": "local-ax",
+      "adapter": "LocalModelAgent",
+      "displayName": "A.X 4.0 72B (local vLLM, TP2)"
+    },
+    "model": {
+      "provider": "local-vllm",
+      "id": "A.X-4.0",
+      "hfRepo": "skt/A.X-4.0",
+      "revision": "a3393fd67bf09a34a85e66dfd2c2da61c4497b67",
+      "quantization": "bf16",
+      "official": true,
+      "quantizationSource": null,
+      "servingRuntime": "vLLM v0.32.0 (CUDA 13.0.2)",
+      "servingImage": "vllm/vllm-openai@sha256:6ee133356d49ed24cee03dd0cda3d3980279a11c107ce3e752c89e76540f41c9",
+      "tensorParallel": 2,
+      "reasoningParser": null,
+      "toolCallParser": "hermes",
+      "logitsProcessor": null,
+      "maxNumSeqs": null,
+      "baseUrl": "http://127.0.0.1:8101/v1",
+      "lastFinishReason": "stop",
+      "sampling": {
+        "temperature": 0.6,
+        "topP": 0.95,
+        "topK": null,
+        "presencePenalty": null,
+        "seed": null
+      },
+      "chatTemplateKwargs": null,
+      "maxOutputTokens": 4096,
+      "contextLimit": 16384,
+      "reasoning": {
+        "reasoningChars": null,
+        "tokenizerReasoningTokens": null,
+        "providerReasoningTokens": null
+      },
+      "gpuContended": true
+    },
+    "limits": {
+      "maxTurns": 8,
+      "maxTokens": 8192,
+      "timeoutSec": 300
+    },
+    "tools": {
+      "advertised": [
+        "read_file",
+        "run_shell",
+        "write_file"
+      ],
+      "removedByPolicy": [
+        "apply_patch",
+        "browser_click",
+        "browser_close",
+        "browser_console",
+        "browser_open",
+        "browser_screenshot",
+        "browser_snapshot",
+        "browser_type",
+        "check_groundedness",
+        "create_patch",
+        "delete_file",
+        "echo",
+        "edit_file",
+        "find_references",
+        "find_symbol",
+        "gh_issue_comment",
+        "gh_issue_read",
+        "gh_pr_create",
+        "gh_pr_review",
+        "glob",
+        "grep",
+        "index_health",
+        "list_files",
+        "list_modules",
+        "load_skill",
+        "multi_edit",
+        "read_document",
+        "rename_file",
+        "repo_map",
+        "run_linter",
+        "run_subagent",
+        "run_tests",
+        "run_typecheck",
+        "run_verification",
+        "search_code",
+        "semantic_search",
+        "todo_read",
+        "todo_write",
+        "web_fetch",
+        "web_search"
+      ],
+      "removedForIsolation": [],
+      "schemaHash": "3b20eb91a587b4ecc930a0ae394ee251466f61166c9adecb056c1efbd5bd080b"
+    },
+    "environment": {
+      "image": null,
+      "envImage": null,
+      "envImageId": null,
+      "dependencies": null
+    },
+    "seed": null
+  },
+  "safety": {
+    "riskFlags": [],
+    "secretsDetected": false
+  },
+  "failure": null,
+  "humanReview": null
+}

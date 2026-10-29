@@ -1,0 +1,191 @@
+{
+  "id": "run_20261028T065124_local-pilot-t3-tool-continuation-v2_local-solar-open2_858520",
+  "instance_id": "local-pilot-t3-tool-continuation-v2",
+  "taskId": "local-pilot-t3-tool-continuation-v2",
+  "agentId": "local-solar-open2",
+  "startedAt": 1793170284032,
+  "completedAt": 1793170284162,
+  "durationMs": 130,
+  "status": "error",
+  "outcome": {
+    "status": "error",
+    "reason": "agent_adapter_error",
+    "detail": "adapter threw: Local model API error [context_length] (400) from solar-open2-250b: {\"error\":{\"message\":\"This model's maximum context length is 4096 tokens. However, you requested 4096 output tokens and your prompt contains 3460 characters (more than 0 characters, which is the upper bound for 0 input tokens). Please reduce the length of the input prompt or the number of requested output tokens. (parameter=input_text, value=3460)\",\"type\":\"BadRequestError\",\"param\":\"input_text\",\"code\":400}}"
+  },
+  "evaluation": {
+    "score": 1,
+    "failToPassRate": 1,
+    "passToPassRate": 1,
+    "checks": {
+      "fail_to_pass": [],
+      "pass_to_pass": [
+        {
+          "id": "gen-exists",
+          "passed": true,
+          "exitCode": 0,
+          "timedOut": false,
+          "infraError": null,
+          "durationMs": 2,
+          "stdout": "",
+          "stderr": "",
+          "weight": 0,
+          "required": true
+        }
+      ],
+      "custom": [
+        {
+          "id": "tool-result-continuation",
+          "passed": false,
+          "exitCode": 1,
+          "timedOut": false,
+          "infraError": null,
+          "durationMs": 0,
+          "stdout": "",
+          "stderr": "no successful run_shell/run call executed 'challenge.mjs' — tool-result continuation not demonstrated (the output file alone does not prove the tool ran)",
+          "weight": 1,
+          "required": true,
+          "detail": "no successful run_shell/run call executed 'challenge.mjs' — tool-result continuation not demonstrated (the output file alone does not prove the tool ran)"
+        }
+      ]
+    },
+    "breakdown": {
+      "checksScore": 1,
+      "patchMinimalityScore": 1,
+      "toolCallScore": null,
+      "costScore": null,
+      "speedScore": 0.9995666666666667
+    },
+    "compositeIsAuthoritative": false,
+    "baseline": {
+      "pass_to_pass": [
+        {
+          "id": "gen-exists",
+          "passed": true,
+          "exitCode": 0,
+          "timedOut": false,
+          "durationMs": 4
+        }
+      ],
+      "fail_to_pass": [],
+      "custom": [
+        {
+          "id": "tool-result-continuation",
+          "passed": false,
+          "exitCode": 1,
+          "timedOut": false,
+          "durationMs": 0
+        }
+      ]
+    },
+    "passAtK": {
+      "k1": null
+    }
+  },
+  "metrics": {
+    "toolCalls": null,
+    "turns": null,
+    "promptTokens": null,
+    "completionTokens": null,
+    "totalTokens": null,
+    "estimatedCostUsd": null,
+    "costPerSuccessfulFix": null,
+    "agentDurationMs": 79,
+    "patch": {
+      "filesChanged": 0,
+      "linesAdded": 0,
+      "linesRemoved": 0
+    }
+  },
+  "trace": {
+    "turns": [
+      {
+        "index": 0,
+        "toolCalls": [],
+        "thoughtSummary": "Calling model",
+        "response": ""
+      }
+    ],
+    "toolCalls": [],
+    "compactions": [],
+    "contextStrategyUsed": "default",
+    "stopReason": null,
+    "agentOk": false,
+    "agentError": "adapter threw: Local model API error [context_length] (400) from solar-open2-250b: {\"error\":{\"message\":\"This model's maximum context length is 4096 tokens. However, you requested 4096 output tokens and your prompt contains 3460 characters (more than 0 characters, which is the upper bound for 0 input tokens). Please reduce the length of the input prompt or the number of requested output tokens. (parameter=input_text, value=3460)\",\"type\":\"BadRequestError\",\"param\":\"input_text\",\"code\":400}}"
+  },
+  "patch": {
+    "initialCommit": "babebb660916b078dc8901e8086ed00792777236",
+    "model_patch": "",
+    "filesChanged": []
+  },
+  "sandbox": {
+    "type": "native",
+    "trusted": true,
+    "network": {
+      "requested": "none",
+      "enforced": false
+    },
+    "enforced": {
+      "network": false,
+      "filesystem": false,
+      "cpu": false,
+      "memory": false,
+      "pids": false,
+      "time": true,
+      "secretEnvScrubbed": true
+    },
+    "warnings": [
+      "sandbox.network=none is NOT enforced by the native sandbox; use type: docker for untrusted execution"
+    ]
+  },
+  "provenance": {
+    "harness": {
+      "version": "2.4.0",
+      "commit": "e7f74810d4e2463f0c8d1ac60807dd35d11fa6a9",
+      "dirty": true,
+      "node": "v24.21.0",
+      "platform": "linux-x64"
+    },
+    "task": {
+      "id": "local-pilot-t3-tool-continuation-v2",
+      "version": 2,
+      "specSha256": "26b829cff66cebff450bb33624ea156cdcb2fb72b9f34486e31e1821a7836b74",
+      "dataset": null,
+      "datasetVersion": null
+    },
+    "repo": {
+      "source": "/home/jackb/workspace/upstage-cli/harness/fixtures/tool-continuation-v2",
+      "pinnedCommit": null,
+      "initialCommit": "babebb660916b078dc8901e8086ed00792777236",
+      "testPatchApplied": false
+    },
+    "agent": {
+      "id": "local-solar-open2",
+      "adapter": "LocalModelAgent",
+      "displayName": "Solar Open 2 250B — Nota NVFP4, UNOFFICIAL quant (local, Upstage fork, TP2)"
+    },
+    "model": null,
+    "limits": {
+      "maxTurns": 8,
+      "maxTokens": 8192,
+      "timeoutSec": 300
+    },
+    "tools": null,
+    "environment": {
+      "image": null,
+      "envImage": null,
+      "envImageId": null,
+      "dependencies": null
+    },
+    "seed": null
+  },
+  "safety": {
+    "riskFlags": [],
+    "secretsDetected": false
+  },
+  "failure": {
+    "dimension": "infrastructure",
+    "symptom": "agent_adapter_error",
+    "evidence": "adapter threw: Local model API error [context_length] (400) from solar-open2-250b: {\"error\":{\"message\":\"This model's maximum context length is 4096 tokens. However, you requested 4096 output tokens and your prompt contains 3460 characters (more than 0 characters, which is the upper bound for 0 input tokens). Please reduce the length of the input prompt or the number of requested output tokens. (parameter=input_text, value=3460)\",\"type\":\"BadRequestError\",\"param\":\"input_text\",\"code\":400}}"
+  },
+  "humanReview": null
+}

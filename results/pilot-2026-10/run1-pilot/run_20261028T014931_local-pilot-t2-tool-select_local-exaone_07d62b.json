@@ -1,0 +1,350 @@
+{
+  "id": "run_20261028T014931_local-pilot-t2-tool-select_local-exaone_07d62b",
+  "instance_id": "local-pilot-t2-tool-select",
+  "taskId": "local-pilot-t2-tool-select",
+  "agentId": "local-exaone",
+  "startedAt": 1793152171563,
+  "completedAt": 1793152274334,
+  "durationMs": 102771,
+  "status": "pass",
+  "outcome": {
+    "status": "pass",
+    "reason": "all_required_checks_passed",
+    "detail": null
+  },
+  "evaluation": {
+    "score": 0.8,
+    "failToPassRate": 1,
+    "passToPassRate": 1,
+    "checks": {
+      "fail_to_pass": [
+        {
+          "id": "test-mul",
+          "passed": true,
+          "exitCode": 0,
+          "timedOut": false,
+          "infraError": null,
+          "durationMs": 82,
+          "stdout": "",
+          "stderr": "",
+          "weight": 0.8,
+          "required": true
+        }
+      ],
+      "pass_to_pass": [
+        {
+          "id": "test-add",
+          "passed": true,
+          "exitCode": 0,
+          "timedOut": false,
+          "infraError": null,
+          "durationMs": 83,
+          "stdout": "",
+          "stderr": "",
+          "weight": 0.2,
+          "required": true
+        }
+      ],
+      "custom": []
+    },
+    "breakdown": {
+      "checksScore": 1,
+      "patchMinimalityScore": 0.3581970477838151,
+      "toolCallScore": 0.312771272649591,
+      "costScore": null,
+      "speedScore": 0.65743
+    },
+    "compositeIsAuthoritative": false,
+    "baseline": {
+      "pass_to_pass": [
+        {
+          "id": "test-add",
+          "passed": true,
+          "exitCode": 0,
+          "timedOut": false,
+          "durationMs": 94
+        }
+      ],
+      "fail_to_pass": [
+        {
+          "id": "test-mul",
+          "passed": false,
+          "exitCode": 1,
+          "timedOut": false,
+          "durationMs": 89
+        }
+      ]
+    },
+    "passAtK": {
+      "k1": 1
+    }
+  },
+  "metrics": {
+    "toolCalls": 8,
+    "turns": 8,
+    "promptTokens": 13245,
+    "completionTokens": 3563,
+    "totalTokens": 16808,
+    "estimatedCostUsd": null,
+    "costPerSuccessfulFix": null,
+    "agentDurationMs": 102356,
+    "patch": {
+      "filesChanged": 1,
+      "linesAdded": 2,
+      "linesRemoved": 3
+    }
+  },
+  "trace": {
+    "turns": [
+      {
+        "index": 0,
+        "toolCalls": [],
+        "thoughtSummary": "Executing tool: search_code",
+        "response": ""
+      }
+    ],
+    "toolCalls": [
+      {
+        "tool": "read_file",
+        "args": {
+          "path": "math.mjs"
+        },
+        "durationMs": 0,
+        "ok": true,
+        "result": "{\"filePath\":\"math.mjs\",\"content\":\"export function add(a, b) {\\n  return a + b;\\n}\\n\\nexport function mul(a, b) {\\n  // BUG: multiplication implemented as addition\\n  return a + b;\\n}\\n\",\"totalLines\":9}"
+      },
+      {
+        "tool": "read_file",
+        "args": {
+          "path": "math.test.mjs"
+        },
+        "durationMs": 0,
+        "ok": true,
+        "result": "{\"filePath\":\"math.test.mjs\",\"content\":\"import { test } from \\\"node:test\\\";\\nimport assert from \\\"node:assert/strict\\\";\\nimport { add, mul } from \\\"./math.mjs\\\";\\n\\ntest(\\\"test_add\\\", () => { assert.equal(add(2, 3), 5); });\\ntest(\\\"test_mul\\\", () => { assert.equal(mul(4, 5), 20); });\\n\",\"totalLines\":7}"
+      },
+      {
+        "tool": "write_file",
+        "args": {
+          "path": "math.mjs",
+          "content": "export function add(a, b) {\n  return a + b;\n}\n\nexport function mul(a, b) {\n  return a * b;\n}"
+        },
+        "durationMs": 0,
+        "ok": true,
+        "result": "{\"path\":\"math.mjs\",\"bytesWritten\":92,\"totalLines\":7,\"preview\":\"export function add(a, b) {\\n  return a + b;\\n}\\n\\nexport function mul(a, b) {\\n  return a * b;\\n… (7 lines total)\"}"
+      },
+      {
+        "tool": "read_file",
+        "args": {
+          "path": "math.mjs"
+        },
+        "durationMs": 0,
+        "ok": true,
+        "result": "{\"filePath\":\"math.mjs\",\"content\":\"export function add(a, b) {\\n  return a + b;\\n}\\n\\nexport function mul(a, b) {\\n  return a * b;\\n}\",\"totalLines\":7}"
+      },
+      {
+        "tool": "search_code",
+        "args": {
+          "pattern": "mul",
+          "maxResults": 10
+        },
+        "durationMs": 0,
+        "ok": true,
+        "result": "{\"pattern\":\"mul\",\"matches\":[{\"path\":\"README.fixture.md\",\"line\":4,\"text\":\"`mul` in math.mjs is implemented as addition. `add` is correct and must stay correct.\"},{\"path\":\"README.fixture.md\",\"line\":13,\"text\":\"export function mul(a, b) {\"},{\"path\":\"math.mjs\",\"line\":5,\"text\":\"export function mul(a, b) {\"},{\"path\":\"math.test.mjs\",\"line\":3,\"text\":\"import { add, mul } from \\\"./math.mjs\\\";\"},{\"path\":\"math.test.mjs\",\"line\":6,\"text\":\"test(\\\"test_mul\\\", () => { assert.equal(mul(4, 5), 20); });\"}]}"
+      },
+      {
+        "tool": "read_file",
+        "args": {
+          "path": "math.test.mjs",
+          "offset": 1,
+          "limit": 10
+        },
+        "durationMs": 0,
+        "ok": true,
+        "result": "{\"filePath\":\"math.test.mjs\",\"content\":\"import { test } from \\\"node:test\\\";\\nimport assert from \\\"node:assert/strict\\\";\\nimport { add, mul } from \\\"./math.mjs\\\";\\n\\ntest(\\\"test_add\\\", () => { assert.equal(add(2, 3), 5); });\\ntest(\\\"test_mul\\\", () => { assert.equal(mul(4, 5), 20); });\\n\",\"startLine\":1,\"endLine\":7,\"totalLines\":7,\"truncated\":false}"
+      },
+      {
+        "tool": "repo_map",
+        "args": {
+          "maxFiles": 10
+        },
+        "durationMs": 0,
+        "ok": true,
+        "result": "{\"totalFiles\":3,\"map\":\"README.fixture.md\\nmath.mjs (function add(a, b) {\\n  return a + b;\\n}, add, function mul(a, b) {\\n  return a * b;\\n}, mul)\\nmath.test.mjs\"}"
+      },
+      {
+        "tool": "search_code",
+        "args": {
+          "pattern": "test",
+          "maxResults": 10
+        },
+        "durationMs": 0,
+        "ok": true,
+        "result": "{\"pattern\":\"test\",\"matches\":[{\"path\":\"math.test.mjs\",\"line\":1,\"text\":\"import { test } from \\\"node:test\\\";\"},{\"path\":\"math.test.mjs\",\"line\":5,\"text\":\"test(\\\"test_add\\\", () => { assert.equal(add(2, 3), 5); });\"},{\"path\":\"math.test.mjs\",\"line\":6,\"text\":\"test(\\\"test_mul\\\", () => { assert.equal(mul(4, 5), 20); });\"}]}"
+      }
+    ],
+    "compactions": [],
+    "contextStrategyUsed": "default",
+    "stopReason": "budget_exhausted",
+    "agentOk": false,
+    "agentError": "Stopped: step budget exhausted."
+  },
+  "patch": {
+    "initialCommit": "e87342673c35f8349422ac4eb062998cfc6e2539",
+    "model_patch": "diff --git a/math.mjs b/math.mjs\nindex 5ac6a58..71d0c58 100644\n--- a/math.mjs\n+++ b/math.mjs\n@@ -3,6 +3,5 @@ export function add(a, b) {\n }\n \n export function mul(a, b) {\n-  // BUG: multiplication implemented as addition\n-  return a + b;\n-}\n+  return a * b;\n+}\n\\ No newline at end of file",
+    "filesChanged": [
+      "math.mjs"
+    ]
+  },
+  "sandbox": {
+    "type": "native",
+    "trusted": true,
+    "network": {
+      "requested": "none",
+      "enforced": false
+    },
+    "enforced": {
+      "network": false,
+      "filesystem": false,
+      "cpu": false,
+      "memory": false,
+      "pids": false,
+      "time": true,
+      "secretEnvScrubbed": true
+    },
+    "warnings": [
+      "sandbox.network=none is NOT enforced by the native sandbox; use type: docker for untrusted execution"
+    ]
+  },
+  "provenance": {
+    "harness": {
+      "version": "2.4.0",
+      "commit": "1a4bf27fe9e3fc9ac516df200444ec733a38bd5d",
+      "dirty": true,
+      "node": "v24.21.0",
+      "platform": "linux-x64"
+    },
+    "task": {
+      "id": "local-pilot-t2-tool-select",
+      "version": 1,
+      "specSha256": "36ef531514c4326236d40964d6a8284158df9ee17844674c05d4fba231844202",
+      "dataset": null,
+      "datasetVersion": null
+    },
+    "repo": {
+      "source": "/home/jackb/workspace/upstage-cli/harness/fixtures/tool-select",
+      "pinnedCommit": null,
+      "initialCommit": "e87342673c35f8349422ac4eb062998cfc6e2539",
+      "testPatchApplied": false
+    },
+    "agent": {
+      "id": "local-exaone",
+      "adapter": "LocalModelAgent",
+      "displayName": "EXAONE 4.5 33B FP8 (local vLLM)"
+    },
+    "model": {
+      "provider": "local-vllm",
+      "id": "EXAONE-4.5",
+      "hfRepo": "LGAI-EXAONE/EXAONE-4.5-33B-FP8",
+      "revision": "69570ad5d9a5159816ef267f2f4d37e36447f1be",
+      "quantization": "fp8",
+      "official": true,
+      "quantizationSource": null,
+      "servingRuntime": "vLLM v0.32.0 (CUDA 13.0.2)",
+      "servingImage": "vllm/vllm-openai@sha256:6ee133356d49ed24cee03dd0cda3d3980279a11c107ce3e752c89e76540f41c9",
+      "tensorParallel": 1,
+      "reasoningParser": "qwen3",
+      "toolCallParser": "hermes",
+      "logitsProcessor": null,
+      "maxNumSeqs": null,
+      "baseUrl": "http://127.0.0.1:8101/v1",
+      "lastFinishReason": "tool_calls",
+      "sampling": {
+        "temperature": 0.6,
+        "topP": 0.95,
+        "topK": 20,
+        "presencePenalty": 1.5,
+        "seed": null
+      },
+      "chatTemplateKwargs": {
+        "enable_thinking": true
+      },
+      "maxOutputTokens": 8192,
+      "contextLimit": 16384,
+      "reasoning": {
+        "reasoningChars": 16248,
+        "tokenizerReasoningTokens": null,
+        "providerReasoningTokens": 3307
+      },
+      "gpuContended": true
+    },
+    "limits": {
+      "maxTurns": 8,
+      "maxTokens": 8192,
+      "timeoutSec": 300
+    },
+    "tools": {
+      "advertised": [
+        "read_file",
+        "repo_map",
+        "search_code",
+        "write_file"
+      ],
+      "removedByPolicy": [
+        "apply_patch",
+        "browser_click",
+        "browser_close",
+        "browser_console",
+        "browser_open",
+        "browser_screenshot",
+        "browser_snapshot",
+        "browser_type",
+        "check_groundedness",
+        "create_patch",
+        "delete_file",
+        "echo",
+        "edit_file",
+        "find_references",
+        "find_symbol",
+        "gh_issue_comment",
+        "gh_issue_read",
+        "gh_pr_create",
+        "gh_pr_review",
+        "glob",
+        "grep",
+        "index_health",
+        "list_files",
+        "list_modules",
+        "load_skill",
+        "multi_edit",
+        "read_document",
+        "rename_file",
+        "run_linter",
+        "run_shell",
+        "run_subagent",
+        "run_tests",
+        "run_typecheck",
+        "run_verification",
+        "semantic_search",
+        "todo_read",
+        "todo_write",
+        "web_fetch",
+        "web_search"
+      ],
+      "removedForIsolation": [],
+      "schemaHash": "a01d1e1f4bb40c6ed9895fbbecb212f1b29b044b0f80d0a59e45f6454a55bb46"
+    },
+    "environment": {
+      "image": null,
+      "envImage": null,
+      "envImageId": null,
+      "dependencies": null
+    },
+    "seed": null
+  },
+  "safety": {
+    "riskFlags": [],
+    "secretsDetected": false
+  },
+  "failure": null,
+  "humanReview": null
+}
