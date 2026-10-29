@@ -3,6 +3,8 @@ import { CodingAgent } from "../interface.mjs";
 import { buildAgentRegistry, extractUsage } from "./upstage.mjs";
 import { getLocalModelConfig, LOCAL_MODEL_IDS } from "../local-models.mjs";
 
+export const CONTEXT_SAFETY_MARGIN_RATIO = 0.05;
+
 import { importFromCli } from "../../upstream.mjs";
 
 /**
@@ -108,6 +110,18 @@ export class LocalModelAgent extends CodingAgent {
 
     const session = createSession(workdir);
 
+    // The served model's validated limits, handed to upstage-cli's loop
+    // (runAgentLoop contextBudget). Without this the loop would use its
+    // 65,536-token fallback for these unknown model ids. maxOutputTokens is
+    // exactly the max_tokens the adapter sends.
+    const contextBudget = {
+      contextLimit: cfg.contextLimit,
+      maxOutputTokens: maxTokens,
+      charsPerToken: cfg.contextCharsPerToken,
+      safetyMarginRatio: CONTEXT_SAFETY_MARGIN_RATIO,
+      source: `korean-agent-bench local-models.mjs (${this._key})`
+    };
+
     const gen = runAgentLoop({
       input: task.prompt,
       registry,
@@ -117,7 +131,8 @@ export class LocalModelAgent extends CodingAgent {
       session,
       budget: { ...DEFAULT_LOOP_BUDGET, maxSteps: maxTurns, maxWallTimeMs: timeoutMs },
       settings: {},
-      addDirs: []
+      addDirs: [],
+      contextBudget
     });
 
     const { result, events } = await collectAgentLoop(gen);
@@ -172,6 +187,7 @@ export class LocalModelAgent extends CodingAgent {
         logitsProcessor: prov.logitsProcessor,
         maxNumSeqs: prov.maxNumSeqs ?? null,
         baseUrl: this._resolvedBaseUrl(),
+        contextBudget,
         lastFinishReason: adapter.lastFinishReason ?? null,
         sampling: {
           temperature: adapter.temperature ?? null,

@@ -70,3 +70,4 @@ than `upstream.mjs` defines its own `CLI_ROOT`.
 |---|---|---|---|
 | 2026-10-29 | `6d1e9329381b45e32b736bde1cdbd6ac2a41b7da` | Commit the harness was extracted from | `docs/MIGRATION.md` |
 | 2026-10-29 | `7380ef6e32fa091c24e6c4cbf03be66452c10b25` | upstage-cli#13 merge: harness removed upstream. `src/` differs from the previous pin only in comments; `bun.lock` unchanged | full suite at the new pin; h24 now also checks that every name the harness imports is exported at the pin |
+| 2026-10-29 | `b17a1f3e40ef2c7a14e0c2368c83704e199bfdb4` | upstage-cli#15 merge: caller-validated context budget (ADR 0010) | harness unit + Docker suites; h24 export check; h30 |

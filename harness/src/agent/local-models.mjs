@@ -36,6 +36,9 @@ export const LOCAL_MODELS = {
     chatTemplateKwargs: null,
     maxOutputTokens: 8192,
     contextLimit: 16384, // validated serving context (YaRN can extend, not used here)
+    // Calibrated chars/token for upstage-cli's context budget: 4 / (worst real/heuristic
+    // token ratio x 1.1) from models/tokenizer-calibration/2026-10-29.json.
+    contextCharsPerToken: 1.94,
     // ── provenance ──
     provenance: {
       provider: "local-vllm",
@@ -68,6 +71,9 @@ export const LOCAL_MODELS = {
     chatTemplateKwargs: { enable_thinking: true },
     maxOutputTokens: 8192,
     contextLimit: 16384,
+    // Calibrated chars/token for upstage-cli's context budget: 4 / (worst real/heuristic
+    // token ratio x 1.1) from models/tokenizer-calibration/2026-10-29.json.
+    contextCharsPerToken: 1.83,
     provenance: {
       provider: "local-vllm",
       hfRepo: "LGAI-EXAONE/EXAONE-4.5-33B-FP8",
@@ -97,6 +103,9 @@ export const LOCAL_MODELS = {
     chatTemplateKwargs: { enable_thinking: false },
     maxOutputTokens: 4096,
     contextLimit: 16384,
+    // Calibrated chars/token for upstage-cli's context budget: 4 / (worst real/heuristic
+    // token ratio x 1.1) from models/tokenizer-calibration/2026-10-29.json.
+    contextCharsPerToken: 1.83,
     provenance: {
       provider: "local-vllm",
       hfRepo: "LGAI-EXAONE/EXAONE-4.5-33B-FP8",
@@ -125,6 +134,9 @@ export const LOCAL_MODELS = {
     chatTemplateKwargs: null, // non-thinking: no reasoning parser, no think toggle
     maxOutputTokens: 4096,
     contextLimit: 16384,
+    // Calibrated chars/token for upstage-cli's context budget: 4 / (worst real/heuristic
+    // token ratio x 1.1) from models/tokenizer-calibration/2026-10-29.json.
+    contextCharsPerToken: 1.6,
     provenance: {
       provider: "local-vllm",
       hfRepo: "skt/A.X-4.0",
@@ -157,6 +169,9 @@ export const LOCAL_MODELS = {
     // stays within it (the server 400s if max_tokens overflows the context).
     maxOutputTokens: 4096,
     contextLimit: 8192,
+    // Calibrated chars/token for upstage-cli's context budget: 4 / (worst real/heuristic
+    // token ratio x 1.1) from models/tokenizer-calibration/2026-10-29.json.
+    contextCharsPerToken: 1.71,
     provenance: {
       provider: "local-vllm-fork",
       hfRepo: "nota-ai/Solar-Open2-250B-Nota-NVFP4",
