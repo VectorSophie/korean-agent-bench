@@ -121,3 +121,38 @@ fail with ENOENT during verification. Fixed separately in
 
 This repository's submodule pin was then moved to `7380ef6` (pin history in
 ADR 0002); the full suite passes at the new pin.
+
+## Final record (2026-10-29)
+
+| Repository | PR | Disposition | Merge commit | CI on merge commit |
+|---|---|---|---|---|
+| upstage-cli | #12 v1-dataset + held-out pack | **closed unmerged**; branch deleted (commit kept at `refs/pull/12/head`) | — | — |
+| korean-agent-bench | #1 PR #12 import, reduced (ADR 0007) | merged | `c254617` | run 40832314580 ✅ |
+| upstage-cli | #13 remove harness | merged | `7380ef6` | run 40832861012 ✅ |
+| upstage-cli | #14 session-index robustness, m9 isolation | merged | `160292b` | run 40833579697 ✅ |
+| korean-agent-bench | #2 submodule pin → `7380ef6` | merged | `966d879` | run 40833667340 ✅ |
+| korean-agent-bench | #3 serving preflight, Solar launcher, evidence audit | merged | `7a93212` | run 40834824264 ✅ |
+| korean-agent-bench | #4 BFCL + SWE-bench Verified (official tooling) | merged | `c81edd5` | run 40839812410 ✅ (incl. external-benchmarks job) |
+
+Earlier upstage-cli master CI on `6d1e932` (the extraction commit, before this
+work) had failed one test, `screenshot() returns non-empty PNG bytes`
+(run 40816432490); it passed on the later master runs above. Not investigated
+further here.
+
+**Final verification from a fresh recursive clone of `main` at `c81edd5`:**
+submodule at `7380ef6` with a clean tree and no `harness/` upstream; every
+relative import in `harness/` and `benchmarks/` resolves inside the harness
+(184) or into `vendor/upstage-cli/src` (11), none elsewhere; check, lint, unit
+405/405, Docker 35/35, smoke, `benchmark:validate` 15/0, `benchmark:qa` 15/15;
+BFCL subset reproduced and BFCL offline validation PASS; SWE-bench parquet
+sha256, index and subset reproduced and SWE-bench offline validation PASS
+(official evaluator); all four evidence checksum sets and the disclosure
+guard pass.
+
+Not done: deleting the merged branches `import/upstage-cli-pr-12`,
+`chore/pin-upstage-cli-cleanup`, `feat/evidence-audit-and-preflight`,
+`feat/external-benchmarks` here, and upstage-cli's
+`chore/move-harness-to-korean-agent-bench`, `fix/session-index-robustness`
+(deleting `import/upstage-cli-pr-12` was denied by the session's permission
+policy, so the others were not attempted; all are fully merged and safe to
+delete).
