@@ -68,19 +68,39 @@ def main():
                                   for k in [*proto["code"]["trees"], "vendor/upstage-cli"]}
                 return _c[commit]
             frozen = {**proto["code"]["trees"], "vendor/upstage-cli": proto["code"]["upstageCli"]}
+            # protocol amendments (ADR 0011 rule 10) applied to this campaign
+            amended, invalidated = [], {}
+            am_p = d / "amendments.json"
+            for rec in (json.loads(am_p.read_text()) if am_p.exists() else []):
+                araw = (ROOT / rec["file"]).read_bytes()
+                check(f"amendment {rec['id']}: file sha256 == applied", hashlib.sha256(araw).hexdigest() == rec["sha256"])
+                am = json.loads(araw)
+                check(f"amendment {rec['id']}: amends this protocol", am["amends"]["sha256"] == spec.get("protocolSha256"))
+                trees = {**am["code"]["trees"], "vendor/upstage-cli": am["code"]["upstageCli"]}
+                amended.append(trees)
+                for m_ in am["invalidated"]["models"]:
+                    for iid in am["invalidated"]["swebench"]:
+                        invalidated[(m_, iid)] = trees
             for m in spec["models"]:
                 commits = set()
                 rp = d / m / "bfcl" / "run.json"
                 if rp.exists():
                     commits |= {s_["git"]["commit"] for s_ in json.loads(rp.read_text()).get("sessions", [])}
+                stale = []
                 for ap_ in (d / m / "swebench" / "attempts").glob("*/attempt-*.json"):
                     a_ = json.loads(ap_.read_text())
                     if a_.get("run"):
-                        commits.add(json.loads((d / a_["run"]).read_text())["provenance"]["harness"]["commit"])
+                        c_ = json.loads((d / a_["run"]).read_text())["provenance"]["harness"]["commit"]
+                        commits.add(c_)
+                        need = invalidated.get((m, ap_.parent.name))
+                        if need is not None and trees_at(c_) != need:
+                            stale.append(ap_.parent.name)
+                if invalidated:
+                    check(f"protocol: {m} every amendment-invalidated cell re-run on the amended code", not stale, str(sorted(set(stale)))[:300])
                 if not commits:
                     continue  # not executed: covered by the "reported as not executed" checks
-                bad = sorted(c for c in commits if trees_at(c) != frozen)
-                check(f"protocol: {m} ran on the frozen code", not bad, f"{len(commits)} commits, mismatched {bad}")
+                bad = sorted(c for c in commits if trees_at(c) not in [frozen, *amended])
+                check(f"protocol: {m} ran on the frozen (or amended) code", not bad, f"{len(commits)} commits, mismatched {bad}")
 
     # ── BFCL ──
     wanted = {i for ids in spec["bfcl"]["ids"].values() for i in ids}
