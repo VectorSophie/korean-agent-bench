@@ -62,7 +62,7 @@ export function makeRunId(taskId, agentId) {
 }
 
 let harnessInfo = null;
-function getHarnessInfo() {
+export function getHarnessInfo() {
   if (harnessInfo) return harnessInfo;
   const git = (args, cwd = HARNESS_DIR) => {
     try {
@@ -121,7 +121,7 @@ export class TaskRunner {
    * starts is captured in the returned record with status
    * pass | fail | incomplete | error (see determineOutcome).
    */
-  async run(task, adapter, { runId = null } = {}) {
+  async run(task, adapter, { runId = null, preflight = null } = {}) {
     const { valid, errors } = validate(task);
     if (!valid) {
       throw new Error(`Invalid task: ${errors.join(", ")}`);
@@ -308,7 +308,9 @@ export class TaskRunner {
             envImageId: sandboxInfo.envImageId ?? null,
             dependencies: sandboxInfo.dependencies ?? null
           },
-          seed: null
+          seed: null,
+          // Serving preflight result (declared vs observed), when one was run.
+          preflight
         },
         safety: {
           riskFlags: trustedRestore?.tampered?.length ? ["trusted_path_modified"] : [],

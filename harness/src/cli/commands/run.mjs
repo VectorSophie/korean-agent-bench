@@ -4,6 +4,8 @@ import { TaskRunner } from "../../task/runner.mjs";
 import { defaultRegistry } from "../../agent/registry.mjs";
 import { toMarkdown } from "../../report/generator.mjs";
 import { summarizeAttempts } from "../../evaluation/pass-at-k.mjs";
+import { LOCAL_MODEL_IDS } from "../../agent/local-models.mjs";
+import { runServingPreflight, formatPreflight } from "../../preflight/serving.mjs";
 
 /** Resolve through the shared AgentRegistry; throws a clear error if unknown/unavailable. */
 export function resolveAgent(agentId, options = {}, registry = defaultRegistry) {
@@ -49,6 +51,26 @@ export async function runCommand(argv, options = {}) {
     return;
   }
 
+  // --preflight: verify the live server against its declared configuration
+  // before running, refuse if blocked, and record the result in every run.
+  let preflight = null;
+  if (options.preflight) {
+    const key = String(agentId).toLowerCase();
+    if (!LOCAL_MODEL_IDS.includes(key)) {
+      console.error(`--preflight applies to local models only (${LOCAL_MODEL_IDS.join(", ")}), not '${agentId}'`);
+      process.exitCode = 1;
+      return;
+    }
+    // Same endpoint the agent will use (env-resolved in local-models.mjs).
+    preflight = await runServingPreflight(key);
+    console.log(formatPreflight(preflight));
+    if (!preflight.reportable) {
+      console.error(`Preflight blocked the run: ${preflight.blocking.join(", ")}`);
+      process.exitCode = 3;
+      return;
+    }
+  }
+
   const runner = new TaskRunner({ runsDir });
 
   console.log(`Running task: ${task.id}  agent: ${adapter.displayName}  k=${k}`);
@@ -57,7 +79,7 @@ export async function runCommand(argv, options = {}) {
   for (let i = 0; i < k; i++) {
     if (k > 1) process.stdout.write(`  run ${i + 1}/${k}... `);
     try {
-      const result = await runner.run(task, adapter);
+      const result = await runner.run(task, adapter, { preflight });
       runs.push(result);
       if (k > 1) console.log(result.status.toUpperCase());
     } catch (err) {

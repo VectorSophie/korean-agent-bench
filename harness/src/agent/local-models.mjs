@@ -50,6 +50,7 @@ export const LOCAL_MODELS = {
       toolCallParser: "hermes",
       logitsProcessor: null,
       launcher: "kserve.sh start kanana",
+      containerName: "kserve-kanana",
       port: 8101,
       notes:
         "Thinking model; reasoning always enabled by the template. Provider reasoning-token metric is unreliable (deepseek_r1 reports 0) → reasoningChars used, providerReasoningTokens null."
@@ -80,6 +81,7 @@ export const LOCAL_MODELS = {
       toolCallParser: "hermes",
       logitsProcessor: null,
       launcher: "kserve.sh start exaone",
+      containerName: "kserve-exaone",
       port: 8101,
       notes:
         "Hybrid thinking model; enable_thinking toggles reasoning. Provider reasoning-token metric is reliable (qwen3 engine)."
@@ -108,6 +110,7 @@ export const LOCAL_MODELS = {
       toolCallParser: "hermes",
       logitsProcessor: null,
       launcher: "kserve.sh start exaone",
+      containerName: "kserve-exaone",
       port: 8101,
       notes: "Same checkpoint/server as `exaone`, with enable_thinking=false (non-reasoning configuration)."
     }
@@ -135,6 +138,7 @@ export const LOCAL_MODELS = {
       toolCallParser: "hermes",
       logitsProcessor: null,
       launcher: "kserve.sh start ax",
+      containerName: "kserve-ax",
       port: 8101,
       notes: "Non-thinking dense model; reasoning N/A (no reasoning parser). TP2 over PCIe."
     }
@@ -170,6 +174,7 @@ export const LOCAL_MODELS = {
       logitsProcessor: "SolarOpen2TemplateLogitsProcessor",
       maxNumSeqs: 256, // REQUIRED: hybrid attention+Mamba; default 1024 > Mamba cache blocks
       launcher: "kserve-solar.sh start 8192",
+      containerName: "kserve-solar",
       port: 8102,
       notes:
         "Hybrid attention+Mamba MoE. UNOFFICIAL Nota NVFP4 quant — NOT equivalent to official BF16. Validated only to 8K context on this machine (131K does not fit). NVFP4-MoE runs via FLASHINFER_CUTLASS (no Marlin/Emulation fallback)."
