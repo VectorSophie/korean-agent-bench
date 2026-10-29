@@ -74,6 +74,28 @@ describe("upstream boundary", () => {
     assert.equal(typeof cli.dirty, "boolean");
   });
 
+  it("every name imported from upstage-cli is exported at the pinned commit", async () => {
+    const DYNAMIC = /const\s*\{([\w\s,:]+)\}\s*=\s*await importFromCli\(\s*"([^"]+)"\s*\)/g;
+    const STATIC = /import\s*\{([\w\s,]+)\}\s*from\s*"(?:\.\.\/)+vendor\/upstage-cli\/src\/([^"]+)"/g;
+    const uses = new Map();
+    const add = (mod, name) => {
+      if (!uses.has(mod)) uses.set(mod, new Set());
+      if (name.trim()) uses.get(mod).add(name.trim());
+    };
+    for (const file of SOURCES) {
+      const text = readFileSync(file, "utf8");
+      for (const [, names, mod] of text.matchAll(DYNAMIC)) for (const n of names.split(",")) add(mod, n.split(":")[0]);
+      for (const [, names, mod] of text.matchAll(STATIC)) for (const n of names.split(",")) add(mod, n.split(/\s+as\s+/)[0]);
+    }
+    assert.ok(uses.size >= 10, `found only ${uses.size} upstage-cli modules — the scan is broken`);
+    const missing = [];
+    for (const [mod, names] of uses) {
+      const exported = await importFromCli(mod);
+      for (const n of names) if (!(n in exported)) missing.push(`${mod}: ${n}`);
+    }
+    assert.deepEqual(missing, []);
+  });
+
   it("no source reaches the CLI except through upstream.mjs or a vendor/upstage-cli/src path", () => {
     const offenders = SOURCES.filter((f) => /\bCLI_ROOT\s*=/.test(readFileSync(f, "utf8")))
       .map((f) => relative(HARNESS_DIR, f))

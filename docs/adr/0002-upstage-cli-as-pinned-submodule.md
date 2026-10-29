@@ -61,6 +61,12 @@ than `upstream.mjs` defines its own `CLI_ROOT`.
   submodule checkout matches its pin. Every run record therefore also carries
   `provenance.harness.upstageCli = { commit, pinnedCommit, matchesPin, dirty }`
   (tested in h24; drift verified to show `matchesPin: false`).
-- While the pin predates the upstage-cli cleanup, `vendor/upstage-cli/harness/`
-  still exists. It is dead weight, not a dependency; h24 guarantees nothing
-  imports it.
+- While the pin predated the upstage-cli cleanup, `vendor/upstage-cli/harness/`
+  still existed as dead weight; h24 guaranteed nothing imported it.
+
+## Pin history
+
+| Date | Commit | Why | Verification |
+|---|---|---|---|
+| 2026-10-29 | `6d1e9329381b45e32b736bde1cdbd6ac2a41b7da` | Commit the harness was extracted from | `docs/MIGRATION.md` |
+| 2026-10-29 | `7380ef6e32fa091c24e6c4cbf03be66452c10b25` | upstage-cli#13 merge: harness removed upstream. `src/` differs from the previous pin only in comments; `bun.lock` unchanged | full suite at the new pin; h24 now also checks that every name the harness imports is exported at the pin |

@@ -22,7 +22,7 @@ All work was done from fresh clones. The existing local checkout
 |---|---|---|
 | upstage-cli `harness/**` (master) | `harness/**` | `git filter-repo --path harness/ --path HARNESS.md`; 41 commits (38 touching harness, plus merges), authors and dates kept, each with an `Upstream-Commit:` trailer |
 | upstage-cli `HARNESS.md` | `harness/docs/HARNESS.md` | same history (`--path-rename`) |
-| upstage-cli `src/**` | `vendor/upstage-cli` (submodule, pinned `6d1e932`) | not copied (ADR 0002) |
+| upstage-cli `src/**` | `vendor/upstage-cli` (submodule; pinned `6d1e932` at extraction, now `7380ef6`, the cleanup merge) | not copied (ADR 0002; pin history there) |
 | upstage-cli `eslint.config.mjs` (re-exported by the harness) | inlined into `harness/eslint.config.mjs` | same rules |
 | upstage-cli `src/model/local-openai-adapter.mjs` | stays upstream, loaded via the submodule | ADR 0006 |
 | PR #12 content | branch `import/upstage-cli-pr-12` (not merged into `main`) | patch re-applied minus held-out material; see below |
@@ -98,26 +98,26 @@ verify`/`pack qa` against the private held-out pack.
 
 ## upstage-cli cleanup
 
-[upstage-cli#13](https://github.com/VectorSophie/upstage-cli/pull/13)
-(draft, opened after this repository's CI was green) removes what moved:
+**Done 2026-10-29.** [upstage-cli#13](https://github.com/VectorSophie/upstage-cli/pull/13)
+was merged at `7380ef6e32fa091c24e6c4cbf03be66452c10b25` after upstage-cli#12
+was closed. Reviewed boundary: 179/179 files under `harness/` plus
+`HARNESS.md` deleted, the `harness` CI job and harness-only ignore lines
+removed, **no file under `src/` deleted** (`src/` changes are comments
+naming korean-agent-bench as the consumer of `sandbox/docker-flags.mjs`).
+Kept upstream: all of `src/`, including `model/local-openai-adapter.mjs`
+(ADR 0006) and `sandbox/docker-flags.mjs`.
 
-- delete `harness/` and `HARNESS.md`;
-- delete the `harness` job from `.github/workflows/ci.yml` and the harness
-  lines in `.gitignore` / `.npmignore`;
-- update README / package description and comments that point at
-  `harness/` to point here.
+A fresh clone of upstage-cli at `7380ef6` passes check, lint, `npm test`
+(940: 932 pass, 0 fail, 8 skipped), `bun test tests/opentui/` (4/4), and
+smoke (3/3); `upstage --version` and `--help` work.
 
-Kept in upstage-cli: everything under `src/`, including
-`model/local-openai-adapter.mjs` (ADR 0006) and
-`sandbox/docker-flags.mjs`, which this repository depends on.
+**The intermittent `m9-improvements` failure** was investigated rather than
+waived: it is a cross-process lost update on the shared
+`~/.upstage-cli/sessions/index.json` (m9 alone 0/15 failures; serialized full
+suite 0/10; default concurrency ~2/4 on unmodified master, so not introduced by
+the cleanup). The same race left a stale index entry that made `upstage ask`
+fail with ENOENT during verification. Fixed separately in
+[upstage-cli#14](https://github.com/VectorSophie/upstage-cli/pull/14).
 
-Its upstage-cli test suite passes except one **pre-existing** intermittent
-failure (`m9-improvements` › "session list uses persisted index metadata"),
-which failed 2 of 4 runs on unmodified master as well.
-
-That PR must not be merged while PR #12 is open there, or PR #12's branch
-will conflict; the owner decides PR #12's fate first (close it in favor of
-`import/upstage-cli-pr-12` here, recommended). After the cleanup merges, this
-repository's submodule pin can move to the cleanup commit; the harness only
-depends on `src/`, so that move should be a no-op — verify with the full
-suite before committing it.
+This repository's submodule pin was then moved to `7380ef6` (pin history in
+ADR 0002); the full suite passes at the new pin.
