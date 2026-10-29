@@ -4,6 +4,18 @@ import { buildAgentRegistry, extractUsage } from "./upstage.mjs";
 import { getLocalModelConfig, LOCAL_MODEL_IDS } from "../local-models.mjs";
 
 export const CONTEXT_SAFETY_MARGIN_RATIO = 0.05;
+
+// Per-request context and recovery evidence from the loop's events.
+function agentDiagnostics(events) {
+  const pick = (code) => events.filter((e) => e.code === code);
+  return {
+    contextFit: pick("CONTEXT_FIT").map((e) => ({ exact: e.exact ?? null, estimate: e.estimate, inputBudget: e.inputBudget })),
+    observedRatio: pick("CONTEXT_CALIBRATION").map((e) => e.observedRatio).pop() ?? null,
+    compactions: events.filter((e) => e.type === "compaction").map((e) => e.reason),
+    recoverableToolErrors: pick("TOOL_ERROR_RECOVERABLE").length,
+    replans: events.filter((e) => e.type === "replan").map((e) => e.trigger)
+  };
+}
 const MODEL_PROTOCOL_ERROR = /\[protocol\][^\n]*(tool call|neither content nor tool|content has invalid type)/i;
 
 import { importFromCli } from "../../upstream.mjs";
@@ -115,11 +127,15 @@ export class LocalModelAgent extends CodingAgent {
     // (runAgentLoop contextBudget). Without this the loop would use its
     // 65,536-token fallback for these unknown model ids. maxOutputTokens is
     // exactly the max_tokens the adapter sends.
+    // maxOutputTokens is the context reserved for output: at least the
+    // max_tokens actually sent, equal across the 16K models (ADR 0011).
+    // countTokens: the server's exact count (vLLM /tokenize) gates each request.
     const contextBudget = {
       contextLimit: cfg.contextLimit,
-      maxOutputTokens: maxTokens,
+      maxOutputTokens: Math.max(maxTokens, cfg.contextOutputReservation || maxTokens),
       charsPerToken: cfg.contextCharsPerToken,
       safetyMarginRatio: CONTEXT_SAFETY_MARGIN_RATIO,
+      countTokens: (messages, tools) => adapter.countTokens(messages, tools),
       source: `korean-agent-bench local-models.mjs (${this._key})`
     };
 
@@ -130,8 +146,16 @@ export class LocalModelAgent extends CodingAgent {
       adapter,
       stream: false,
       session,
-      budget: { ...DEFAULT_LOOP_BUDGET, maxSteps: maxTurns, maxWallTimeMs: timeoutMs },
-      settings: {},
+      budget: {
+        ...DEFAULT_LOOP_BUDGET,
+        maxSteps: maxTurns,
+        maxWallTimeMs: timeoutMs,
+        ...(typeof task.agent?.maxToolCalls === "number" ? { maxToolCalls: task.agent.maxToolCalls } : {})
+      },
+      // language: e.g. "en" for English benchmarks (upstage-cli otherwise
+      // prompts Korean-first). No CLI file checkpoints: they would be written
+      // to the harness's own working directory, not the task workspace.
+      settings: { ...(task.agent?.language ? { language: task.agent.language } : {}), fileCheckpointingEnabled: false },
       addDirs: [],
       contextBudget
     });
@@ -194,7 +218,8 @@ export class LocalModelAgent extends CodingAgent {
         logitsProcessor: prov.logitsProcessor,
         maxNumSeqs: prov.maxNumSeqs ?? null,
         baseUrl: this._resolvedBaseUrl(),
-        contextBudget,
+        contextBudget: { ...contextBudget, countTokens: "server /tokenize" },
+        agentDiagnostics: agentDiagnostics(events),
         lastFinishReason: adapter.lastFinishReason ?? null,
         sampling: {
           temperature: adapter.temperature ?? null,

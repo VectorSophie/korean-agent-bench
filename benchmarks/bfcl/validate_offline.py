@@ -151,7 +151,7 @@ def run_mode(mode, ids_by_cat, out):
     extra = proj / "extra-models.json"
     port = free_port()
     extra.write_text(json.dumps({MOCK: {"agent": "offline-mock", "servedModelName": SERVED, "baseUrlEnv": ["KAB_MOCK_BASE_URL"],
-                                        "defaultBaseUrl": f"http://127.0.0.1:{port}/v1", "chatTemplateKwargs": None, "maxOutputTokens": 1024}}))
+                                        "defaultBaseUrl": f"http://127.0.0.1:{port}/v1", "chatTemplateKwargs": None}}))
     log = proj / "requests.jsonl"
     srv = subprocess.Popen([PY, str(HERE / "fake_server.py"), str(proj / "plan.json"), str(port), str(log)],
                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
@@ -229,7 +229,7 @@ def main():
                 failures.append(f"{mode}/{cat}: accuracy {s['accuracy']} total {s['total']} (expected {expect}, {len(ids_by_cat[cat])})")
         if gen != {i for ids in ids_by_cat.values() for i in ids} or not gen <= subset_ids:
             failures.append(f"{mode}: generated ids differ from the requested subset slice")
-        if contract["models"] != [SERVED] or contract["toolNamesWithDots"] or contract["maxTokens"] != [1024]:
+        if contract["models"] != [SERVED] or contract["toolNamesWithDots"] or contract["maxTokens"] != [None]:
             failures.append(f"{mode}: request contract {contract}")
     summary["passed"] = not failures
     summary["failures"] = failures

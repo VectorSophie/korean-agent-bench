@@ -1,5 +1,5 @@
 {
-  "_comment": "BFCL registrations for the four local models (ADR 0009). servedModelName and endpoint env vars mirror harness/src/agent/local-models.mjs (checked by harness/tests/h28). Generation uses BFCL's own OpenAICompletionsHandler in function-calling mode; the only adapter is chat_template_kwargs where a model configuration requires it. maxOutputTokens is sent as max_tokens (the harness's validated output ceiling); BFCL itself sends none.",
+  "_comment": "BFCL registrations for the four local models (ADR 0009). servedModelName and endpoint env vars mirror harness/src/agent/local-models.mjs (checked by harness/tests/h28). Generation uses BFCL's own OpenAICompletionsHandler in function-calling mode; the only adapter is chat_template_kwargs where a model configuration requires it.",
   "models": {
     "kab-kanana-FC": {
       "agent": "kanana",
@@ -9,8 +9,7 @@
         "KSERVE_BASE_URL"
       ],
       "defaultBaseUrl": "http://127.0.0.1:8101/v1",
-      "chatTemplateKwargs": null,
-      "maxOutputTokens": 8192
+      "chatTemplateKwargs": null
     },
     "kab-exaone-FC": {
       "agent": "exaone",
@@ -22,8 +21,7 @@
       "defaultBaseUrl": "http://127.0.0.1:8101/v1",
       "chatTemplateKwargs": {
         "enable_thinking": true
-      },
-      "maxOutputTokens": 8192
+      }
     },
     "kab-exaone-nothink-FC": {
       "agent": "exaone-nothink",
@@ -35,8 +33,7 @@
       "defaultBaseUrl": "http://127.0.0.1:8101/v1",
       "chatTemplateKwargs": {
         "enable_thinking": false
-      },
-      "maxOutputTokens": 4096
+      }
     },
     "kab-ax-FC": {
       "agent": "ax",
@@ -46,8 +43,7 @@
         "KSERVE_BASE_URL"
       ],
       "defaultBaseUrl": "http://127.0.0.1:8101/v1",
-      "chatTemplateKwargs": null,
-      "maxOutputTokens": 4096
+      "chatTemplateKwargs": null
     },
     "kab-solar-open2-FC": {
       "agent": "solar-open2",
@@ -56,8 +52,7 @@
         "SOLAR_BASE_URL"
       ],
       "defaultBaseUrl": "http://127.0.0.1:8102/v1",
-      "chatTemplateKwargs": null,
-      "maxOutputTokens": 4096
+      "chatTemplateKwargs": null
     }
   }
 }

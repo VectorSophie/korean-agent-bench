@@ -17,3 +17,5 @@ private/
 .cache/
 __pycache__/
 *.pyc
+# upstage-cli file-edit checkpoints, if a run ever writes them to the cwd
+.upstage/

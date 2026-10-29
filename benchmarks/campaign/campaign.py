@@ -304,7 +304,13 @@ def _bfcl(d, spec, name, model, threads):
     marker.write_text(h)
     env = {**os.environ, "BFCL_PROJECT_ROOT": str(proj)}
     log = []
+    # retries are counted across sessions from the quarantine record
     retries = {}
+    qfile = proj / "quarantine-infra.jsonl"
+    if qfile.exists():
+        for line in qfile.read_text().splitlines():
+            i = json.loads(line)["entry"]["id"]
+            retries[i] = retries.get(i, 0) + 1
     for round_no in range(MAX_INFRA_RETRIES + 1):
         if spec.get("kind") != "dryrun":
             run_preflight(d, model)  # the server answering now is the declared one
@@ -314,7 +320,8 @@ def _bfcl(d, spec, name, model, threads):
         log.append({"round": round_no, "seconds": round(time.time() - t0, 1), "exit": g.returncode})
         if g.returncode != 0:
             sys.exit(f"bfcl generate failed; see {proj}/generate-{round_no}.log")
-        infra = {i: f for i, (f, c) in bfcl_errors(proj, registry).items() if c == "infrastructure"}
+        infra = {i: f for i, (f, c) in bfcl_errors(proj, registry).items()
+                 if c == "infrastructure" and retries.get(i, 0) < MAX_INFRA_RETRIES}
         if not infra or round_no == MAX_INFRA_RETRIES:
             break
         # Move only infrastructure-failed entries out (kept in quarantine) so
@@ -346,16 +353,32 @@ def _bfcl(d, spec, name, model, threads):
     if e.returncode != 0:
         sys.exit(f"bfcl evaluate failed; see {proj}/evaluate.log")
     errs = bfcl_errors(proj, registry)
-    atomic_write(proj / "run.json", {"model": model, "registry": registry, "configHash": h, "finishedAt": now(),
+    prev = json.loads((proj / "run.json").read_text()) if (proj / "run.json").exists() else {}
+    history = prev.get("sessions", []) + ([{k: v for k, v in prev.items() if k != "sessions"}] if prev and "sessions" not in prev else [])
+    current = {"model": model, "registry": registry, "configHash": h, "finishedAt": now(),
                                      "generateRounds": log, "evaluateSeconds": round(time.time() - t0, 1),
                                      "infraRetries": retries, "errorsByClass": {c: sorted(i for i, (_, k) in errs.items() if k == c) for c in ("infrastructure", "configuration", "context", "model")},
-                                     "git": git_state()})
+                                     "git": git_state()}
+    # append-only: every invocation is kept; top-level fields describe the latest
+    atomic_write(proj / "run.json", {**current, "sessions": history + [current],
+                                     "generateSecondsAllSessions": round(sum(r["seconds"] for s in history + [current] for r in s.get("generateRounds", [])), 1)})
     print(f"{model}: BFCL done; errors {{{', '.join(f'{c}: {sum(1 for _, k in errs.values() if k == c)}' for c in ('infrastructure', 'context', 'model'))}}}")
 
 
 # ── SWE-bench ───────────────────────────────────────────────────────────────
 
 INFRA_REASONS = {"infrastructure_error", "agent_adapter_error", "check_infrastructure_error"}
+
+
+def budget_kind(msg):
+    m = str(msg or "")
+    if "wall-time" in m or "[deadline]" in m:
+        return "wall_clock"
+    if "step budget" in m:
+        return "steps"
+    if "tool" in m and "budget" in m:
+        return "tool_calls"
+    return "other"
 
 
 def classify_run(run):
@@ -420,6 +443,8 @@ def swebench_attempt(d, spec, model, iid, h):
                "run": str(runs[-1].relative_to(d)), "runSha256": sha256_file(runs[-1]),
                "status": run.get("status"), "outcomeReason": (run.get("outcome") or {}).get("reason"),
                "stopReason": trace.get("stopReason"), "turns": (run.get("metrics") or {}).get("turns"),
+               "budgetKind": budget_kind(trace.get("agentError")) if trace.get("stopReason") == "budget_exhausted" else None,
+               "agentDiagnostics": ((run.get("provenance") or {}).get("model") or {}).get("agentDiagnostics"),
                "toolCalls": len(trace.get("toolCalls") or []),
                "toolErrors": sum(1 for t in (trace.get("toolCalls") or []) if t.get("ok") is False),
                "compactions": len(trace.get("compactions") or []),
@@ -494,6 +519,7 @@ def final_attempt(d, model, iid):
 
 def swebench_eval(name, model, workers):
     d, spec = campaign(name)
+    require_clean(spec)
     out = d / model / "swebench" / "eval"
     preds = d / model / "swebench" / "predictions.jsonl"
     rows, runs, accounting = [], [], {}
@@ -515,6 +541,7 @@ def swebench_eval(name, model, workers):
     (d / model / "swebench" / "evaluate.log").write_text(e.stdout + e.stderr)
     if e.returncode != 0:
         sys.exit(f"official evaluation failed; see {d / model / 'swebench' / 'evaluate.log'}")
+    atomic_write(d / model / "swebench" / "eval-provenance.json", {"at": now(), "git": git_state(), "toolVersions": tool_versions()})
     print(e.stdout[-1500:])
 
 

@@ -68,6 +68,8 @@ export const TASK_SCHEMA = {
       properties: {
         permissions: { type: "string" },
         maxTurns: { type: "number" },
+        maxToolCalls: { type: "number" },
+        language: { type: "string", enum: ["en", "ko"] },
         maxTokens: { type: "number" },
         tools: {
           type: "object",

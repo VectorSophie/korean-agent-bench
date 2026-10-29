@@ -23,7 +23,7 @@ describe("BFCL model registrations", () => {
       assert.equal(m.servedModelName, cfg.servedModelName);
       assert.equal(m.baseUrlEnv[0], cfg.baseUrlEnv);
       assert.deepEqual(m.chatTemplateKwargs, cfg.chatTemplateKwargs);
-      assert.equal(m.maxOutputTokens, cfg.maxOutputTokens);
+      assert.equal(m.maxOutputTokens, undefined, "BFCL track sends no max_tokens (upstream semantics)");
       const standard = cfg.provenance.port === 8101;
       assert.equal(m.defaultBaseUrl, standard ? "http://127.0.0.1:8101/v1" : "http://127.0.0.1:8102/v1");
     });
