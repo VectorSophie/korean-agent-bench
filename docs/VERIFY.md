@@ -34,8 +34,8 @@ npm run benchmark:validate           # benchmark-v1 manifest
 npm run benchmark:qa                 # Docker: each fixture fails at baseline, passes with its reference solution
 ```
 
-Expected on `main` as of 2026-10-29 (after korean-agent-bench#1): unit
-371/371, Docker 35/35, `validate: OK (15 tasks, 0 warnings)`, `qa: 15/15`.
+Expected on `main` as of 2026-10-29 (submodule at `7380ef6`): unit
+372/372, Docker 35/35, `validate: OK (15 tasks, 0 warnings)`, `qa: 15/15`.
 
 ## Evidence integrity
 

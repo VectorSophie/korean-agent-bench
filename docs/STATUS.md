@@ -68,8 +68,6 @@ checksums; run 40829975387) and on the PR #12 import
   context length (4096; must be 8192).
 - **Benchmark-v1 tranche v1-initial uses unpinned `node:22-alpine` tags**
   (14 validate warnings). Tranche v1-dataset pins by digest.
-- **`vendor/upstage-cli` still contains a stale copy of the harness** until
-  the upstage-cli cleanup lands and the pin moves. Nothing imports it (h24).
 - **upstage-cli dependencies are installed with Bun** inside the submodule;
   that `node_modules` is not pinned by this repository beyond upstage-cli's
   own `bun.lock`.
@@ -82,7 +80,5 @@ checksums; run 40829975387) and on the PR #12 import
 - **Resolved 2026-10-29:** upstage-cli#12 closed unmerged and its branch
   deleted; its held-out candidates are retired as disclosed;
   korean-agent-bench#1 reduced and merged (`MIGRATION.md`, "PR #12").
-- **upstage-cli cleanup PR.**
-  [upstage-cli#13](https://github.com/VectorSophie/upstage-cli/pull/13)
-  (draft). This repository's CI is green; merge after PR #12's fate is
-  decided (`MIGRATION.md`, "upstage-cli cleanup").
+- **Resolved 2026-10-29:** upstage-cli#13 merged (`7380ef6`); submodule pin
+  moved to it (`MIGRATION.md`, "upstage-cli cleanup").
