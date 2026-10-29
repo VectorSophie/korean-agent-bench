@@ -47,6 +47,9 @@ export const TASK_SCHEMA = {
         // file (needs operator opt-in, see sandbox/docker.mjs)
         dependencies: { type: "string", enum: ["image", "build"] },
         allowedBinaries: { type: "array", items: { type: "string" } },
+        // Docker only: environment for every command. Only PATH is accepted
+        // (e.g. an official image's interpreter); see sandbox/docker.mjs.
+        env: { type: "object", additionalProperties: { type: "string" } },
         // Trusted read-only bind mounts (Docker only). A task references a mount
         // by NAME from the harness-owned registry (src/sandbox/mount-registry.mjs);
         // it may NOT supply host/container paths. See the loader for enforcement.

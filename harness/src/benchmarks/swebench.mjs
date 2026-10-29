@@ -37,7 +37,13 @@ export const PROMPT_TEMPLATE_SHA256 = createHash("sha256").update(PROMPT_TEMPLAT
 export const ENVELOPE = Object.freeze({
   maxTurns: 30,
   timeoutSec: 1800,
-  tools: ["read_file", "write_file", "edit_file", "list_files", "search_code", "glob", "run_shell"]
+  tools: ["read_file", "write_file", "edit_file", "list_files", "search_code", "glob", "run_shell"],
+  // Official images keep the project's interpreter in the "testbed" conda env;
+  // put it first so `python`/`pytest` work for the agent (the workspace copy at
+  // /workspace is imported first because it is the working directory).
+  path: "/opt/miniconda3/envs/testbed/bin:/opt/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+  memory: "4g",
+  cpus: 2
 });
 
 export function buildPrompt(instance) {
@@ -79,7 +85,10 @@ export function buildTask(instance, { repoDir, image = instance.image, envelope 
     commit: instance.base_commit,
     prompt: buildPrompt(instance),
     context: { strategy: "default", maxFiles: 40, includeTests: true },
-    sandbox: { type: "docker", image, network: "none", timeout: envelope.timeoutSec, dependencies: "image" },
+    sandbox: {
+      type: "docker", image, network: "none", timeout: envelope.timeoutSec, dependencies: "image",
+      memory: envelope.memory, cpus: envelope.cpus, env: { PATH: envelope.path }
+    },
     agent: { permissions: "bypassPermissions", maxTurns: envelope.maxTurns, tools: { allow: [...envelope.tools], deny: [] } },
     // No local checks: resolution is decided only by the official evaluator.
     checks: { fail_to_pass: [], pass_to_pass: [], custom: [] },

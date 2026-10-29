@@ -15,3 +15,5 @@ private/
 
 # Benchmark tool environments and downloaded upstream data (benchmarks/setup.sh, ADR 0009)
 .cache/
+__pycache__/
+*.pyc
