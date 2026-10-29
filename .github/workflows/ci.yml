@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  harness:
+    name: Harness (Node 22)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: harness
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Check submodule matches its pin
+        working-directory: .
+        run: |
+          git submodule status
+          ! git submodule status | grep -q '^[-+U]'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3"
+
+      - name: Install upstage-cli dependencies
+        # the harness drives upstage-cli's agent loop and tool registry (ADR 0002)
+        run: bun install --frozen-lockfile
+        working-directory: vendor/upstage-cli
+
+      - name: Install harness dependencies
+        run: npm ci
+
+      - name: Syntax check
+        run: npm run check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      - name: Docker isolation tests (real Docker)
+        run: npm run test:docker
+
+      - name: Smoke test (mock agent)
+        run: npm run smoke -- --runs-dir ${{ runner.temp }}/harness-runs
+
+      - name: Benchmark manifest
+        run: npm run benchmark:validate
+
+  evidence:
+    name: Evidence checksums
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: (cd models/serving-records && sha256sum -c SHA256SUMS)
+      - run: (cd results/pilot-2026-10 && sha256sum -c SHA256SUMS)
