@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "asOf": "2026-10-29",
+  "asOf": "2026-10-30",
   "policy": "ADR 0003. Synthetic (AI-authored) task sets are development fixtures and are never part of the main model comparison. Main-comparison candidates are established external benchmarks, referenced by pinned upstream revision and scored by their upstream evaluator. Nothing is 'admitted' until the protocol is frozen by an ADR.",
   "datasets": [
     {
@@ -66,8 +66,8 @@
       "id": "bfcl",
       "kind": "external",
       "origin": "published-benchmark",
-      "mainComparison": "candidate",
-      "status": "integrated: official pipeline validated offline with a deterministic mock; no model run",
+      "mainComparison": "admitted",
+      "status": "admitted: official pipeline validated offline and in four pilot rounds on disjoint ids; main comparison frozen by ADR 0011",
       "source": {
         "name": "Berkeley Function Calling Leaderboard (BFCL)",
         "repository": "https://github.com/ShishirPatil/gorilla",
@@ -127,17 +127,19 @@
         "method": "Per category, rank upstream entry ids by sha256(seed + ':' + id) and keep the first min(n, category size). Inputs are upstream ids only; no model output is read.",
         "rationale": "benchmarks/bfcl/subset-v1.config.json sampleSizeRationale"
       },
-      "transformation": "None to data, prompts or ground truth. Tool names with '.' become '_' (upstream behaviour for OpenAI-style FC; underscore_to_dot=True maps them back in the checker). Temperature is BFCL's default (0.001), not the vendor sampling used by the harness. exaone/exaone-nothink send chat_template_kwargs {enable_thinking} via extra_body (declared adapter, benchmarks/bfcl/kab_bfcl.py).",
+      "transformation": "None to data, prompts or ground truth. Tool names with '.' become '_' (upstream behaviour for OpenAI-style FC; underscore_to_dot=True maps them back in the checker). Temperature is BFCL's default (0.001), not the vendor sampling used by the harness; no max_tokens is sent (upstream semantics, ADR 0011). exaone/exaone-nothink send chat_template_kwargs {enable_thinking} via extra_body (declared adapter, benchmarks/bfcl/kab_bfcl.py).",
       "contaminationRisk": "BFCL data has been public since 2024 (live categories are user-contributed and also public). Any of the four models may have seen it in training; results are conditional on that and are not presented as contamination-free.",
       "redistribution": "Apache-2.0 (repository). Small result/score files containing BFCL prompts are committed as validation evidence under that license.",
-      "validationEvidence": "results/bfcl-offline-validation-2026-10-29/"
+      "validationEvidence": "results/bfcl-offline-validation-2026-10-29/",
+      "admittedBy": "docs/adr/0011-main-protocol-freeze.md",
+      "protocol": "protocol/main-v1.json"
     },
     {
       "id": "swe-bench-verified",
       "kind": "external",
       "origin": "published-benchmark",
-      "mainComparison": "candidate",
-      "status": "integrated: official evaluator invoked offline on one instance (gold / empty / wrong / malformed predictions); agent prediction pipeline validated with a replay agent; no model run",
+      "mainComparison": "admitted",
+      "status": "admitted: official evaluator validated offline; agent path validated in four pilot rounds on disjoint instances; main comparison frozen by ADR 0011 with nested stages (stages-v1.json)",
       "source": {
         "name": "SWE-bench Verified",
         "repository": "https://huggingface.co/datasets/SWE-bench/SWE-bench_Verified",
@@ -156,8 +158,6 @@
       },
       "localCopy": null,
       "openQuestions": [
-        "BLOCKER for a reportable run: upstage-cli (pinned 7380ef6) has no capability entries for the four served model ids and uses a 65,536-token fallback, so its repository-context cap (23,592 chars) and context management ignore the validated 8K/16K windows (context-feasibility-v1.json).",
-        "Agent envelope (maxTurns 30, timeout 1800 s, tools) is provisional; freeze by ADR before running.",
         "Korean: the issues are English. Any Korean variant is a derived condition and must be reported separately (ADR 0003)."
       ],
       "officialEvaluationCompatibility": "upstream-compatible scoring: swebench.harness.run_evaluation on the sha256-verified parquet, official per-instance images (dataset `image` column) and log parsers; outcomes copied from the official report. Prediction generation (agent through upstage-cli) is this project's; prompt template recorded below.",
@@ -191,13 +191,20 @@
           "sympy/sympy": 15
         },
         "method": "Repository-stratified: proportional allocation (largest remainder, >=1 per repository); within a repository, rank by sha256(seed + ':' + instance_id). Inputs: instance ids and repository names only.",
-        "rationale": "Resolve rate is reported per model on the same instances (paired). n=100 gives a worst-case 95% Wald half-width of 9.8 points for a single model; paired model differences are tested per instance (McNemar). Each instance is a full agent episode plus an evaluation container, so 100 bounds cost; the full 500 remain runnable."
+        "rationale": "Resolve rate is reported per model on the same instances (paired). n=100 gives a worst-case 95% Wald half-width of 9.8 points for a single model; paired model differences are tested per instance (McNemar). Each instance is a full agent episode plus an evaluation container, so 100 bounds cost; the full 500 remain runnable.",
+        "stages": "datasets/swe-bench-verified/stages-v1.json (stage 1: 50, stage 2: 50; nested, repository-stratified)"
       },
       "transformation": "Issue text wrapped in prompt template kab-swebench-prompt-v1 (harness/src/benchmarks/swebench.mjs; sha256 recorded in each run); hints_text not given; no other change. The agent works in the official instance image with network none. Patches are captured byte-exact against base_commit.",
       "contextFeasibility": "datasets/swe-bench-verified/context-feasibility-v1.json (preregistered; infeasible instances stay in the denominator)",
       "contaminationRisk": "Issues and fixes are public GitHub history (instance created_at 2013-01-25 to 2023-08-07); models trained after that may have seen them. Results are not presented as contamination-free.",
       "redistribution": "Evaluator: MIT. Dataset card declares no license: the parquet, issue texts and gold patches are not committed; only ids/metadata and our own artifacts.",
-      "validationEvidence": "results/swebench-offline-validation-2026-10-29/"
+      "validationEvidence": "results/swebench-offline-validation-2026-10-29/",
+      "admittedBy": "docs/adr/0011-main-protocol-freeze.md",
+      "protocol": "protocol/main-v1.json",
+      "resolvedQuestions": [
+        "Context budget: resolved by ADR 0010 (upstage-cli b17a1f3, 23f8136, 802cddd: caller budget, observed calibration, exact /tokenize counting).",
+        "Agent envelope: frozen by ADR 0011 (30 turns, 60 tool calls, 2,700 s, English system prompt, 7 tools, concurrency 4)."
+      ]
     }
   ]
 }

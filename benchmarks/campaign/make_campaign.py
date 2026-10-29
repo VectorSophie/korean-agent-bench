@@ -54,7 +54,7 @@ def main_campaign(name, protocol_path):
     raw = pathlib.Path(protocol_path).read_bytes()
     proto = json.loads(raw)
     return {"name": name, "kind": "main", "models": proto["models"]["primary"],
-            "bfcl": {"ids": proto["bfcl"]["ids"]}, "swebench": {"ids": proto["swebench"]["ids"]},
+            "bfcl": {"ids": proto["bfcl"]["ids"]}, "swebench": {"ids": proto["swebench"]["ids"], "stages": [proto["swebench"]["stage1"], proto["swebench"]["stage2"]]},
             "resources": proto["resources"], "protocol": str(protocol_path), "protocolSha256": hashlib.sha256(raw).hexdigest()}
 
 

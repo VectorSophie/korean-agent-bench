@@ -1,9 +1,10 @@
 # Experiment protocol
 
-Status: **draft, not frozen** (2026-10-29). It covers how a run is prepared,
-executed and recorded. *What* is run for the main comparison (benchmarks,
-subsets, budgets) is decided by a future ADR under ADR 0003; until then only
-development fixtures and pilots are run.
+Status: **operational procedure** (2026-10-30). It covers how a run is
+prepared, executed and recorded. *What* is run for the main comparison
+(benchmarks, subsets, models, budgets, analysis) is frozen by ADR 0011 in
+`protocol/main-v1.json`; where this document and the frozen protocol differ,
+the frozen protocol governs.
 
 Related: `harness/docs/BENCHMARK_V1_PROTOCOL.md` and
 `BENCHMARK_V1_STATISTICS.md` define the protocol for the synthetic
