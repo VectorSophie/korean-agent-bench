@@ -1,0 +1,62 @@
+{
+  "model": "EXAONE-4.5",
+  "ts": "2026-10-23T05:33:11Z",
+  "served_models": [
+    "EXAONE-4.5"
+  ],
+  "basic": [
+    {
+      "prompt": "대한민국의 수도는 어디이며, 그 도시의 명소 세 곳을 알려주세요.",
+      "ttft_s": null,
+      "gen_s": 7.448,
+      "completion_tokens": 256,
+      "tok_per_s": 34.4,
+      "ok": false,
+      "err": null,
+      "snippet": ""
+    },
+    {
+      "prompt": "인공지능 안전성 연구가 중요한 이유를 두 문장으로 설명해줘.",
+      "ttft_s": null,
+      "gen_s": 7.456,
+      "completion_tokens": 256,
+      "tok_per_s": 34.3,
+      "ok": false,
+      "err": null,
+      "snippet": ""
+    }
+  ],
+  "tool": {
+    "turn1_toolcall": true,
+    "args_valid_json": true,
+    "selected_tool": "get_current_weather",
+    "turn2_final": "",
+    "uses_result": false,
+    "error": null,
+    "reasoning_leak": false
+  },
+  "reasoning": {
+    "applicable": true,
+    "reasoning_extracted": false,
+    "reasoning_len": 0,
+    "content_separate": false,
+    "reasoning_tokens": 512,
+    "answer_snippet": ""
+  },
+  "resources": {
+    "gpu": [
+      {
+        "index": "1",
+        "mem_used_mib": 51593,
+        "mem_total_mib": 97887,
+        "util_pct": 100
+      }
+    ],
+    "container_mem": "42.21GiB / 251.4GiB",
+    "note": "instantaneous (not guaranteed peak)"
+  },
+  "rollup": {
+    "inference_ready": false,
+    "tool_ready": false
+  }
+}

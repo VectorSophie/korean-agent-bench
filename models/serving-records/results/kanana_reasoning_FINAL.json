@@ -1,0 +1,96 @@
+{
+  "model": "Kanana-2",
+  "ts": "2026-10-23T07:36:16Z",
+  "max_tokens": 8192,
+  "reasoning_parser": "deepseek_r1",
+  "served_models": [
+    "Kanana-2"
+  ],
+  "basic": [
+    {
+      "ttft_s": 0.069,
+      "gen_s": 4.918,
+      "completion_tokens": 706,
+      "tok_per_s": 143.6,
+      "finish_reason": "stop",
+      "ok": true,
+      "snippet": "\n\n대한민국의 수도는 서울입니다. 서울의 명소 세 곳은 경복궁, 남산타워, 북촌한옥마을입니다.",
+      "err": null,
+      "prompt": "대한민국의 수도는 어디이며, 그 도시의 명소 세 곳을 알려주세요."
+    },
+    {
+      "ttft_s": 0.051,
+      "gen_s": 3.996,
+      "completion_tokens": 575,
+      "tok_per_s": 143.9,
+      "finish_reason": "stop",
+      "ok": true,
+      "snippet": "\n\n인공지능 안전 연구는 AI가 인간 가치와 목표에 부합하도록 보장해 주기 때문에 매우 중요합니다. 이를 통해 고도화된 AI 시스템이 의도되지 않은 해를 유발하거나 인간의 이익을 저해할 위험이 줄어듭니다.",
+      "err": null,
+      "prompt": "인공지능 안전성 연구가 중요한 이유를 두 문장으로 설명해줘."
+    }
+  ],
+  "tool": [
+    {
+      "max_tokens": 8192,
+      "enable_thinking": null,
+      "turn1": {
+        "finish_reason": "tool_calls",
+        "has_tool_call": true,
+        "reasoning_present": true,
+        "reasoning_tokens": 0,
+        "content_had_think_tag": false,
+        "reasoning_leaked_as_content": false,
+        "completion_tokens": 143,
+        "selected_tool": "get_current_weather",
+        "args_valid_json": true
+      },
+      "turn2": {
+        "finish_reason": "stop",
+        "final_snippet": "\n\n서울의 현재 날씨는 **7°C**이며, **흐림** 상태입니다.",
+        "uses_result": true,
+        "content_had_think_tag": false,
+        "reasoning_present": true
+      },
+      "error": null,
+      "ok": true
+    }
+  ],
+  "reasoning": [
+    {
+      "applicable": true,
+      "enable_thinking": null,
+      "finish_reason": "stop",
+      "prompt_tokens": 47,
+      "completion_tokens": 699,
+      "reasoning_tokens": 0,
+      "reasoning_extracted": true,
+      "reasoning_len": 954,
+      "content_present": true,
+      "content_len": 667,
+      "reasoning_finished": true,
+      "think_tag_in_content": false,
+      "think_tag_in_reasoning": false,
+      "answer_has_digits": true,
+      "reasoning_snippet": "We are given:\n  Total heads = 35 (each animal has one head)\n  Total legs = 94\n\n Let:\n   c = number of chickens\n   r = number of rabbits\n\n We know:\n   Each chicken has 2 legs.\n   Each rabbit has 4 legs",
+      "answer_snippet": "\n\n농부에게는 닭과 토끼가 있습니다. 닭은 다리가 2개, 토끼는 다리가 4개입니다. 머리의 총 수는 35개, 다리의 총 수는 94개입니다.\n\n**1단계:** 변수 정의\n- \\( c \\) = 닭의 수\n- \\( r \\) = 토끼의 수\n\n**2단계:** 식 세우기\n- 머리의 총 수: \\( c + r = 35 \\)  (식 1)\n- 다리의 총 수: \\( 2c + 4r = 94 \\)  (식 2)\n\n**"
+    }
+  ],
+  "resources": {
+    "gpu": [
+      {
+        "index": "1",
+        "mem_used_mib": 75315,
+        "mem_total_mib": 97887,
+        "util_pct": 100
+      }
+    ],
+    "container_mem": "10.56GiB / 251.4GiB",
+    "note": "instantaneous (not guaranteed peak)"
+  },
+  "rollup": {
+    "inference_ready": true,
+    "tool_ready": true,
+    "reasoning_separation_ok": true
+  }
+}

@@ -1,0 +1,138 @@
+{
+  "model": "EXAONE-4.5",
+  "ts": "2026-10-23T07:40:10Z",
+  "max_tokens": 8192,
+  "reasoning_parser": "qwen3",
+  "served_models": [
+    "EXAONE-4.5"
+  ],
+  "basic": [
+    {
+      "ttft_s": 0.058,
+      "gen_s": 13.912,
+      "completion_tokens": 477,
+      "tok_per_s": 34.3,
+      "finish_reason": "stop",
+      "ok": true,
+      "snippet": "\n\n대한민국의 수도는 **서울**입니다.  \n서울의 대표 명소 세 곳은 다음과 같습니다:\n\n1. **경복궁 (Gyeongbokgung Palace)**  \n   조선 시대의 정궁으로, 아름다운 전통 궁궐 건축과 역사적 가치를 간직한 곳이에요. 특히 야간 개장 시 조명이 어우러져 더욱 장관을 이룹니다.\n\n2. **남산타워 (Namsan Tower)**  \n ",
+      "err": null,
+      "prompt": "대한민국의 수도는 어디이며, 그 도시의 명소 세 곳을 알려주세요."
+    },
+    {
+      "ttft_s": 0.064,
+      "gen_s": 17.617,
+      "completion_tokens": 597,
+      "tok_per_s": 33.9,
+      "finish_reason": "stop",
+      "ok": true,
+      "snippet": "\n\n인공지능 안전성 연구는 인간의 가치와 목적과의 불일치로 인한 예측 불가능한 위험을 방지하고 사회적 신뢰를 쌓기 위해 필수적입니다. 또한, 편향이나 잘못된 결정이 초래할 수 있는 심각한 피해를 사전에 막아 핵심 분야에서의 책임 있는 기술 활용을 가능하게 합니다.",
+      "err": null,
+      "prompt": "인공지능 안전성 연구가 중요한 이유를 두 문장으로 설명해줘."
+    }
+  ],
+  "tool": [
+    {
+      "max_tokens": 8192,
+      "enable_thinking": true,
+      "turn1": {
+        "finish_reason": "tool_calls",
+        "has_tool_call": true,
+        "reasoning_present": true,
+        "reasoning_tokens": 86,
+        "content_had_think_tag": false,
+        "reasoning_leaked_as_content": false,
+        "completion_tokens": 127,
+        "selected_tool": "get_current_weather",
+        "args_valid_json": true
+      },
+      "turn2": {
+        "finish_reason": "stop",
+        "final_snippet": "\n\n서울의 현재 날씨는 다음과 같습니다:\n\n- **온도**: 7°C  \n- **날씨 상태**: 맑음\n\n현재 서울은 비교적 쌀쌀한 날씨에 맑은 하늘이 보입니다.",
+        "uses_result": true,
+        "content_had_think_tag": false,
+        "reasoning_present": true
+      },
+      "error": null,
+      "ok": true
+    },
+    {
+      "max_tokens": 8192,
+      "enable_thinking": false,
+      "turn1": {
+        "finish_reason": "tool_calls",
+        "has_tool_call": true,
+        "reasoning_present": false,
+        "reasoning_tokens": 0,
+        "content_had_think_tag": false,
+        "reasoning_leaked_as_content": false,
+        "completion_tokens": 38,
+        "selected_tool": "get_current_weather",
+        "args_valid_json": true
+      },
+      "turn2": {
+        "finish_reason": "stop",
+        "final_snippet": "서울의 현재 날씨는 다음과 같습니다:\n\n- **기온**: 7°C  \n- **날씨 상태**: 흐림\n\n현재 서울은 7도이며, 하늘이 흐리고 있습니다.",
+        "uses_result": true,
+        "content_had_think_tag": false,
+        "reasoning_present": false
+      },
+      "error": null,
+      "ok": true
+    }
+  ],
+  "reasoning": [
+    {
+      "applicable": true,
+      "enable_thinking": true,
+      "finish_reason": "stop",
+      "prompt_tokens": 46,
+      "completion_tokens": 1254,
+      "reasoning_tokens": 837,
+      "reasoning_extracted": true,
+      "reasoning_len": 3000,
+      "content_present": true,
+      "content_len": 777,
+      "reasoning_finished": true,
+      "think_tag_in_content": false,
+      "think_tag_in_reasoning": false,
+      "answer_has_digits": true,
+      "reasoning_snippet": "Okay, let's see. So there's this problem where a farmer has chickens and rabbits. The total number of heads is 35, and the total number of legs is 94. I need to figure out how many chickens and how ma",
+      "answer_snippet": "\n\n### 문제 분석\n한 농부가 닭과 토끼를 키우고 있습니다.  \n- **머리 수**: 35개 (모든 동물은 머리 1개씩 가지므로 총 동물 수는 35마리)\n- **다리 수**: 94개 (닭은 2개, 토끼는 4개의 다리를 가짐)\n\n이 정보를 바탕으로 닭과 토끼의 수를 구해야 합니다.\n\n---\n\n### 단계별 풀이\n\n#### 1. 변수 정의\n- $ C $: 닭의 수\n- $ R $: 토끼의 수\n\n"
+    },
+    {
+      "applicable": true,
+      "enable_thinking": false,
+      "finish_reason": "stop",
+      "prompt_tokens": 48,
+      "completion_tokens": 582,
+      "reasoning_tokens": 0,
+      "reasoning_extracted": false,
+      "reasoning_len": 0,
+      "content_present": true,
+      "content_len": 1124,
+      "reasoning_finished": true,
+      "think_tag_in_content": false,
+      "think_tag_in_reasoning": false,
+      "answer_has_digits": true,
+      "reasoning_snippet": "",
+      "answer_snippet": "물론입니다! 이 문제는 전형적인 \"닭과 토끼 문제\"로, 연립방정식을 이용해 풀 수 있습니다.  \n단계별로 차근차근 풀어볼게요.\n\n---\n\n### **1. 변수 설정**\n\n- 닭의 수를 \\( x \\) 마리라고 하자.\n- 토끼의 수를 \\( y \\) 마리라고 하자.\n\n---\n\n### **2. 주어진 조건 정리**\n\n1. **머리의 수**: 닭도 토끼도 모두 머리는 하나씩 있으므로,  \n   \\[\n"
+    }
+  ],
+  "resources": {
+    "gpu": [
+      {
+        "index": "1",
+        "mem_used_mib": 51595,
+        "mem_total_mib": 97887,
+        "util_pct": 100
+      }
+    ],
+    "container_mem": "9.11GiB / 251.4GiB",
+    "note": "instantaneous (not guaranteed peak)"
+  },
+  "rollup": {
+    "inference_ready": true,
+    "tool_ready": true,
+    "reasoning_separation_ok": true
+  }
+}

@@ -1,0 +1,64 @@
+{
+  "model": "A.X-4.0",
+  "ts": "2026-10-23T05:44:04Z",
+  "served_models": [
+    "A.X-4.0"
+  ],
+  "basic": [
+    {
+      "prompt": "대한민국의 수도는 어디이며, 그 도시의 명소 세 곳을 알려주세요.",
+      "ttft_s": 0.094,
+      "gen_s": 14.92,
+      "completion_tokens": 256,
+      "tok_per_s": 17.2,
+      "ok": true,
+      "err": null,
+      "snippet": "대한민국의 수도는 **서울**입니다.\n\n서울은 풍부한 역사와 현대적인 발전이 조화를 이루는 도시로, 다양한 명소가 있습니다. 그 중 세 곳을 소개하겠습니다.\n\n---\n\n### 1. 경복궁 (Gyeongbokgung Palace)\n- **설명**: 조선 왕조의 첫 번째 궁궐로, 14세기 "
+    },
+    {
+      "prompt": "인공지능 안전성 연구가 중요한 이유를 두 문장으로 설명해줘.",
+      "ttft_s": 0.065,
+      "gen_s": 2.644,
+      "completion_tokens": 46,
+      "tok_per_s": 17.4,
+      "ok": true,
+      "err": null,
+      "snippet": "인공지능 안전성 연구가 중요한 이유는, AI 시스템이 의도치 않게 인간에게 해를 끼치거나 윤리적 문제를 일으킬 가능성을 사전에 차단하기 위해서입니다. 또한, 이러한 연구는 AI가 사회적 신뢰를 얻고 다양한 분야에서 책임감 있게 활용될 수 있는 기반을 마련해 줍니다."
+    }
+  ],
+  "tool": {
+    "turn1_toolcall": true,
+    "args_valid_json": true,
+    "selected_tool": "get_current_weather",
+    "turn2_final": "현재 서울의 날씨는 흐리며, 기온은 섭씨 7도입니다.",
+    "uses_result": true,
+    "error": null,
+    "reasoning_leak": false
+  },
+  "reasoning": {
+    "applicable": false,
+    "note": "non-thinking model; N/A"
+  },
+  "resources": {
+    "gpu": [
+      {
+        "index": "0",
+        "mem_used_mib": 81171,
+        "mem_total_mib": 97887,
+        "util_pct": 100
+      },
+      {
+        "index": "1",
+        "mem_used_mib": 80771,
+        "mem_total_mib": 97887,
+        "util_pct": 100
+      }
+    ],
+    "container_mem": "140.2GiB / 251.4GiB",
+    "note": "instantaneous (not guaranteed peak)"
+  },
+  "rollup": {
+    "inference_ready": true,
+    "tool_ready": true
+  }
+}

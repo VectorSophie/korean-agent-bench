@@ -1,0 +1,37 @@
+{
+  "raon-1-mini": {
+    "status": "access_blocked",
+    "note": "GatedRepoError 403; VectorSophie not authorized; not retried",
+    "ts": "2026-10-21T11:34:37.523037Z"
+  },
+  "motif-3-nvfp4": {
+    "status": "deferred_compatibility",
+    "note": "174GB vs 192GB aggregate; validated on 2xB200; needs motif vLLM fork; deferred",
+    "ts": "2026-10-21T11:34:37.523037Z"
+  },
+  "solar-pro-4": {
+    "status": "api_only",
+    "note": "OpenRouter API; no weights",
+    "ts": "2026-10-21T11:34:37.523037Z"
+  },
+  "kanana-2": {
+    "status": "ready_downloaded",
+    "note": "shards=13 size=58G index=OK",
+    "ts": "2026-10-21T21:28:24.225587Z"
+  },
+  "exaone-4.5-fp8": {
+    "status": "ready_downloaded",
+    "note": "shards=9 size=39G index=OK",
+    "ts": "2026-10-22T04:15:05.601123Z"
+  },
+  "ax-4.0": {
+    "status": "ready_downloaded",
+    "note": "shards=30 size=134G index=OK",
+    "ts": "2026-10-23T03:21:52.706347Z"
+  },
+  "solar-open2-nvfp4": {
+    "status": "ready_downloaded",
+    "note": "shards=29 size=143G index=OK sha=3cc673335f4c2f41181e05a98fc2b8324d586a64",
+    "ts": "2026-10-24T08:23:25.486948Z"
+  }
+}

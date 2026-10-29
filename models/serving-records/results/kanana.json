@@ -1,0 +1,62 @@
+{
+  "model": "Kanana-2",
+  "ts": "2026-10-23T05:22:02Z",
+  "served_models": [
+    "Kanana-2"
+  ],
+  "basic": [
+    {
+      "prompt": "대한민국의 수도는 어디이며, 그 도시의 명소 세 곳을 알려주세요.",
+      "ttft_s": null,
+      "gen_s": 1.819,
+      "completion_tokens": 256,
+      "tok_per_s": 140.7,
+      "ok": false,
+      "err": null,
+      "snippet": ""
+    },
+    {
+      "prompt": "인공지능 안전성 연구가 중요한 이유를 두 문장으로 설명해줘.",
+      "ttft_s": null,
+      "gen_s": 1.8,
+      "completion_tokens": 256,
+      "tok_per_s": 142.2,
+      "ok": false,
+      "err": null,
+      "snippet": ""
+    }
+  ],
+  "tool": {
+    "turn1_toolcall": true,
+    "args_valid_json": true,
+    "selected_tool": "get_current_weather",
+    "turn2_final": "\n\n서울의 현재 날씨는 섭씨 7도이며, 흐린 상태입니다.",
+    "uses_result": true,
+    "error": null,
+    "reasoning_leak": false
+  },
+  "reasoning": {
+    "applicable": true,
+    "reasoning_extracted": false,
+    "reasoning_len": 0,
+    "content_separate": true,
+    "reasoning_tokens": 0,
+    "answer_snippet": "\n\n25에 17을 곱한 결과는 다음과 같이 단계별로 계산할 수 있습니다:\n\n1. **분해하기**:  \n   $ 17 = 10 + 7 $  \n   따라서, $ 25 \\times 17 = 25 \\times (10 + 7) $입니다.\n\n2. **분배법칙 적용**:  \n   $ 25 \\time"
+  },
+  "resources": {
+    "gpu": [
+      {
+        "index": "1",
+        "mem_used_mib": 75739,
+        "mem_total_mib": 97887,
+        "util_pct": 100
+      }
+    ],
+    "container_mem": "59.46GiB / 251.4GiB",
+    "note": "instantaneous (not guaranteed peak)"
+  },
+  "rollup": {
+    "inference_ready": false,
+    "tool_ready": true
+  }
+}

@@ -1,0 +1,292 @@
+{
+  "generated": "2026-10-22",
+  "updated": "2026-10-28",
+  "phase": "smoketests_complete; reasoning_parser_RESOLVED; harness_integration started (upstage-cli PR #10)",
+  "execution_note": "A.X queue COMPLETED 2026-10-23T03:21:52Z. Independent integrity check PASSED for all three (Kanana 13/13 57.1G DeepseekV3ForCausalLM; EXAONE 9/9 38.5G Exaone4_5; A.X 30/30 133.9G Qwen2ForCausalLM; zero .incomplete). Image pull (index sha256:befccf0e...) in progress. SMOKE TESTS DEFERRED (resource blocker): as of 2026-10-23T03:42Z BOTH GPUs are claimed by a new ragas TP2 job 'ragas-judge-ax' (VLLM::Worker_TP0 89.4GB on GPU0, VLLM::Worker_TP1 89.4GB on GPU1) => only ~6-7GB free/GPU; neither EXAONE (38.5G) nor Kanana (57G) fits. User-authorized GPU1 co-occupancy (Option 2) not executable since GPU1 is full, not idle. Sinsan = idle chess bots (play_server.py/pychess_bot.py, <1.2GB, ~0.1% CPU), not the constraint. Per safeguards: NOT competing, NOT touching ragas/Sinsan. GPU-free watcher armed (fires when a GPU reaches >=70GB free) to auto-resume Kanana->EXAONE TP1 under safeguards (conservative gpu-mem-util, sequential, contended-tagged metrics). A.X TP2 waits for both GPUs free.",
+  "states_legend": [
+    "downloaded",
+    "loadable",
+    "inference_ready",
+    "tool_ready",
+    "serving_ready",
+    "benchmark_ready",
+    "blocked"
+  ],
+  "state_definitions": {
+    "serving_ready": "ALL serving smoke-test gates pass (load + generation + structured tool call + tool-result continuation + reasoning separation where applicable) on the isolated kserve stack. This is SERVING readiness, NOT harness readiness.",
+    "benchmark_ready": "RESERVED for a model whose responses have been successfully normalized and run end-to-end through the ACTUAL benchmark harness (BFCL/tau-bench/etc. client adapter), not merely served. The 3 Korean models are serving_ready; harness integration is still to be validated.",
+    "note_2026-10-23": "Earlier this file marked the 3 Korean models benchmark_ready; corrected to serving_ready to keep SERVING readiness distinct from harness integration (per user)."
+  },
+  "image": {
+    "primary": {
+      "ref": "vllm/vllm-openai:v0.32.0",
+      "amd64_digest": "sha256:6ee133356d49ed24cee03dd0cda3d3980279a11c107ce3e752c89e76540f41c9",
+      "index_digest": "sha256:befccf0e7e4089aa23926bb6f887a85c0d46c2a99e6de5c5ffdf5cb7957c5b34",
+      "cuda": "13.0.2",
+      "python": "3.12",
+      "nccl": "2.30.7",
+      "torch_cuda_arch_list": "7.5 8.0 8.6 8.9 9.0 10.0 12.0",
+      "expected_pkgs": {
+        "torch": "2.13.0",
+        "torchvision": "0.28.0",
+        "flashinfer-python": "0.7.0.post1",
+        "nvidia-cutlass-dsl": "4.8.0",
+        "transformers": ">=5.16.1,<5.20.0",
+        "triton": "bundled-with-torch (confirm at smoke)",
+        "vllm-flash-attn": "vendored (confirm at smoke)"
+      },
+      "size_amd64": "9.21 GB compressed",
+      "pulled": false
+    },
+    "fallback": {
+      "ref": "vllm/vllm-openai:v0.32.0-cu129",
+      "amd64_digest": "sha256:be7326dd2f0731b3c49bd7c09975b46323733dcac74757aa5d5ada60acdee217",
+      "index_digest": "sha256:bc0445dac61accbf1c3b17fbb524a71eee0b1b32f55ba45952095e3be8991c3f",
+      "cuda": "12.9.1",
+      "size_amd64": "11.18 GB compressed",
+      "pulled": false,
+      "use_only_if": "primary hits a genuine CUDA/sm_120 kernel issue cu129 could plausibly resolve"
+    }
+  },
+  "isolation": {
+    "container_prefix": "kserve-",
+    "port": 8101,
+    "hf_mount": "/data/jackb/krasis/huggingface/hub -> /hf (READ-ONLY)",
+    "writable_cache": "/data/jackb/lil-cache-korean -> /cache (VLLM_CACHE_ROOT, TORCHINDUCTOR_CACHE_DIR, TRITON_CACHE_DIR, HF_HOME, XDG_CACHE_HOME)",
+    "gpu_selection": "NVIDIA_VISIBLE_DEVICES via nvidia runtime (the --gpus bug)",
+    "untouched": [
+      "llm-glm",
+      "llm-mimo",
+      "karmic-kraken-beta image",
+      "download_queue"
+    ]
+  },
+  "models": {
+    "Kanana-2": {
+      "repo": "kakaocorp/kanana-2-30b-a3b-thinking-2601",
+      "revision": "cdcbf8b811c21366f20f8a10a1f83183433c0844",
+      "arch": "DeepseekV3ForCausalLM",
+      "quant": "BF16",
+      "moe": true,
+      "tp": 1,
+      "devices": "0",
+      "max_model_len_planned": 16384,
+      "reasoning_parser": "deepseek_r1",
+      "tool_call_parser": "hermes",
+      "state": "serving_ready",
+      "evidence": "ready_downloaded: 13/13 shards, 58G, index OK",
+      "smoke": {
+        "loadable": true,
+        "inference": true,
+        "tool": true,
+        "reasoning": "PASS_reasoning_field_954ch_separated (RESOLVED 2026-10-23)"
+      },
+      "measured": {
+        "load_s": 110,
+        "tok_per_s": 140,
+        "peak_vram_mib": 75739,
+        "ctx": 16384,
+        "tp": 1,
+        "util": 0.75,
+        "gpu": 1,
+        "contention": "quiet_gpu_beside_idle_sinsan (policy-tagged contended)"
+      },
+      "notes": "sm_120 MoE loads+runs (clears karmic CUDA13.4 blocker). gen+tool+tool-result PASS. Reasoning RESOLVED 2026-10-23: read the `reasoning` message field (NOT reasoning_content) + budget >=4096; deepseek_r1 parser is vendor-correct (README line 621) and needs no change. Caveat: usage.reasoning_tokens reads 0 for Kanana (deepseek_r1 counts between a generated <think>, which is in the prompt) -> use len(reasoning). CoT emitted in English then answers in Korean (expected).",
+      "harness_integration": "not_yet_validated",
+      "reasoning_metrics": {
+        "reasoning_chars": 954,
+        "provider_reasoning_tokens": null,
+        "note": "provider reasoning_tokens is null (unreliable: deepseek_r1 counts between a generated <think>, which is in the prompt here). Record chars; a tokenizer-derived token count can be computed offline if needed."
+      }
+    },
+    "EXAONE-4.5": {
+      "repo": "LGAI-EXAONE/EXAONE-4.5-33B-FP8",
+      "revision": "69570ad5d9a5159816ef267f2f4d37e36447f1be",
+      "arch": "Exaone4_5_ForConditionalGeneration",
+      "quant": "compressed-tensors FP8",
+      "moe": false,
+      "tp": 1,
+      "devices": "0",
+      "max_model_len_planned": 16384,
+      "reasoning_parser": "qwen3",
+      "tool_call_parser": "hermes",
+      "state": "serving_ready",
+      "evidence": "ready_downloaded: 9/9 shards, 39G, index OK",
+      "smoke": {
+        "loadable": true,
+        "inference": true,
+        "tool": true,
+        "reasoning": "PASS_reasoning_field_3000ch_separated; enable_thinking on+off both verified; rtoks reliable (RESOLVED 2026-10-23)"
+      },
+      "measured": {
+        "load_s": 220,
+        "tok_per_s": 34,
+        "peak_vram_mib": 51593,
+        "ctx": 16384,
+        "tp": 1,
+        "util": 0.55,
+        "gpu": 1,
+        "contention": "quiet_gpu_beside_idle_sinsan (policy-tagged contended)"
+      },
+      "notes": "FP8 compressed-tensors loads+runs on sm_120. gen+tool+tool-result PASS. Reasoning RESOLVED 2026-10-23: read the `reasoning` message field + budget >=4096; qwen3 parser vendor-correct (README 523/542). enable_thinking True -> reasoning separated (3000ch, rtoks 837-2054 reliable); False -> content-only. Needs presence_penalty=1.5 (+top_k=20 for Korean) per vendor. CoT in English, answers in Korean (expected).",
+      "harness_integration": "not_yet_validated",
+      "reasoning_metrics": {
+        "reasoning_chars": 3000,
+        "provider_reasoning_tokens": "reliable (837-2054 observed)",
+        "note": "qwen3 engine reports reliable reasoning token counts."
+      }
+    },
+    "A.X-4.0": {
+      "repo": "skt/A.X-4.0",
+      "revision": "a3393fd67bf09a34a85e66dfd2c2da61c4497b67",
+      "arch": "Qwen2ForCausalLM",
+      "quant": "BF16",
+      "moe": false,
+      "tp": 2,
+      "devices": "0,1",
+      "max_model_len_planned": 16384,
+      "reasoning_parser": null,
+      "tool_call_parser": "hermes",
+      "state": "serving_ready",
+      "evidence": "VERIFIED 2026-10-23: 30/30 shards, 133.9G, 0 .incomplete, index OK, arch Qwen2ForCausalLM",
+      "smoke": {
+        "loadable": true,
+        "inference": true,
+        "tool": true,
+        "reasoning": "N/A (non-thinking)"
+      },
+      "measured": {
+        "load_s": 220,
+        "tok_per_s": 17,
+        "ttft_s": 0.094,
+        "peak_vram_mib": "81171+80771 (GPU0+1)",
+        "ctx": 16384,
+        "tp": 2,
+        "util": 0.82,
+        "devices": "0,1",
+        "contention": "quiet GPUs beside idle sinsan (policy-tagged contended)"
+      },
+      "notes": "TP2 sharded cleanly over PCIe. gen+tool+tool-result all PASS via harness auto-rollup (non-thinking, no artifact). reasoning N/A.",
+      "harness_integration": "not_yet_validated"
+    }
+  },
+  "launch_gate": {
+    "note": "A >=70GB-free watcher hit is a WAKE-UP TRIGGER ONLY, not authorization to launch. Re-run this gate immediately before EACH launch.",
+    "checks_before_each_launch": [
+      "1. Re-check free VRAM, GPU util, and ALL foreign processes over MULTIPLE samples (not a single reading).",
+      "2. Require headroom BEYOND the planned vLLM budget, incl. room for existing workloads (ragas/Sinsan) to grow.",
+      "3. Do NOT assume --gpu-memory-utilization guarantees isolation or prevents OOM; use a conservative budget (~0.70 Kanana / ~0.55 EXAONE) AND confirm absolute free MiB is comfortable.",
+      "4. Confirm the selected GPU remains sufficiently available IMMEDIATELY before startup.",
+      "5. Keep monitoring during loading, torch.compile, AND inference.",
+      "6. Abort + clean up ONLY our kserve-* container if resource pressure develops. NEVER stop ragas or Sinsan."
+    ],
+    "scope": "Kanana and EXAONE may run INDEPENDENTLY on a sufficiently-available single GPU. A.X TP2 stays BLOCKED until BOTH GPUs pass the checks.",
+    "reporting": "A watcher notification is NOT successful execution. Record ACTUAL smoke-test results (gen/tool/multi-turn/reasoning) BEFORE updating any readiness state. Metrics tagged contended."
+  },
+  "summary": {
+    "image": "vllm/vllm-openai:v0.32.0 (CUDA 13.0, amd64 sha256:6ee1333...); torch 2.13.0+cu130, transformers 5.19.0, flashinfer 0.7.0.post1",
+    "sm120_blocker": "CLEARED — all 3 archs load+generate on official v0.32.0 (karmic CUDA 13.4 image failures resolved)",
+    "fallback_cu129_needed": false,
+    "Kanana-2": "serving_ready (gen+tool+tool-result+reasoning-separation PASS); harness integration NOT yet validated",
+    "EXAONE-4.5": "serving_ready (gen+tool+tool-result+reasoning-separation PASS, thinking on+off); harness integration NOT yet validated",
+    "A.X-4.0": "serving_ready (gen+tool+tool-result PASS, non-thinking); harness integration NOT yet validated",
+    "reasoning_resolution_2026-10-23": "Root cause = (1) response field is `reasoning` in v0.32.0, not `reasoning_content`; (2) max_tokens 256/512 truncated before </think>. Both vendor parsers (deepseek_r1 / qwen3) correct, no change. Verified offline (parser_regression_test.py) + live (8192 budget).",
+    "open_followups": [
+      "Benchmark-harness client must read the `reasoning` message field (fallback reasoning_content) and budget >=4096 (8192 for reasoning-heavy) for thinking models.",
+      "Kanana usage.reasoning_tokens is unreliable (reads 0); use len(reasoning). EXAONE reasoning_tokens is reliable.",
+      "Both models emit CoT in English; keep reasoning out of the scored answer (content) in the harness normalizer."
+    ],
+    "serving_vs_benchmark": "The 3 Korean models are SERVING-ready (all smoke gates pass). benchmark_ready is reserved for successful end-to-end integration in the actual benchmark harness, which is still to be validated.",
+    "reasoning_token_reporting": "len(reasoning) is CHARACTERS not tokens. Record reasoning_chars separately from any tokenizer-derived token count. Provider usage.reasoning_tokens: EXAONE reliable (837-2054); Kanana null (unreliable, reads 0) — report null, never the wrong 0.",
+    "solar_open2_nvfp4": "serving_ready 2026-10-26 (TP2 on Upstage fork image upstage/vllm-solar-open2:1.0.0, digest sha256:b34b7dd4...b2b7c8c3, base vllm v0.22.0-cu129, CUDA 12.9.1, arch list incl 12.0). Checkpoint nota-ai/Solar-Open2-250B-Nota-NVFP4 @ sha 3cc673335f4c2f41181e05a98fc2b8324d586a64, downloaded+verified (29/29 shards, 185259 tensors, nvfp4 W4A4). BOTH unknowns resolved on RTX PRO 6000: NVFP4-MoE = FLASHINFER_CUTLASS (no Marlin/Emulation fallback), TP2 shards clean (71.6 GiB/GPU). HYBRID attention+Mamba MoE -> REQUIRES --max-num-seqs 256 (default 1024 > 401 Mamba blocks). Reasoning split works (<|think:start|>/<|think:end|> special tokens, solar_open2 parser; reasoning_start_str warning benign), structured tool calling works, multi-turn tool-result continuation works (all 8K). reasoning_chars=CHARS; provider reasoning_tokens unavailable (empty completion_tokens_details) -> null. max-model-len 8K comfortable, 131K won't fit. Served isolated port 8102, Sinsan untouched. serving_ready != benchmark_ready: harness integration NOT yet validated.",
+    "harness_integration": {
+      "status": "live_pilot_complete (PR #10 hardened)",
+      "repo": "VectorSophie/upstage-cli",
+      "branch": "feat/harness-local-models",
+      "pr": "https://github.com/VectorSophie/upstage-cli/pull/10",
+      "taxonomy": {
+        "serving_ready": "serves + passes local serving smoke tests (all 4)",
+        "harness_integrated": "runs end-to-end through the upstage-cli harness (real registry/sandbox/checks/scoring/provenance)",
+        "benchmark_ready": "harness executes+evaluates real tasks at intended scale (NOT yet for any model)"
+      },
+      "adapter": "one shared LocalModelAgent + src/model/local-openai-adapter.mjs; model-specific serving is config-only",
+      "tests": {
+        "stageA_unit": "34/34",
+        "stageB_pipeline_mocked": "7/7",
+        "full_harness_suite": "250 pass",
+        "root_cli_suite": "940 tests, 0 fail"
+      },
+      "live_pilot_stageC": {
+        "task": "local-pilot-flaky-test (node, full agent loop)",
+        "Kanana-2": {
+          "status": "PASS",
+          "turns": 3,
+          "toolCalls": 2,
+          "reasoningChars": 8288,
+          "providerReasoningTokens": null,
+          "note": "deepseek_r1 rtoks unreliable -> null"
+        },
+        "EXAONE-4.5": {
+          "status": "PASS",
+          "turns": 8,
+          "toolCalls": 8,
+          "reasoningChars": 24484,
+          "providerReasoningTokens": 4959,
+          "note": "qwen3 rtoks reliable"
+        },
+        "A.X-4.0": "live pending (bounded pilot); covered by mocked Stage B",
+        "solar-open2": "live pending (separate fork server); covered by mocked Stage B",
+        "gpu_safety": "multi-sample gate each launch; one model at a time; Sinsan untouched; containers removed; box returned to baseline"
+      },
+      "per_model_state": {
+        "Kanana-2": "serving_ready + harness_integrated(live 3/4; T3 capability gap); not benchmark_ready",
+        "EXAONE-4.5": "serving_ready + harness_integrated(live 4/4); not benchmark_ready",
+        "A.X-4.0": "serving_ready + harness_integrated(live 4/4); not benchmark_ready",
+        "solar-open2": "serving_ready + harness_integrated(live 4/4); not benchmark_ready"
+      },
+      "live_pilot_matrix_2026-10-28": {
+        "note": "bounded 4x4 live pilot through the real Harness on hardened code (finish_reason/validation/deadline fixes). one attempt/cell. contended (Sinsan idle co-resident).",
+        "result": "15/16 task cells pass; 0 infrastructure/protocol/deadline errors",
+        "Kanana-2": "T1 pass, T2 pass, T3 FAIL (capability: tool-result continuation; wrote 'T' not the token), T4 pass",
+        "EXAONE-4.5": "T1-T4 pass (uses full 8-turn budget on T1-T3; provider reasoning_tokens reliable)",
+        "A.X-4.0": "T1-T4 pass (non-thinking, TP2)",
+        "solar-open2": "T1-T4 pass (TP2 NVFP4 fork, 8K ctx; provider reasoning_tokens null)"
+      },
+      "review_hardening": "PR#10 P1-A finish_reason(output_truncated), P1-B response validation(protocol), P1-C wall-clock deadline; +Docker isolation test; tests harness 278 / docker 25 / root 940"
+    }
+  },
+  "harness_integration": {
+    "t3_rigorous": {
+      "fixture": "tool-continuation-v2",
+      "mechanism": "trace-aware evaluator + pinned generator sha (trusted channels; CSPRNG runtime token)",
+      "live_results": {
+        "kanana": "pass/done",
+        "exaone": "pass/budget_exhausted",
+        "ax": "pass/done",
+        "solar_open2": "pass/budget_exhausted"
+      },
+      "task_pass_rate": "4/4",
+      "clean_completion_rate": "2/4 (kanana,ax)",
+      "note": "Solar MUST be served at the pinned 8192 ctx (kserve-solar.sh start 8192); 4096 under-serves and yields a context_length error"
+    },
+    "updated": "2026-10-28 (T3 evaluator hardened; PR#10 HEAD 4974bcd, CI green)",
+    "t3_hardened": {
+      "task": "tool-continuation-v3 (Docker, read-only mounted generator at /opt/t3)",
+      "fixes": "command-identity (exact argv), stdout-only extraction, immutable generator (TOCTOU closed)",
+      "bypasses_closed": [
+        "A command-string spoofing",
+        "C stderr/metadata spoofing",
+        "B modify/run/restore"
+      ],
+      "live_results": {
+        "kanana": "pass/done",
+        "exaone": "FAIL capability (read out.txt before writing → tool_error)",
+        "ax": "pass/done",
+        "solar_open2": "pass/budget_exhausted"
+      },
+      "task_pass_rate": "3/4",
+      "clean_completion_rate": "2/4",
+      "note": "v2 live results NOT relabeled as passing the hardened evaluator; v2 is native A/C-hardened + B best-effort"
+    }
+  }
+}
