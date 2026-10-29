@@ -46,11 +46,9 @@ checksums; run 40829975387) and on the PR #12 import
    point 5).
 3. **Korean condition undefined.** Both candidates are English. Whether and
    how to build Korean variants (and who translates/reviews) is open.
-4. **Serving provenance is declared, not observed.** Run records copy model
-   configuration from `local-models.mjs`; the harness does not query the
-   server (`/v1/models`) or the container image digest. The pilot already
-   produced one record whose `contextLimit` (8192) did not match the server
-   (4096). Manual pre-run checks are in the protocol until this is automated.
+4. **Serving preflight not yet run live.** `harness preflight` and
+   `run --preflight` (ADR 0008) compare declared with observed serving
+   configuration and block mismatches; tested against fakes only (h26, h27).
 5. **Repetitions, seeds and statistics.** Samples are unseeded; the pilot was
    one attempt per cell. `harness/docs/BENCHMARK_V1_STATISTICS.md` is a draft
    for the fixture set, not for external benchmarks.

@@ -45,21 +45,21 @@ intended scale, reproducibly). As of 2026-10-29 all four are
 
 ## Limitations shared by all four
 
-- **Serving provenance in run records is declared, not observed.** A run
-  record's `provenance.model` (revision, image digest, context limit, parsers)
-  is copied from `local-models.mjs`; the harness does not query the live
-  server for it. The pilot shows the risk: Solar's first T3-v2 attempt was
-  recorded with `contextLimit: 8192` while the server had been launched at
-  4096 (`harness/docs/PILOT_REPORT.md`, "Solar context-budget finding").
-  Until the harness checks `/v1/models` (`max_model_len`, served name) and
-  the container image digest before a run, the operator must
-  (`docs/protocol/EXPERIMENT_PROTOCOL.md`).
+- **Serving provenance is now checked, but not yet against a live server.**
+  Run records copy model configuration from `local-models.mjs`. Since
+  2026-10-29 `harness preflight` / `harness run --preflight` compare it with
+  the live server and container and block a run on any mismatch (ADR 0008).
+  The pilot records predate this; one of them claims `contextLimit: 8192`
+  for a server launched at 4096. Quantization and sampling remain
+  `declared_only`, and the checkpoint check covers the snapshot directory
+  name, not file contents.
 - **One server at a time.** Kanana, EXAONE and A.X share port 8101 and are
   served one at a time; A.X and Solar each need both GPUs. Comparisons are
   sequential, not simultaneous.
 - **Timings are contended** and indicative only.
 - **Sampling differs per model** (vendor-recommended settings, recorded per
   run). Samples are not seeded (`seed: null`).
-- **GPU memory utilization is an operator setting** (`KSERVE_GPU_UTIL`) that
-  is not recorded in the run record; smoke tests used different values per
-  model (table in each card).
+- **GPU memory utilization is an operator setting** (`KSERVE_GPU_UTIL`),
+  not part of the declared configuration. With `--preflight` the observed
+  value is recorded in `provenance.preflight.observations`; smoke tests used
+  different values per model (table in each card).
