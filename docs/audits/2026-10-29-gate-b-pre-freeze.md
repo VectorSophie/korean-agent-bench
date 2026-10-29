@@ -49,3 +49,23 @@ comparison are exploratory. SWE-bench concurrency 4.
 - A.X's 0/6 on BFCL parallel categories in the pilot: verified with a raw
   completion (`tool_choice=none`) that the model itself emits a single
   `<tool_call>`; not a parser defect, so nothing to fix.
+
+## Post-fix pilot (r4, same ids as r3; descriptive only)
+
+`pilot-2026-10-29-r4` re-ran all four models on the r3 pilot ids with the
+fixes above (EXAONE's first pass was refused by the clean-tree guard because of
+an uncommitted file and re-run on a clean tree; nothing was recorded by the
+refused pass).
+
+| Model | BFCL (27) | SWE-bench agent outcomes | Official |
+|---|---|---|---|
+| Kanana | 25 | output_truncated ×2 (thinking exceeded the 8,192-token output) | empty_patch, unresolved |
+| EXAONE | 23 | budget_exhausted ×2 (30 turns) | empty_patch ×2 |
+| A.X | 18 (parallel categories 0/6 as in r3) | completed ×2 | empty_patch, unresolved |
+| Solar Open 2 | 26 (0 context errors, was 2) | context_exhausted (after 2 tool calls), budget_exhausted (30 turns, patch) | empty_patch, unresolved |
+
+Checks: every SWE-bench request counted exactly by the server (`/tokenize`,
+all 157 requests); no Korean text in any run record; `verify.py` 87/87. One
+observability defect found and fixed before the freeze: `trace.compactions`
+was always empty (event-name mismatch). Solar's 3,686-token SWE-bench input
+budget is recorded in ADR 0011 as a known property of the 8K arm.
