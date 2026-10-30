@@ -5,12 +5,15 @@ models (Kanana 2, EXAONE 4.5, A.X 4.0, Solar Open 2) driven through the real
 agent loop and tools of [upstage-cli](https://github.com/VectorSophie/upstage-cli),
 in isolated sandboxes, with trusted evaluators and per-run provenance.
 
-**Status (2026-10-29): infrastructure verified, no model comparison yet.**
-BFCL and SWE-bench Verified are integrated with their official evaluators and
-validated offline (mock model / replayed patches); no model has been run on
-them. A serving preflight checks live servers against their declared
-configuration. The repository's own task sets are AI-authored regression
-fixtures, excluded from model comparison. Blockers and readiness:
+**Status (2026-10-30): first main comparison complete.** BFCL (1,106-entry
+subset) and SWE-bench Verified (stage 1, 50 instances), four models, official
+scorers, frozen protocol (ADR 0011, with Amendment 1), independently verified
+and adversarially audited:
+[`docs/research/FOUR_MODEL_COMPARISON.md`](docs/research/FOUR_MODEL_COMPARISON.md),
+data in [`results/main-2026-10-30-v1/`](results/main-2026-10-30-v1/SUMMARY.md).
+Both benchmarks are English: the results say nothing about Korean-language
+ability. The repository's own task sets are AI-authored regression fixtures,
+excluded from model comparison. Status and open items:
 [`docs/STATUS.md`](docs/STATUS.md).
 
 ## Quick start
@@ -36,15 +39,16 @@ requires serving it first: [`docs/protocol/EXPERIMENT_PROTOCOL.md`](docs/protoco
 | [`docs/adr/`](docs/adr/) | architecture decision records |
 | [`docs/models/`](docs/models/README.md) | one card per model: checkpoint, revision, quantization, serving, hardware, limitations |
 | [`docs/protocol/`](docs/protocol/EXPERIMENT_PROTOCOL.md) | how runs are prepared, executed and reported |
-| [`docs/research/`](docs/research/README.md) | dated research history (pilot, benchmark-v1 audit, trace evaluation) |
+| [`docs/research/`](docs/research/README.md) | dated research history and the four-model comparison |
 | [`docs/MIGRATION.md`](docs/MIGRATION.md) | what moved from upstage-cli, how, and how it was verified |
 | [`benchmarks/`](benchmarks/README.md) | BFCL and SWE-bench Verified: acquisition, generation, official scoring |
 | [`datasets/registry.json`](datasets/registry.json) | every task set, its origin, version, license and permitted use |
-| [`docs/audits/`](docs/audits/) | dated audits (evidence disclosure) |
+| [`docs/audits/`](docs/audits/) | dated audits (evidence disclosure, critique gates A–C) |
 | [`harness/`](harness/) | the harness ([`harness/docs/HARNESS.md`](harness/docs/HARNESS.md)) |
 | [`models/serving/`](models/serving/) | maintained model launchers |
 | [`models/serving-records/`](models/serving-records/) | model-serving evidence (verbatim, checksummed) |
-| [`results/`](results/) | raw run records (verbatim, checksummed) |
+| [`results/`](results/) | run records and campaign results (checksummed) |
+| [`protocol/`](protocol/) | frozen main-comparison protocol and amendments |
 | `vendor/upstage-cli` | the agent under test, pinned submodule |
 
 ## Principles

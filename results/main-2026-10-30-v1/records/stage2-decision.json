@@ -1,0 +1,22 @@
+{
+ "decision": "SWE-bench stage 2 not executed; campaign ends at stage 1 (50 instances per model)",
+ "decidedAt": "2026-10-30T01:52Z",
+ "decidedBy": "project owner (explicit instruction), resource-based as permitted by ADR 0011 decision 5",
+ "basis": "resources only, never results",
+ "evidence": {
+  "dockerBaselineBytes": 165100000000,
+  "dockerBudgetGB": 100,
+  "imagesMainPull": "budget guard stopped pulls at +102.2 GB after 73 images (images-main/pull.log)",
+  "stage2Probe": {
+   "imagesPulled": 8,
+   "logicalGB": null,
+   "dockerDfBeforeGB": 195.7,
+   "dockerDfAfterGB": 237.2,
+   "note": "8 stage-2 images (astropy/matplotlib/scikit-learn/sympy/... repositories) increased Docker's deduplicated image storage by 41.5 GB although `docker image inspect .Size` reports 16.6 GB for them (inspect reports a smaller size than unpacked storage); removing exactly these 8 returned docker system df to 195.7 GB, confirming the attribution. At that rate the remaining 16 stage-2 images plus the 26 amendment-1 rerun images could not fit in the 100 GB budget.",
+   "removed": "the 8 probe images (this campaign's own pulls) were removed to make room for the stage-1 reruns; images-stage2/rmi.log",
+   "inspectSizeGB": 16.6
+  },
+  "stage1ImagesRemoved": "49 stage-1 images pulled by this campaign were removed after stage-1 evaluation (images-main/rmi-stage1.log), before amendment 1; 26 of them are re-pulled for the reruns (images-rerun1)"
+ },
+ "unchanged": "subset, model settings, prompts, token budgets, evaluator, scoring rules"
+}

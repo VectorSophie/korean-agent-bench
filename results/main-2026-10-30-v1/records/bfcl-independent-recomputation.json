@@ -1,0 +1,562 @@
+{
+ "models": {
+  "kanana": {
+   "scheduled": 1106,
+   "results": 1106,
+   "duplicates": 0,
+   "missing": 0,
+   "extra": 0,
+   "categoriesScored": 14,
+   "correct": 888,
+   "accuracy": 0.8029,
+   "wilson95": [
+    0.7784,
+    0.8253
+   ],
+   "officialHeaderCorrectSum": 888,
+   "headerTotalsEqualScheduled": true,
+   "perCategoryRecomputeMatchesOfficial": true,
+   "categories": {
+    "irrelevance": {
+     "correct": 85,
+     "n": 100,
+     "accuracy": 0.85
+    },
+    "live_irrelevance": {
+     "correct": 85,
+     "n": 100,
+     "accuracy": 0.85
+    },
+    "live_multiple": {
+     "correct": 81,
+     "n": 100,
+     "accuracy": 0.81
+    },
+    "live_parallel": {
+     "correct": 10,
+     "n": 16,
+     "accuracy": 0.625
+    },
+    "live_parallel_multiple": {
+     "correct": 18,
+     "n": 24,
+     "accuracy": 0.75
+    },
+    "live_relevance": {
+     "correct": 10,
+     "n": 16,
+     "accuracy": 0.625
+    },
+    "live_simple": {
+     "correct": 88,
+     "n": 100,
+     "accuracy": 0.88
+    },
+    "multi_turn_base": {
+     "correct": 47,
+     "n": 100,
+     "accuracy": 0.47
+    },
+    "multiple": {
+     "correct": 96,
+     "n": 100,
+     "accuracy": 0.96
+    },
+    "parallel": {
+     "correct": 92,
+     "n": 100,
+     "accuracy": 0.92
+    },
+    "parallel_multiple": {
+     "correct": 90,
+     "n": 100,
+     "accuracy": 0.9
+    },
+    "simple_java": {
+     "correct": 66,
+     "n": 100,
+     "accuracy": 0.66
+    },
+    "simple_javascript": {
+     "correct": 26,
+     "n": 50,
+     "accuracy": 0.52
+    },
+    "simple_python": {
+     "correct": 94,
+     "n": 100,
+     "accuracy": 0.94
+    }
+   },
+   "errorsByClass": {
+    "infrastructure": 0,
+    "configuration": 0,
+    "context": 0,
+    "model": 0
+   },
+   "infraRetries": {},
+   "contextErrorsByCategory": {},
+   "contextErrorsScoredCorrect": [],
+   "resultFileErrorStrings": 0,
+   "sessions": 1,
+   "commits": [
+    "a48b0b8bf44678febaf6a1011eda6f1db7fefdcb"
+   ],
+   "codeTreesFrozen": true,
+   "preflights": [
+    {
+     "reportable": true,
+     "mismatch": 0,
+     "verified": 15
+    },
+    {
+     "reportable": true,
+     "mismatch": 0,
+     "verified": 15
+    },
+    {
+     "reportable": true,
+     "mismatch": 0,
+     "verified": 15
+    },
+    {
+     "reportable": true,
+     "mismatch": 0,
+     "verified": 15
+    }
+   ]
+  },
+  "exaone": {
+   "scheduled": 1106,
+   "results": 1106,
+   "duplicates": 0,
+   "missing": 0,
+   "extra": 0,
+   "categoriesScored": 14,
+   "correct": 881,
+   "accuracy": 0.7966,
+   "wilson95": [
+    0.7718,
+    0.8192
+   ],
+   "officialHeaderCorrectSum": 881,
+   "headerTotalsEqualScheduled": true,
+   "perCategoryRecomputeMatchesOfficial": true,
+   "categories": {
+    "irrelevance": {
+     "correct": 70,
+     "n": 100,
+     "accuracy": 0.7
+    },
+    "live_irrelevance": {
+     "correct": 77,
+     "n": 100,
+     "accuracy": 0.77
+    },
+    "live_multiple": {
+     "correct": 79,
+     "n": 100,
+     "accuracy": 0.79
+    },
+    "live_parallel": {
+     "correct": 12,
+     "n": 16,
+     "accuracy": 0.75
+    },
+    "live_parallel_multiple": {
+     "correct": 17,
+     "n": 24,
+     "accuracy": 0.7083333333333334
+    },
+    "live_relevance": {
+     "correct": 14,
+     "n": 16,
+     "accuracy": 0.875
+    },
+    "live_simple": {
+     "correct": 93,
+     "n": 100,
+     "accuracy": 0.93
+    },
+    "multi_turn_base": {
+     "correct": 59,
+     "n": 100,
+     "accuracy": 0.59
+    },
+    "multiple": {
+     "correct": 96,
+     "n": 100,
+     "accuracy": 0.96
+    },
+    "parallel": {
+     "correct": 94,
+     "n": 100,
+     "accuracy": 0.94
+    },
+    "parallel_multiple": {
+     "correct": 82,
+     "n": 100,
+     "accuracy": 0.82
+    },
+    "simple_java": {
+     "correct": 64,
+     "n": 100,
+     "accuracy": 0.64
+    },
+    "simple_javascript": {
+     "correct": 32,
+     "n": 50,
+     "accuracy": 0.64
+    },
+    "simple_python": {
+     "correct": 92,
+     "n": 100,
+     "accuracy": 0.92
+    }
+   },
+   "errorsByClass": {
+    "infrastructure": 0,
+    "configuration": 0,
+    "context": 0,
+    "model": 0
+   },
+   "infraRetries": {},
+   "contextErrorsByCategory": {},
+   "contextErrorsScoredCorrect": [],
+   "resultFileErrorStrings": 0,
+   "sessions": 1,
+   "commits": [
+    "a48b0b8bf44678febaf6a1011eda6f1db7fefdcb"
+   ],
+   "codeTreesFrozen": true,
+   "preflights": [
+    {
+     "reportable": true,
+     "mismatch": 0,
+     "verified": 15
+    },
+    {
+     "reportable": true,
+     "mismatch": 0,
+     "verified": 15
+    },
+    {
+     "reportable": true,
+     "mismatch": 0,
+     "verified": 15
+    }
+   ]
+  },
+  "ax": {
+   "scheduled": 1106,
+   "results": 1106,
+   "duplicates": 0,
+   "missing": 0,
+   "extra": 0,
+   "categoriesScored": 14,
+   "correct": 681,
+   "accuracy": 0.6157,
+   "wilson95": [
+    0.5867,
+    0.644
+   ],
+   "officialHeaderCorrectSum": 681,
+   "headerTotalsEqualScheduled": true,
+   "perCategoryRecomputeMatchesOfficial": true,
+   "categories": {
+    "irrelevance": {
+     "correct": 89,
+     "n": 100,
+     "accuracy": 0.89
+    },
+    "live_irrelevance": {
+     "correct": 88,
+     "n": 100,
+     "accuracy": 0.88
+    },
+    "live_multiple": {
+     "correct": 73,
+     "n": 100,
+     "accuracy": 0.73
+    },
+    "live_parallel": {
+     "correct": 0,
+     "n": 16,
+     "accuracy": 0.0
+    },
+    "live_parallel_multiple": {
+     "correct": 0,
+     "n": 24,
+     "accuracy": 0.0
+    },
+    "live_relevance": {
+     "correct": 9,
+     "n": 16,
+     "accuracy": 0.5625
+    },
+    "live_simple": {
+     "correct": 85,
+     "n": 100,
+     "accuracy": 0.85
+    },
+    "multi_turn_base": {
+     "correct": 50,
+     "n": 100,
+     "accuracy": 0.5
+    },
+    "multiple": {
+     "correct": 96,
+     "n": 100,
+     "accuracy": 0.96
+    },
+    "parallel": {
+     "correct": 0,
+     "n": 100,
+     "accuracy": 0.0
+    },
+    "parallel_multiple": {
+     "correct": 1,
+     "n": 100,
+     "accuracy": 0.01
+    },
+    "simple_java": {
+     "correct": 66,
+     "n": 100,
+     "accuracy": 0.66
+    },
+    "simple_javascript": {
+     "correct": 28,
+     "n": 50,
+     "accuracy": 0.56
+    },
+    "simple_python": {
+     "correct": 96,
+     "n": 100,
+     "accuracy": 0.96
+    }
+   },
+   "errorsByClass": {
+    "infrastructure": 0,
+    "configuration": 0,
+    "context": 0,
+    "model": 0
+   },
+   "infraRetries": {},
+   "contextErrorsByCategory": {},
+   "contextErrorsScoredCorrect": [],
+   "resultFileErrorStrings": 0,
+   "sessions": 1,
+   "commits": [
+    "a48b0b8bf44678febaf6a1011eda6f1db7fefdcb"
+   ],
+   "codeTreesFrozen": true,
+   "preflights": [
+    {
+     "reportable": true,
+     "mismatch": 0,
+     "verified": 15
+    },
+    {
+     "reportable": true,
+     "mismatch": 0,
+     "verified": 15
+    },
+    {
+     "reportable": true,
+     "mismatch": 0,
+     "verified": 15
+    },
+    {
+     "reportable": true,
+     "mismatch": 0,
+     "verified": 15
+    }
+   ]
+  },
+  "solar-open2": {
+   "scheduled": 1106,
+   "results": 1106,
+   "duplicates": 0,
+   "missing": 0,
+   "extra": 0,
+   "categoriesScored": 14,
+   "correct": 898,
+   "accuracy": 0.8119,
+   "wilson95": [
+    0.7878,
+    0.8339
+   ],
+   "officialHeaderCorrectSum": 898,
+   "headerTotalsEqualScheduled": true,
+   "perCategoryRecomputeMatchesOfficial": true,
+   "categories": {
+    "irrelevance": {
+     "correct": 87,
+     "n": 100,
+     "accuracy": 0.87
+    },
+    "live_irrelevance": {
+     "correct": 81,
+     "n": 100,
+     "accuracy": 0.81
+    },
+    "live_multiple": {
+     "correct": 80,
+     "n": 100,
+     "accuracy": 0.8
+    },
+    "live_parallel": {
+     "correct": 14,
+     "n": 16,
+     "accuracy": 0.875
+    },
+    "live_parallel_multiple": {
+     "correct": 17,
+     "n": 24,
+     "accuracy": 0.7083333333333334
+    },
+    "live_relevance": {
+     "correct": 12,
+     "n": 16,
+     "accuracy": 0.75
+    },
+    "live_simple": {
+     "correct": 93,
+     "n": 100,
+     "accuracy": 0.93
+    },
+    "multi_turn_base": {
+     "correct": 50,
+     "n": 100,
+     "accuracy": 0.5
+    },
+    "multiple": {
+     "correct": 99,
+     "n": 100,
+     "accuracy": 0.99
+    },
+    "parallel": {
+     "correct": 92,
+     "n": 100,
+     "accuracy": 0.92
+    },
+    "parallel_multiple": {
+     "correct": 86,
+     "n": 100,
+     "accuracy": 0.86
+    },
+    "simple_java": {
+     "correct": 63,
+     "n": 100,
+     "accuracy": 0.63
+    },
+    "simple_javascript": {
+     "correct": 31,
+     "n": 50,
+     "accuracy": 0.62
+    },
+    "simple_python": {
+     "correct": 93,
+     "n": 100,
+     "accuracy": 0.93
+    }
+   },
+   "errorsByClass": {
+    "infrastructure": 0,
+    "configuration": 0,
+    "context": 20,
+    "model": 0
+   },
+   "infraRetries": {},
+   "contextErrorsByCategory": {
+    "multi_turn_base": 20
+   },
+   "contextErrorsScoredCorrect": [],
+   "resultFileErrorStrings": 20,
+   "sessions": 1,
+   "commits": [
+    "a48b0b8bf44678febaf6a1011eda6f1db7fefdcb"
+   ],
+   "codeTreesFrozen": true,
+   "preflights": [
+    {
+     "reportable": true,
+     "mismatch": 0,
+     "verified": 17
+    },
+    {
+     "reportable": true,
+     "mismatch": 0,
+     "verified": 17
+    },
+    {
+     "reportable": true,
+     "mismatch": 0,
+     "verified": 17
+    },
+    {
+     "reportable": true,
+     "mismatch": 0,
+     "verified": 17
+    }
+   ]
+  }
+ },
+ "checks": [],
+ "pairwise": [
+  {
+   "a": "kanana",
+   "b": "exaone",
+   "diff": 0.0063,
+   "aOnly": 74,
+   "bOnly": 67,
+   "p": 0.6135127096954134,
+   "holm": 0.8305703626250638
+  },
+  {
+   "a": "kanana",
+   "b": "ax",
+   "diff": 0.1872,
+   "aOnly": 275,
+   "bOnly": 68,
+   "p": 1.2039807410712244e-30,
+   "holm": 6.019903705356122e-30
+  },
+  {
+   "a": "kanana",
+   "b": "solar-open2",
+   "diff": -0.009,
+   "aOnly": 56,
+   "bOnly": 66,
+   "p": 0.4152851813125319,
+   "holm": 0.8305703626250638
+  },
+  {
+   "a": "exaone",
+   "b": "ax",
+   "diff": 0.1808,
+   "aOnly": 277,
+   "bOnly": 77,
+   "p": 1.2797635195201493e-27,
+   "holm": 5.119054078080597e-27
+  },
+  {
+   "a": "exaone",
+   "b": "solar-open2",
+   "diff": -0.0154,
+   "aOnly": 45,
+   "bOnly": 62,
+   "p": 0.1215124218762441,
+   "holm": 0.3645372656287323
+  },
+  {
+   "a": "ax",
+   "b": "solar-open2",
+   "diff": -0.1962,
+   "aOnly": 62,
+   "bOnly": 279,
+   "p": 5.283146719414916e-34,
+   "holm": 3.169888031648949e-33
+  }
+ ]
+}

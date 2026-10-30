@@ -1,0 +1,396 @@
+{
+ "campaign": "main-2026-10-30-v1",
+ "protocol": "protocol/main-v1.json",
+ "protocolSha256": "898410beb3a59af55ee551d371e7e0ec5087f10b0a2b4e9f0dd78c3030eb3c16",
+ "swebenchStage": 1,
+ "amendments": [
+  {
+   "id": "main-v1-amendment-1",
+   "file": "protocol/main-v1-amendment-1.json",
+   "sha256": "ea0a759031a730fb6cf915f1dcdf075630723e559c1f5b9eb6b4f4b043bbfd39",
+   "appliedAt": "2026-10-29T23:45:37+00:00",
+   "carriedConfigHashes": {
+    "kanana": [
+     "6919648bde4c5330bbd889f5d8e633a20503f709d830c17bb2960f73cd49209d"
+    ],
+    "exaone": [
+     "b8348161fd7150bc733d4f478f860a4b3e88aed96e259f719842849f781c23c2"
+    ],
+    "ax": [
+     "0d96523e3a7f5637869bf1231dbe9380b4d58613147e97125e57a4c9f6d4d083"
+    ],
+    "solar-open2": [
+     "307e58c44d72ace04caa96a839d503b84645451fdef6764770e03bddd27f24e9"
+    ]
+   },
+   "cellsInvalidated": 104
+  }
+ ],
+ "models": {
+  "kanana": {
+   "preflights": [
+    {
+     "checkedAt": "2026-10-29T16:46:47.717Z",
+     "reportable": true,
+     "counts": {
+      "verified": 15,
+      "declared_only": 3,
+      "mismatch": 0,
+      "unavailable": 0
+     }
+    },
+    {
+     "checkedAt": "2026-10-29T16:46:48.171Z",
+     "reportable": true,
+     "counts": {
+      "verified": 15,
+      "declared_only": 3,
+      "mismatch": 0,
+      "unavailable": 0
+     }
+    },
+    {
+     "checkedAt": "2026-10-29T19:55:19.292Z",
+     "reportable": true,
+     "counts": {
+      "verified": 15,
+      "declared_only": 3,
+      "mismatch": 0,
+      "unavailable": 0
+     }
+    },
+    {
+     "checkedAt": "2026-10-30T02:58:56.895Z",
+     "reportable": true,
+     "counts": {
+      "verified": 15,
+      "declared_only": 3,
+      "mismatch": 0,
+      "unavailable": 0
+     }
+    }
+   ],
+   "servingImageRepoDigests": [
+    "vllm/vllm-openai@sha256:6ee133356d49ed24cee03dd0cda3d3980279a11c107ce3e752c89e76540f41c9"
+   ],
+   "checkpointRevision": [
+    "cdcbf8b811c21366f20f8a10a1f83183433c0844"
+   ],
+   "runs": {
+    "bfcl": {
+     "configHash": "ffa86f70f7f6f149a1c67f4a31ec5d1479b7b3687b2596f1bd88277af98bb320",
+     "commits": [
+      "a48b0b8bf44678febaf6a1011eda6f1db7fefdcb"
+     ],
+     "infraRetries": {}
+    }
+   },
+   "swebenchEvaluation": {
+    "at": "2026-10-30T03:23:08+00:00",
+    "git": {
+     "commit": "f212414b63e8e0c46f99e37f92436d82c47897b5",
+     "dirty": false,
+     "upstageCli": "802cddd1cbc40f1f3436b73fc0d1875b6aaaa356",
+     "upstageCliDirty": false
+    },
+    "toolVersions": {
+     "bfcl-eval": "2026.3.23",
+     "swebench": "5.0.2"
+    }
+   }
+  },
+  "exaone": {
+   "preflights": [
+    {
+     "checkedAt": "2026-10-29T17:32:54.468Z",
+     "reportable": true,
+     "counts": {
+      "verified": 15,
+      "declared_only": 3,
+      "mismatch": 0,
+      "unavailable": 0
+     }
+    },
+    {
+     "checkedAt": "2026-10-29T20:50:01.640Z",
+     "reportable": true,
+     "counts": {
+      "verified": 15,
+      "declared_only": 3,
+      "mismatch": 0,
+      "unavailable": 0
+     }
+    },
+    {
+     "checkedAt": "2026-10-30T03:26:30.616Z",
+     "reportable": true,
+     "counts": {
+      "verified": 15,
+      "declared_only": 3,
+      "mismatch": 0,
+      "unavailable": 0
+     }
+    }
+   ],
+   "servingImageRepoDigests": [
+    "vllm/vllm-openai@sha256:6ee133356d49ed24cee03dd0cda3d3980279a11c107ce3e752c89e76540f41c9"
+   ],
+   "checkpointRevision": [
+    "69570ad5d9a5159816ef267f2f4d37e36447f1be"
+   ],
+   "runs": {
+    "bfcl": {
+     "configHash": "349506dc452d168567b6aaf131c40287685dd17136509351d8672bcaf9585155",
+     "commits": [
+      "a48b0b8bf44678febaf6a1011eda6f1db7fefdcb"
+     ],
+     "infraRetries": {}
+    }
+   },
+   "swebenchEvaluation": {
+    "at": "2026-10-30T03:48:59+00:00",
+    "git": {
+     "commit": "f212414b63e8e0c46f99e37f92436d82c47897b5",
+     "dirty": false,
+     "upstageCli": "802cddd1cbc40f1f3436b73fc0d1875b6aaaa356",
+     "upstageCliDirty": false
+    },
+    "toolVersions": {
+     "bfcl-eval": "2026.3.23",
+     "swebench": "5.0.2"
+    }
+   }
+  },
+  "ax": {
+   "preflights": [
+    {
+     "checkedAt": "2026-10-29T18:17:19.636Z",
+     "reportable": true,
+     "counts": {
+      "verified": 15,
+      "declared_only": 3,
+      "mismatch": 0,
+      "unavailable": 0
+     }
+    },
+    {
+     "checkedAt": "2026-10-29T18:17:20.090Z",
+     "reportable": true,
+     "counts": {
+      "verified": 15,
+      "declared_only": 3,
+      "mismatch": 0,
+      "unavailable": 0
+     }
+    },
+    {
+     "checkedAt": "2026-10-29T21:40:24.815Z",
+     "reportable": true,
+     "counts": {
+      "verified": 15,
+      "declared_only": 3,
+      "mismatch": 0,
+      "unavailable": 0
+     }
+    },
+    {
+     "checkedAt": "2026-10-30T03:52:51.479Z",
+     "reportable": true,
+     "counts": {
+      "verified": 15,
+      "declared_only": 3,
+      "mismatch": 0,
+      "unavailable": 0
+     }
+    }
+   ],
+   "servingImageRepoDigests": [
+    "vllm/vllm-openai@sha256:6ee133356d49ed24cee03dd0cda3d3980279a11c107ce3e752c89e76540f41c9"
+   ],
+   "checkpointRevision": [
+    "a3393fd67bf09a34a85e66dfd2c2da61c4497b67"
+   ],
+   "runs": {
+    "bfcl": {
+     "configHash": "d98f7f60625c677ffa97e251f8c8f2a745efe4c280cf6d3ce99b5e90fdce66ad",
+     "commits": [
+      "a48b0b8bf44678febaf6a1011eda6f1db7fefdcb"
+     ],
+     "infraRetries": {}
+    }
+   },
+   "swebenchEvaluation": {
+    "at": "2026-10-30T04:44:15+00:00",
+    "git": {
+     "commit": "f212414b63e8e0c46f99e37f92436d82c47897b5",
+     "dirty": false,
+     "upstageCli": "802cddd1cbc40f1f3436b73fc0d1875b6aaaa356",
+     "upstageCliDirty": false
+    },
+    "toolVersions": {
+     "bfcl-eval": "2026.3.23",
+     "swebench": "5.0.2"
+    }
+   }
+  },
+  "solar-open2": {
+   "preflights": [
+    {
+     "checkedAt": "2026-10-29T18:46:54.737Z",
+     "reportable": true,
+     "counts": {
+      "verified": 17,
+      "declared_only": 3,
+      "mismatch": 0,
+      "unavailable": 0
+     }
+    },
+    {
+     "checkedAt": "2026-10-29T18:46:55.197Z",
+     "reportable": true,
+     "counts": {
+      "verified": 17,
+      "declared_only": 3,
+      "mismatch": 0,
+      "unavailable": 0
+     }
+    },
+    {
+     "checkedAt": "2026-10-29T23:10:04.444Z",
+     "reportable": true,
+     "counts": {
+      "verified": 17,
+      "declared_only": 3,
+      "mismatch": 0,
+      "unavailable": 0
+     }
+    },
+    {
+     "checkedAt": "2026-10-30T04:47:38.250Z",
+     "reportable": true,
+     "counts": {
+      "verified": 17,
+      "declared_only": 3,
+      "mismatch": 0,
+      "unavailable": 0
+     }
+    }
+   ],
+   "servingImageRepoDigests": [
+    "upstage/vllm-solar-open2@sha256:b34b7dd42d986bafb8dcfb285758de2fbfd55e7cf28a1b5ba6b858e6b2b7c8c3"
+   ],
+   "checkpointRevision": [
+    "3cc673335f4c2f41181e05a98fc2b8324d586a64"
+   ],
+   "runs": {
+    "bfcl": {
+     "configHash": "dc3eab5bf2ecf65e56091bda40c5b95a022f1ad752fbe2f877510bd58bc9129a",
+     "commits": [
+      "a48b0b8bf44678febaf6a1011eda6f1db7fefdcb"
+     ],
+     "infraRetries": {}
+    }
+   },
+   "swebenchEvaluation": {
+    "at": "2026-10-30T04:59:11+00:00",
+    "git": {
+     "commit": "f212414b63e8e0c46f99e37f92436d82c47897b5",
+     "dirty": false,
+     "upstageCli": "802cddd1cbc40f1f3436b73fc0d1875b6aaaa356",
+     "upstageCliDirty": false
+    },
+    "toolVersions": {
+     "bfcl-eval": "2026.3.23",
+     "swebench": "5.0.2"
+    }
+   }
+  }
+ },
+ "serverOccupancy": [
+  {
+   "phase": "bfcl",
+   "model": "kanana",
+   "start": "2026-10-29T16:45:16Z",
+   "end": "2026-10-29T17:29:31Z",
+   "seconds": 2655
+  },
+  {
+   "phase": "bfcl",
+   "model": "exaone",
+   "start": "2026-10-29T17:29:31Z",
+   "end": "2026-10-29T18:13:26Z",
+   "seconds": 2635
+  },
+  {
+   "phase": "bfcl",
+   "model": "ax",
+   "start": "2026-10-29T18:13:26Z",
+   "end": "2026-10-29T18:43:31Z",
+   "seconds": 1805
+  },
+  {
+   "phase": "bfcl",
+   "model": "solar-open2",
+   "start": "2026-10-29T18:43:31Z",
+   "end": "2026-10-29T19:23:00Z",
+   "seconds": 2369
+  },
+  {
+   "phase": "swe1",
+   "model": "kanana",
+   "start": "2026-10-29T19:53:46Z",
+   "end": "2026-10-29T20:43:29Z",
+   "seconds": 2983
+  },
+  {
+   "phase": "swe1",
+   "model": "exaone",
+   "start": "2026-10-29T20:46:39Z",
+   "end": "2026-10-29T21:34:12Z",
+   "seconds": 2853
+  },
+  {
+   "phase": "swe1",
+   "model": "ax",
+   "start": "2026-10-29T21:36:32Z",
+   "end": "2026-10-29T23:03:30Z",
+   "seconds": 5218
+  },
+  {
+   "phase": "swe1",
+   "model": "solar-open2",
+   "start": "2026-10-29T23:06:41Z",
+   "end": "2026-10-29T23:28:26Z",
+   "seconds": 1305
+  },
+  {
+   "phase": "swe1",
+   "model": "kanana",
+   "start": "2026-10-30T02:57:25Z",
+   "end": "2026-10-30T03:20:49Z",
+   "seconds": 1404
+  },
+  {
+   "phase": "swe1",
+   "model": "exaone",
+   "start": "2026-10-30T03:23:08Z",
+   "end": "2026-10-30T03:48:51Z",
+   "seconds": 1543
+  },
+  {
+   "phase": "swe1",
+   "model": "ax",
+   "start": "2026-10-30T03:48:59Z",
+   "end": "2026-10-30T04:42:09Z",
+   "seconds": 3190
+  },
+  {
+   "phase": "swe1",
+   "model": "solar-open2",
+   "start": "2026-10-30T04:44:15Z",
+   "end": "2026-10-30T04:58:21Z",
+   "seconds": 846
+  }
+ ],
+ "serverOccupancyHours": 8.0
+}

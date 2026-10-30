@@ -68,6 +68,7 @@ jobs:
       - run: (cd results/pilot-2026-10 && sha256sum -c SHA256SUMS)
       - run: (cd results/bfcl-offline-validation-2026-10-29 && sha256sum -c SHA256SUMS)
       - run: (cd results/swebench-offline-validation-2026-10-29 && sha256sum -c SHA256SUMS)
+      - run: (cd results/main-2026-10-30-v1 && sha256sum -c MANIFEST.sha256)
       - name: Evidence disclosure guard
         run: scripts/check-evidence.sh
 
