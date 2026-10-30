@@ -141,3 +141,13 @@ byte-identical workspace, so their attempts stand. Stage 2 runs on the
 amended code. `verify.py` checks that every invalidated cell was re-run on
 the amended code trees and that all other runs used the frozen or amended
 code.
+
+## Campaign record (2026-10-30)
+
+`main-2026-10-30-v1` ran under this protocol and Amendment 1. BFCL: all four
+models, 1,106 entries. SWE-bench: stage 1 only (50 instances per model). The
+project owner decided not to run stage 2 on Docker-storage evidence, after the
+original stage-1 results were known
+(`results/main-2026-10-30-v1/records/stage2-decision.json`). Results, verification
+and the Gate C audit: `docs/research/FOUR_MODEL_COMPARISON.md`,
+`docs/audits/2026-10-30-gate-c-final.md`.

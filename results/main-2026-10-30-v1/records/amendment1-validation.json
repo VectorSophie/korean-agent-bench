@@ -1,0 +1,32 @@
+{
+ "purpose": "Amendment 1 end-to-end validation on real affected instances (not a model run; patch = one appended comment line)",
+ "django__django-11119": {
+  "symlinks": 4,
+  "snapshotTargetsRelative": true,
+  "workspaceTargetsEqualSnapshot": true,
+  "removedByGuardAtRegistry": 0,
+  "removedByGuardAfterSandboxCommand": 0,
+  "patchFiles": [
+   "django/__init__.py"
+  ],
+  "patchHasSymlinkEntries": false,
+  "appliesToBaseCommit": true,
+  "official": "unresolved",
+  "evaluatorLog": ">>>>> Applied Patch"
+ },
+ "matplotlib__matplotlib-25287": {
+  "symlinks": 8,
+  "snapshotTargetsRelative": true,
+  "workspaceTargetsEqualSnapshot": true,
+  "removedByGuardAtRegistry": 0,
+  "removedByGuardAfterSandboxCommand": 0,
+  "patchFiles": [
+   "lib/matplotlib/__init__.py"
+  ],
+  "patchHasSymlinkEntries": false,
+  "appliesToBaseCommit": true,
+  "official": "unresolved",
+  "evaluatorLog": ">>>>> Applied Patch"
+ },
+ "code": "main f212414 (amended trees)"
+}

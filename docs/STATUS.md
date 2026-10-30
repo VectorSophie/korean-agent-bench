@@ -1,6 +1,6 @@
 # Status
 
-Snapshot as of **2026-10-29** (end of the consolidation session). Update with
+Snapshot as of **2026-10-30** (main comparison complete, SWE-bench stage 1). Update with
 a new date whenever a claim below changes. Legend: **implemented** (code
 exists) · **tested** (automated tests) · **verified** (exercised against the
 real upstream tool or data) · **not executed** · **planned** · **unsupported**.
@@ -22,7 +22,10 @@ real upstream tool or data) · **not executed** · **planned** · **unsupported*
 | SWE-bench Verified official scoring | verified offline on 1 instance (official evaluator, official image) | `results/swebench-offline-validation-2026-10-29/` |
 | SWE-bench agent prediction pipeline | verified with a replay agent; tested (`h29`) | same |
 | Context feasibility for the SWE-bench subset | computed (preregistered) | `datasets/swe-bench-verified/context-feasibility-v1.json` |
-| Any live model inference in this repository | **not executed** (the 2026-10 pilot predates it) | `results/pilot-2026-10/` |
+| Main comparison `main-2026-10-30-v1`: BFCL 1,106 × 4 models; SWE-bench Verified stage 1, 50 × 4 | **verified** (official scorers; `verify.py` 105/105; independent BFCL recomputation; Gate C) | `results/main-2026-10-30-v1/`, `docs/research/FOUR_MODEL_COMPARISON.md` |
+| Protocol frozen (`main-v1`) and Amendment 1 (workspace symlinks, 104 cells re-run) | done | ADR 0011; `protocol/` |
+| SWE-bench stage 2 (50 more instances) | **not executed** (resource decision: Docker storage) | `results/main-2026-10-30-v1/records/stage2-decision.json` |
+| Live serving preflight | verified (REPORTABLE before every BFCL round and SWE-bench attempt) | campaign runtime records |
 
 ## Verified on 2026-10-29
 
@@ -35,19 +38,28 @@ evaluator gold-via-agent-pipeline **resolved**, empty **empty_patch**, wrong
 **unresolved**, malformed **error**. GitHub CI results per PR are listed in
 `docs/MIGRATION.md`.
 
-## Blockers before a reportable model comparison
+## Main comparison (2026-10-30)
 
-1. ~~upstage-cli context limits for local models~~ — **resolved 2026-10-29**
-   (upstage-cli#15 `b17a1f3`, ADR 0010): the harness passes each model's
-   validated budget to the loop.
-2. **Live preflight.** `harness preflight` has only run against fakes and
-   against this machine with no server up (correctly BLOCKED). The first
-   controlled live session must start with it and keep its output.
-3. **Frozen envelopes.** SWE-bench agent envelope (30 turns, 1800 s, tool
-   set) and BFCL settings are provisional; an ADR must freeze them, admit
-   datasets (`mainComparison: admitted`) and fix the statistical analysis.
-4. **Korean condition undefined.** BFCL and SWE-bench are English; how a
+| Model | BFCL correct / 1106 (95% CI) | SWE-bench stage 1 resolved / 50 (95% CI) |
+|---|---|---|
+| Kanana 2 30B-A3B Thinking | 888 = 80.3% [77.8, 82.5] | 0 = 0.0% [0.0, 7.1] |
+| EXAONE 4.5 33B (thinking) | 881 = 79.7% [77.2, 81.9] | 1 = 2.0% [0.4, 10.5] |
+| A.X 4.0 | 681 = 61.6% [58.7, 64.4] | 1 = 2.0% [0.4, 10.5] |
+| Solar Open 2 (unofficial NVFP4, 8K) | 898 = 81.2% [78.8, 83.4] | 4 = 8.0% [3.1, 18.8] |
+
+BFCL: A.X lower than each other model (Holm p < 0.0001), entirely from parallel-call
+categories; the other three are not distinguishable. SWE-bench: no difference
+is statistically supported. English benchmarks only. Full report and
+limitations: `docs/research/FOUR_MODEL_COMPARISON.md`.
+
+## Open items
+
+1. **Korean condition undefined.** BFCL and SWE-bench are English; how a
    Korean variant is produced and reviewed is open (ADR 0003).
+2. SWE-bench stage 2 not run (resources); a larger sample needs more image
+   storage or rotation.
+3. The escaping-symlink guard skips nested `.git` directories (Gate C minor;
+   pre-existing, not shown exploitable).
 
 ## Known limits
 
@@ -59,21 +71,11 @@ evaluator gold-via-agent-pipeline **resolved**, empty **empty_patch**, wrong
   99 depend on the retrieved repository context.
 - BFCL: subset scored with `--partial-eval` (not comparable to the public
   leaderboard); `memory`, `web_search`, `format_sensitivity`,
-  `multi_turn_long_context`, `multi_turn_miss_*` not covered; generation has
-  only been exercised against a mock server.
+  `multi_turn_long_context`, `multi_turn_miss_*` not covered.
 - SWE-bench: official images are `:latest` tags (digest recorded per run);
-  only one instance was evaluated offline; full-subset evaluation needs about
-  100 images (~1 GB compressed each).
+  results hold for upstage-cli `802cddd` under the frozen envelope (16K
+  context, 30 turns), not for the models in isolation.
 - An agent-mediated BFCL track is not built.
 - SWE-bench Verified declares no dataset license, so its content is not
   committed.
 - Synthetic fixtures remain AI-authored; they validate the harness only.
-
-## Ready for a first live evaluation?
-
-**Conditionally, and only for BFCL.** The BFCL official track does not depend
-on blocker 1. A controlled first run of one model on a small BFCL slice is
-technically possible after serving with `models/serving/`, a REPORTABLE
-`harness preflight`, and recording outputs under `results/`. Its numbers would
-be a pilot, not a main-comparison result (blocker 3). SWE-bench agent runs
-should wait for blocker 1.

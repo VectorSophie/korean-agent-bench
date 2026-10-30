@@ -1,0 +1,533 @@
+{
+ "campaign": "main-2026-10-30-v1",
+ "summary": "results/main-2026-10-30-v1/summary.json",
+ "checks": [
+  {
+   "check": "protocol: file sha256 == campaign protocolSha256",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "protocol: models",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "protocol: BFCL ids",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "protocol: SWE-bench ids and stages",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "amendment main-v1-amendment-1: file sha256 == applied",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "amendment main-v1-amendment-1: amends this protocol",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "protocol: kanana every amendment-invalidated cell re-run on the amended code",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "protocol: kanana ran on the frozen (or amended) code",
+   "ok": true,
+   "detail": "2 commits, mismatched []"
+  },
+  {
+   "check": "protocol: exaone every amendment-invalidated cell re-run on the amended code",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "protocol: exaone ran on the frozen (or amended) code",
+   "ok": true,
+   "detail": "2 commits, mismatched []"
+  },
+  {
+   "check": "protocol: ax every amendment-invalidated cell re-run on the amended code",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "protocol: ax ran on the frozen (or amended) code",
+   "ok": true,
+   "detail": "2 commits, mismatched []"
+  },
+  {
+   "check": "protocol: solar-open2 every amendment-invalidated cell re-run on the amended code",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "protocol: solar-open2 ran on the frozen (or amended) code",
+   "ok": true,
+   "detail": "2 commits, mismatched []"
+  },
+  {
+   "check": "bfcl: subset ids unique",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "bfcl/kanana: no duplicate predictions",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "bfcl/kanana: predictions cover exactly the subset",
+   "ok": true,
+   "detail": "missing 0, extra 0"
+  },
+  {
+   "check": "bfcl/kanana: every subset category scored",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "bfcl/kanana: summary correct == official headers",
+   "ok": true,
+   "detail": "888 vs 888"
+  },
+  {
+   "check": "bfcl/kanana: summary scored == official headers",
+   "ok": true,
+   "detail": "1106 vs 1106"
+  },
+  {
+   "check": "bfcl/kanana: scheduled == subset size",
+   "ok": true,
+   "detail": "1106 vs 1106"
+  },
+  {
+   "check": "bfcl/kanana: every scheduled entry scored",
+   "ok": true,
+   "detail": "1106 scored of 1106"
+  },
+  {
+   "check": "bfcl/kanana: accuracy arithmetic (scheduled denominator)",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "bfcl/kanana: no unresolved configuration errors",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "bfcl/kanana: infra retries within rule",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "bfcl/kanana: preflight records present and all REPORTABLE",
+   "ok": true,
+   "detail": "4 files"
+  },
+  {
+   "check": "bfcl/exaone: no duplicate predictions",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "bfcl/exaone: predictions cover exactly the subset",
+   "ok": true,
+   "detail": "missing 0, extra 0"
+  },
+  {
+   "check": "bfcl/exaone: every subset category scored",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "bfcl/exaone: summary correct == official headers",
+   "ok": true,
+   "detail": "881 vs 881"
+  },
+  {
+   "check": "bfcl/exaone: summary scored == official headers",
+   "ok": true,
+   "detail": "1106 vs 1106"
+  },
+  {
+   "check": "bfcl/exaone: scheduled == subset size",
+   "ok": true,
+   "detail": "1106 vs 1106"
+  },
+  {
+   "check": "bfcl/exaone: every scheduled entry scored",
+   "ok": true,
+   "detail": "1106 scored of 1106"
+  },
+  {
+   "check": "bfcl/exaone: accuracy arithmetic (scheduled denominator)",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "bfcl/exaone: no unresolved configuration errors",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "bfcl/exaone: infra retries within rule",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "bfcl/exaone: preflight records present and all REPORTABLE",
+   "ok": true,
+   "detail": "3 files"
+  },
+  {
+   "check": "bfcl/ax: no duplicate predictions",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "bfcl/ax: predictions cover exactly the subset",
+   "ok": true,
+   "detail": "missing 0, extra 0"
+  },
+  {
+   "check": "bfcl/ax: every subset category scored",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "bfcl/ax: summary correct == official headers",
+   "ok": true,
+   "detail": "681 vs 681"
+  },
+  {
+   "check": "bfcl/ax: summary scored == official headers",
+   "ok": true,
+   "detail": "1106 vs 1106"
+  },
+  {
+   "check": "bfcl/ax: scheduled == subset size",
+   "ok": true,
+   "detail": "1106 vs 1106"
+  },
+  {
+   "check": "bfcl/ax: every scheduled entry scored",
+   "ok": true,
+   "detail": "1106 scored of 1106"
+  },
+  {
+   "check": "bfcl/ax: accuracy arithmetic (scheduled denominator)",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "bfcl/ax: no unresolved configuration errors",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "bfcl/ax: infra retries within rule",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "bfcl/ax: preflight records present and all REPORTABLE",
+   "ok": true,
+   "detail": "4 files"
+  },
+  {
+   "check": "bfcl/solar-open2: no duplicate predictions",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "bfcl/solar-open2: predictions cover exactly the subset",
+   "ok": true,
+   "detail": "missing 0, extra 0"
+  },
+  {
+   "check": "bfcl/solar-open2: every subset category scored",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "bfcl/solar-open2: summary correct == official headers",
+   "ok": true,
+   "detail": "898 vs 898"
+  },
+  {
+   "check": "bfcl/solar-open2: summary scored == official headers",
+   "ok": true,
+   "detail": "1106 vs 1106"
+  },
+  {
+   "check": "bfcl/solar-open2: scheduled == subset size",
+   "ok": true,
+   "detail": "1106 vs 1106"
+  },
+  {
+   "check": "bfcl/solar-open2: every scheduled entry scored",
+   "ok": true,
+   "detail": "1106 scored of 1106"
+  },
+  {
+   "check": "bfcl/solar-open2: accuracy arithmetic (scheduled denominator)",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "bfcl/solar-open2: no unresolved configuration errors",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "bfcl/solar-open2: infra retries within rule",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "bfcl/solar-open2: preflight records present and all REPORTABLE",
+   "ok": true,
+   "detail": "4 files"
+  },
+  {
+   "check": "swebench: subset ids unique",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "swebench/kanana: evaluated ids == analyzed ids",
+   "ok": true,
+   "detail": "50 vs 50"
+  },
+  {
+   "check": "swebench/kanana: every instance has an attempt",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "swebench/kanana: retries within rule and only for infrastructure",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "swebench/kanana: model id and checkpoint revision in every run record",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "swebench/kanana: REPORTABLE preflight in every run record",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "swebench/kanana: official resolved ids within subset",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "swebench/kanana: summary resolved == official report",
+   "ok": true,
+   "detail": "0 vs 0"
+  },
+  {
+   "check": "swebench/kanana: denominator == subset size",
+   "ok": true,
+   "detail": "50 vs 50"
+  },
+  {
+   "check": "swebench/kanana: summary unresolved == official report",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "swebench/kanana: summary empty_patch == official report",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "swebench/kanana: summary error == official report",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "swebench/exaone: evaluated ids == analyzed ids",
+   "ok": true,
+   "detail": "50 vs 50"
+  },
+  {
+   "check": "swebench/exaone: every instance has an attempt",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "swebench/exaone: retries within rule and only for infrastructure",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "swebench/exaone: model id and checkpoint revision in every run record",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "swebench/exaone: REPORTABLE preflight in every run record",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "swebench/exaone: official resolved ids within subset",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "swebench/exaone: summary resolved == official report",
+   "ok": true,
+   "detail": "1 vs 1"
+  },
+  {
+   "check": "swebench/exaone: denominator == subset size",
+   "ok": true,
+   "detail": "50 vs 50"
+  },
+  {
+   "check": "swebench/exaone: summary unresolved == official report",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "swebench/exaone: summary empty_patch == official report",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "swebench/exaone: summary error == official report",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "swebench/ax: evaluated ids == analyzed ids",
+   "ok": true,
+   "detail": "50 vs 50"
+  },
+  {
+   "check": "swebench/ax: every instance has an attempt",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "swebench/ax: retries within rule and only for infrastructure",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "swebench/ax: model id and checkpoint revision in every run record",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "swebench/ax: REPORTABLE preflight in every run record",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "swebench/ax: official resolved ids within subset",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "swebench/ax: summary resolved == official report",
+   "ok": true,
+   "detail": "1 vs 1"
+  },
+  {
+   "check": "swebench/ax: denominator == subset size",
+   "ok": true,
+   "detail": "50 vs 50"
+  },
+  {
+   "check": "swebench/ax: summary unresolved == official report",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "swebench/ax: summary empty_patch == official report",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "swebench/ax: summary error == official report",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "swebench/solar-open2: evaluated ids == analyzed ids",
+   "ok": true,
+   "detail": "50 vs 50"
+  },
+  {
+   "check": "swebench/solar-open2: every instance has an attempt",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "swebench/solar-open2: retries within rule and only for infrastructure",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "swebench/solar-open2: model id and checkpoint revision in every run record",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "swebench/solar-open2: REPORTABLE preflight in every run record",
+   "ok": true,
+   "detail": "[]"
+  },
+  {
+   "check": "swebench/solar-open2: official resolved ids within subset",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "swebench/solar-open2: summary resolved == official report",
+   "ok": true,
+   "detail": "4 vs 4"
+  },
+  {
+   "check": "swebench/solar-open2: denominator == subset size",
+   "ok": true,
+   "detail": "50 vs 50"
+  },
+  {
+   "check": "swebench/solar-open2: summary unresolved == official report",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "swebench/solar-open2: summary empty_patch == official report",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "swebench/solar-open2: summary error == official report",
+   "ok": true,
+   "detail": ""
+  },
+  {
+   "check": "models share one BFCL subset and one SWE-bench subset (single campaign spec)",
+   "ok": true,
+   "detail": "bfcl ['kanana', 'exaone', 'ax', 'solar-open2'], swebench ['kanana', 'exaone', 'ax', 'solar-open2']"
+  }
+ ],
+ "failures": [],
+ "passed": true
+}

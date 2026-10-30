@@ -3,8 +3,10 @@
 Status: **operational procedure** (2026-10-30). It covers how a run is
 prepared, executed and recorded. *What* is run for the main comparison
 (benchmarks, subsets, models, budgets, analysis) is frozen by ADR 0011 in
-`protocol/main-v1.json`; where this document and the frozen protocol differ,
-the frozen protocol governs.
+`protocol/main-v1.json` (with `protocol/main-v1-amendment-1.json`); where
+this document and the frozen protocol differ, the frozen protocol governs.
+The first campaign under it, `main-2026-10-30-v1`, is complete (SWE-bench
+stage 1 only): `docs/research/FOUR_MODEL_COMPARISON.md`.
 
 Related: `harness/docs/BENCHMARK_V1_PROTOCOL.md` and
 `BENCHMARK_V1_STATISTICS.md` define the protocol for the synthetic

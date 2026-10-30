@@ -36,6 +36,10 @@ def num(x, nd=1):
     return "—" if x is None else (f"{x:.{nd}f}" if isinstance(x, float) else str(x))
 
 
+def pval(p):
+    return "<0.0001" if p < 1e-4 else f"{p:.4g}"
+
+
 def table(head, rows):
     out = ["| " + " | ".join(head) + " |", "|" + "|".join("---" for _ in head) + "|"]
     out += ["| " + " | ".join(str(c) for c in r) + " |" for r in rows]
@@ -46,8 +50,8 @@ def pairwise_rows(pw, confirmatory):
     rows = []
     for p in pw or []:
         rows.append([f"{p['a']} − {p['b']}", p["n"], pct(p["rateA"]), pct(p["rateB"]), f"{100 * p['diff']:+.1f}",
-                     ci(p.get("diffCI95")), f"{p['aOnly']}/{p['bOnly']}", f"{p['mcnemarP']:.4g}",
-                     f"{p['holmP']:.4g}" + (" *" if confirmatory and p["holmP"] < 0.05 else "")])
+                     ci(p.get("diffCI95")), f"{p['aOnly']}/{p['bOnly']}", pval(p["mcnemarP"]),
+                     pval(p["holmP"]) + (" *" if confirmatory and p["holmP"] < 0.05 else "")])
     return rows
 
 
@@ -101,7 +105,7 @@ def main():
                       + [pct((s["bfcl"].get(m, {}).get("categories") or {}).get(c, {}).get("accuracy")) for m in models] for c in cats]), ""]
 
     # Table B — SWE-bench
-    md += [f"## Table B — SWE-bench Verified subset-v1{f', stage(s) 1–{stage}' if stage else ''} (official `swebench.harness.run_evaluation`)", "",
+    md += [f"## Table B — SWE-bench Verified subset-v1{(', stage 1' if stage == 1 else f', stages 1–{stage}') if stage else ''} (official `swebench.harness.run_evaluation`)", "",
            "Resolve rate over the scheduled instances; Wilson and repository-cluster bootstrap 95% CIs. "
            "Exploratory (ADR 0011).", ""]
     rows = []
@@ -110,7 +114,7 @@ def main():
         if w.get("status") == "not executed":
             rows.append([LABEL[m], "not executed"] + ["—"] * 5)
             continue
-        rows.append([LABEL[m], f"{w['resolved']}/{w['scheduled']}", pct(w["resolveRate"]), ci(w["ci95"]), ci(w.get("ci95RepoCluster")),
+        rows.append([LABEL[m], f"{w['resolved']}/{w['scheduled']}", pct(w["resolveRate"]), ci(w["ci95"]), ci(w.get("ci95RepoCluster")) + (" (degenerate: no resolved instance)" if w["resolved"] == 0 else ""),
                      ", ".join(f"{k} {n}" for k, n in sorted((w.get("official") or {}).items())),
                      ", ".join(f"{k} {n}" for k, n in sorted((w.get("agentOutcome") or {}).items()))])
     md += [table(["Model", "Resolved", "Rate", "Wilson 95% CI", "Repo-cluster 95% CI", "Official outcomes", "Agent stop reasons"], rows), ""]
@@ -169,8 +173,8 @@ def main():
         prov["serverOccupancyHours"] = round(sum(int(r[4]) for r in rows) / 3600, 2)
     (res / "provenance.json").write_text(json.dumps(prov, indent=1) + "\n")
 
-    files = sorted(p for p in res.iterdir() if p.is_file() and p.name != "MANIFEST.sha256")
-    (res / "MANIFEST.sha256").write_text("".join(f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.name}\n" for p in files))
+    files = sorted(p for p in res.rglob("*") if p.is_file() and p.name != "MANIFEST.sha256")
+    (res / "MANIFEST.sha256").write_text("".join(f"{hashlib.sha256(p.read_bytes()).hexdigest()}  {p.relative_to(res)}\n" for p in files))
     print(f"wrote {res}/SUMMARY.md, provenance.json, MANIFEST.sha256 ({len(files)} files)")
 
 
