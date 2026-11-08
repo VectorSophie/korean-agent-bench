@@ -18,7 +18,7 @@ import { CodingAgent } from "../src/agent/interface.mjs";
 import { TaskRunner } from "../src/task/runner.mjs";
 import { MockAgent } from "../src/agent/adapters/mock.mjs";
 import { buildAgentRegistry } from "../src/agent/adapters/upstage.mjs";
-import { buildPrompt } from "../src/benchmarks/swebench.mjs";
+import { buildPrompt, ENVELOPE } from "../src/benchmarks/swebench.mjs";
 import { importFromCli } from "../src/upstream.mjs";
 
 const HARNESS_DIR = resolve(fileURLToPath(import.meta.url), "../..");
@@ -137,16 +137,20 @@ describe("characterization: v1 automatic retrieval query (pinned upstage-cli)", 
     writeFileSync(join(dir, "pkg", "serializers.py"), "def deconstruct_lazy_reference(value):\n    raise TypeError('cannot serialize')\n");
     // Synthetic issue text (no SWE-bench content is used).
     const issue = "deconstruct_lazy_reference raises TypeError when serializing a lazy reference in migrations.";
-    const { registry } = await buildAgentRegistry({ agent: {} }, { workdir: dir, executor: null });
+    // The v1 SWE-bench tool allowlist: repo_map/find_symbol/find_references/
+    // list_modules are removed by the task policy, so buildContext's calls to
+    // them fail and only search_code/glob select files.
+    const { registry } = await buildAgentRegistry({ agent: { tools: { allow: [...ENVELOPE.tools], deny: [] } } }, { workdir: dir, executor: null });
     const ctx = async (input) => buildContext({ input, registry, cwd: dir, runtimeCache: {} });
 
     const wrapped = await ctx(buildPrompt({ repo: "acme/widgets", base_commit: "0".repeat(40), problem_statement: issue }));
     assert.deepEqual(wrapped.keywords, ["you", "are", "working", "checkout", "the", "acme/widgets", "repository", "commit"]);
-    assert.ok(!wrapped.snippets.some((s) => s.path === "pkg/serializers.py"), "the issue's file is not retrieved");
+    assert.equal(wrapped.repoSummary.totalFiles, 0, "no repo map under the v1 allowlist");
+    assert.ok(wrapped.snippets.length > 0 && !wrapped.snippets.some((s) => s.path === "pkg/serializers.py"), "distractors in, the issue's file out");
 
     const issueOnly = await ctx(issue);
     assert.ok(issueOnly.keywords.includes("deconstruct_lazy_reference"));
-    assert.deepEqual(issueOnly.snippets.map((s) => s.path), ["pkg/serializers.py"]);
+    assert.ok(issueOnly.snippets.some((s) => s.path === "pkg/serializers.py"));
   });
 });
 
