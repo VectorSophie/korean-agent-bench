@@ -38,6 +38,17 @@ Docker tier **partially** (h12 + h31, 13/13, real Docker and the official
 SWE-bench image); the rest of the Docker tier was not run (it would pull
 `python:3.12-slim`). Full-tier and CI results are per PR.
 
+**Security fix (2026-11-08, `fix/patch-tracker-host-git`).** Patch capture ran
+host `git` against the agent-writable workspace `.git`, so planted config,
+hooks, fsmonitor, filters or an external diff could run host code, and the
+test patch was written to a workspace path a planted symlink could redirect.
+The tracker now uses a harness-owned git dir outside the workspace, hardened
+git options, and stdin for `git apply` (tests h4, h13). Patches are
+byte-identical to the previous capture. v1 records were audited read-only:
+none of the 3,716 tool calls in the 200 main-campaign SWE-bench records
+touched git config, hooks or `.git`; v1 results are unchanged. Local: unit
+434/434, Docker tier 37/37 (no pulls), fixture QA 15/15.
+
 ## Verified on 2026-10-29
 
 Local (Node v24.21.0, Python 3.12.3, Docker): harness unit **405/405**,
