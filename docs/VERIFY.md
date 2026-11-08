@@ -34,8 +34,10 @@ npm run benchmark:validate           # benchmark-v1 manifest
 npm run benchmark:qa                 # Docker: each fixture fails at baseline, passes with its reference solution
 ```
 
-Expected on `main` as of 2026-10-29 (submodule at `7380ef6`): unit
-405/405, Docker 35/35, `validate: OK (15 tasks, 0 warnings)`, `qa: 15/15`.
+Expected as of 2026-11-08 (submodule at `802cddd`): unit 425/425 (h32 added
+with Harness v2), `validate: OK (15 tasks, 0 warnings)`. Last full Docker-tier
+and QA counts recorded: 35/35 and 15/15 on 2026-10-29 (submodule `7380ef6`);
+the count may have grown since; CI on each PR is authoritative.
 
 ## Evidence integrity and disclosure
 

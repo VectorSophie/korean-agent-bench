@@ -1,6 +1,7 @@
 # Status
 
-Snapshot as of **2026-10-30** (main comparison complete, SWE-bench stage 1). Update with
+Snapshot as of **2026-11-08** (v1 main comparison complete and frozen; Harness v2 in
+design, `docs/research/HARNESS_V2.md`). Update with
 a new date whenever a claim below changes. Legend: **implemented** (code
 exists) · **tested** (automated tests) · **verified** (exercised against the
 real upstream tool or data) · **not executed** · **planned** · **unsupported**.
@@ -10,13 +11,13 @@ real upstream tool or data) · **not executed** · **planned** · **unsupported*
 | Area | State | Evidence |
 |---|---|---|
 | Harness extracted from upstage-cli with history (41 commits) | verified | `docs/MIGRATION.md` |
-| upstage-cli as pinned submodule `7380ef6` (harness removed upstream) | verified | ADR 0002 pin history; `h24` (incl. every imported name exported at the pin) |
+| upstage-cli as pinned submodule `802cddd` (upstage-cli#18, exact token counts; earlier pins `6d1e932` → `7380ef6`) | verified | ADR 0002 pin history; `h24` (incl. every imported name exported at the pin) |
 | upstage-cli#12 closed unmerged; held-out candidates retired as disclosed | done | `docs/MIGRATION.md` "PR #12" |
 | upstage-cli#13 (cleanup) and #14 (session-index fix) merged | done | upstage-cli `7380ef6`, `160292b` |
 | Synthetic fixtures reduced to 15 rows / 12 families, all excluded from comparison | tested | ADR 0007; `h20`, `h25` |
 | Run provenance: harness + upstage-cli commit/pin/dirty | tested | `h24` |
-| Serving preflight (declared vs observed, fail closed) | tested against fakes; **not executed against a live server** | ADR 0008; `h26`, `h27` |
-| Solar launcher by digest at 8192 | tested (`print-config`, fake docker); **not executed** | `models/serving/kserve-solar.sh`; `h27` |
+| Serving preflight (declared vs observed, fail closed) | tested against fakes (`h26`, `h27`); verified live in the main campaign (row below) | ADR 0008 |
+| Solar launcher by digest at 8192 | tested (`print-config`, fake docker); executed by the main campaign driver | `models/serving/kserve-solar.sh`; `h27`; `benchmarks/campaign/campaign.py` |
 | Evidence disclosure audit; CI guard | done | `docs/audits/2026-10-29-evidence-disclosure-audit.md`; `scripts/check-evidence.sh` |
 | BFCL official pipeline | verified offline (official generate + evaluate, mock model) | ADR 0009; `results/bfcl-offline-validation-2026-10-29/` |
 | SWE-bench Verified official scoring | verified offline on 1 instance (official evaluator, official image) | `results/swebench-offline-validation-2026-10-29/` |
@@ -26,6 +27,16 @@ real upstream tool or data) · **not executed** · **planned** · **unsupported*
 | Protocol frozen (`main-v1`) and Amendment 1 (workspace symlinks, 104 cells re-run) | done | ADR 0011; `protocol/` |
 | SWE-bench stage 2 (50 more instances) | **not executed** (resource decision: Docker storage) | `results/main-2026-10-30-v1/records/stage2-decision.json` |
 | Live serving preflight | verified (REPORTABLE before every BFCL round and SWE-bench attempt) | campaign runtime records |
+| Harness v2: agent-harness identity contract (`provenance.agentHarness`, `kab.agent-harness/v1`) | tested (`h32`, `h30`); no model run | `harness/src/agent/harness-config.mjs`; HARNESS_V2 §6 |
+| v1 retrieval query uses only SWE-bench wrapper words; Docker `run_shell` splits argv without quotes | characterized offline (`h32`); effect on v1 outcomes **unknown** | HARNESS_V2 §3A–B |
+
+## Verified on 2026-11-08
+
+Local (Node v24.21.0, Bun 1.4.2, Python 3.12.3, Docker 29.1.3), branch
+`feat/harness-v2-foundation`: harness unit **425/425**, lint, check, smoke;
+Docker tier **partially** (h12 + h31, 13/13, real Docker and the official
+SWE-bench image); the rest of the Docker tier was not run (it would pull
+`python:3.12-slim`). Full-tier and CI results are per PR.
 
 ## Verified on 2026-10-29
 
@@ -60,6 +71,12 @@ limitations: `docs/research/FOUR_MODEL_COMPARISON.md`.
    storage or rotation.
 3. The escaping-symlink guard skips nested `.git` directories (Gate C minor;
    pre-existing, not shown exploitable).
+4. **Serving under the shared GPU queue.** The host now requires GPU work to go
+   through a queue; the launchers start detached containers that a queue slot
+   cannot hold. Decide before the next live run (`docs/ops/MODEL_OPERATIONS.md`).
+5. Host paths are constants in `models/serving/kserve*.sh` and
+   `benchmarks/campaign/campaign.py` (hub path).
+6. Harness v2 milestones 3–8 (`docs/ROADMAP.md`).
 
 ## Known limits
 

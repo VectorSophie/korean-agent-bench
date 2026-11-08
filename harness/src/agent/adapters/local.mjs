@@ -2,6 +2,8 @@ import { createHash } from "node:crypto";
 import { CodingAgent } from "../interface.mjs";
 import { buildAgentRegistry, extractUsage } from "./upstage.mjs";
 import { getLocalModelConfig, LOCAL_MODEL_IDS } from "../local-models.mjs";
+import { describeUpstageCliHarness } from "../harness-config.mjs";
+import { getHarnessInfo } from "../../task/runner.mjs";
 
 export const CONTEXT_SAFETY_MARGIN_RATIO = 0.05;
 
@@ -139,6 +141,13 @@ export class LocalModelAgent extends CodingAgent {
       source: `korean-agent-bench local-models.mjs (${this._key})`
     };
 
+    const loopBudget = {
+      ...DEFAULT_LOOP_BUDGET,
+      maxSteps: maxTurns,
+      maxWallTimeMs: timeoutMs,
+      ...(typeof task.agent?.maxToolCalls === "number" ? { maxToolCalls: task.agent.maxToolCalls } : {})
+    };
+
     const gen = runAgentLoop({
       input: task.prompt,
       registry,
@@ -146,12 +155,7 @@ export class LocalModelAgent extends CodingAgent {
       adapter,
       stream: false,
       session,
-      budget: {
-        ...DEFAULT_LOOP_BUDGET,
-        maxSteps: maxTurns,
-        maxWallTimeMs: timeoutMs,
-        ...(typeof task.agent?.maxToolCalls === "number" ? { maxToolCalls: task.agent.maxToolCalls } : {})
-      },
+      budget: loopBudget,
       // language: e.g. "en" for English benchmarks (upstage-cli otherwise
       // prompts Korean-first). No CLI file checkpoints: they would be written
       // to the harness's own working directory, not the task workspace.
@@ -239,7 +243,22 @@ export class LocalModelAgent extends CodingAgent {
         },
         gpuContended
       },
-      tools: { ...tools, schemaHash: toolSchemaHash }
+      tools: { ...tools, schemaHash: toolSchemaHash },
+      harness: describeUpstageCliHarness({
+        cli: getHarnessInfo().upstageCli,
+        tools: { ...tools, schemaHash: toolSchemaHash },
+        sandboxed: executor?.type === "docker",
+        language: task.agent?.language ?? null,
+        budget: {
+          maxTurns,
+          maxToolCalls: loopBudget.maxToolCalls,
+          timeoutSec: timeoutMs / 1000,
+          maxOutputTokens: maxTokens,
+          contextLimit: cfg.contextLimit,
+          outputReservation: contextBudget.maxOutputTokens,
+          safetyMarginRatio: CONTEXT_SAFETY_MARGIN_RATIO
+        }
+      })
     };
   }
 }

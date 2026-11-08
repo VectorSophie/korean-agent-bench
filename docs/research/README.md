@@ -18,6 +18,7 @@ should be read, that is noted below.
 | 2026-10-29 | [`BENCHMARK_V1_TASK_QA.md`](../../harness/docs/BENCHMARK_V1_TASK_QA.md) | Task QA and dataset quality |
 | 2026-10-29 | [`BENCHMARK_V1_DATASET.md`](../../harness/docs/BENCHMARK_V1_DATASET.md) | Disposition of upstage-cli PR #12's `v1-dataset` tranche: what was kept and dropped (ADR 0007) |
 | 2026-10-30 | [`FOUR_MODEL_COMPARISON.md`](FOUR_MODEL_COMPARISON.md) | **Main comparison**: BFCL and SWE-bench Verified stage 1, four models (ADR 0011). Data: [`results/main-2026-10-30-v1/`](../../results/main-2026-10-30-v1/) |
+| 2026-11-08 | [`HARNESS_V2.md`](HARNESS_V2.md) | **Next phase (design)**: when does scaffolding become a burden? Factors, hypotheses, the agent-harness contract. Roadmap: [`../ROADMAP.md`](../ROADMAP.md) |
 
 ## Reading notes (2026-10-29)
 

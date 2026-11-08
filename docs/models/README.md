@@ -1,8 +1,9 @@
 # Models
 
 Four Korean models, served locally on one machine and driven through the same
-harness agent loop (`harness/src/agent/adapters/local.mjs`). Snapshot as of
-**2026-10-29**.
+harness agent loop (`harness/src/agent/adapters/local.mjs`). Cards are
+snapshots as of **2026-10-29** (pre-campaign); this index was updated on
+2026-11-08. Operations and current availability: `docs/ops/MODEL_OPERATIONS.md`.
 
 | Card | Harness agent id | Checkpoint (HF) | Revision | Precision | TP | Official weights? |
 |---|---|---|---|---|---|---|
@@ -39,15 +40,17 @@ these cards was taken under that condition and is tagged `contended`.
 Defined in `harness/docs/LOCAL_MODELS.md`: `serving_ready` (serves and passes
 serving smoke tests), `harness_integrated` (runs end-to-end through the
 harness), `benchmark_ready` (executes and is evaluated on real tasks at the
-intended scale, reproducibly). As of 2026-10-29 all four are
-`serving_ready` and `harness_integrated` (live pilot); **none is
-`benchmark_ready`**.
+intended scale, reproducibly). As of 2026-10-29 all four were
+`serving_ready` and `harness_integrated` (live pilot). On 2026-10-30 all four
+completed the frozen main comparison (BFCL 1,106; SWE-bench Verified stage 1,
+50), which is the evidence of benchmark readiness **at that scale and
+envelope only** (`results/main-2026-10-30-v1/`).
 
 ## Limitations shared by all four
 
-- **Serving provenance is now checked, but not yet against a live server.**
-  Run records copy model configuration from `local-models.mjs`. Since
-  2026-10-29 `harness preflight` / `harness run --preflight` compare it with
+- **Serving provenance is checked against the live server** (every main-campaign
+  attempt passed preflight). Run records copy model configuration from
+  `local-models.mjs`. Since 2026-10-29 `harness preflight` / `harness run --preflight` compare it with
   the live server and container and block a run on any mismatch (ADR 0008).
   The pilot records predate this; one of them claims `contextLimit: 8192`
   for a server launched at 4096. Quantization and sampling remain
