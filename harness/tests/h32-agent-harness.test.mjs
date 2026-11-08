@@ -82,6 +82,9 @@ describe("agent-harness descriptor contract", () => {
     assert.deepEqual(d.policies.toolInterface.advertised, ["read_file", "run_shell"]);
     assert.equal(d.policies.toolInterface.shell, "kab.docker-argv");
     assert.equal(d.budget.contextLimit, null, "unknown is null, never a default");
+    assert.match(d.implementation.adapterSha256, /^[0-9a-f]{64}$/, "KAB-side wrapper code is part of the identity");
+    const otherWrapper = { ...d, implementation: { ...d.implementation, adapterSha256: "b".repeat(64) } };
+    assert.notEqual(finalizeAgentHarness(otherWrapper).harnessId, finalizeAgentHarness(d).harnessId);
     const off = describeUpstageCliHarness({ cli: { commit: SHA, matchesPin: false, dirty: false }, tools: {}, sandboxed: false, budget: {} });
     assert.equal(finalizeAgentHarness(off).pinned, false, "a checkout off the pin is not pinned");
   });

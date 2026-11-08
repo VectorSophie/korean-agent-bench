@@ -265,11 +265,11 @@ v2 instance.
 ```text
 descriptor = {
   schema: "kab.agent-harness/v1",
-  implementation: { name, kind: in-process|subprocess, version, revision (40-hex|null), dirty },
+  implementation: { name, kind: in-process|subprocess, version, revision (40-hex|null), dirty, adapterSha256 },
   policies: { toolInterface, retrieval, context, planning, termination }   // each { id, ...params }
   budget:   { maxTurns, maxToolCalls, timeoutSec, maxOutputTokens, contextLimit, outputReservation, safetyMarginRatio }  // number|null
 }
-record = descriptor + harnessId (implementation + policies) + budgetId (budget) + pinned
+record = descriptor + harnessId (implementation incl. KAB adapter source hash + policies) + budgetId (budget) + pinned
 ```
 
 - **Vocabulary.** `provenance.harness` is KAB's *evaluator*;

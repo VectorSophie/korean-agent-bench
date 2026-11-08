@@ -13,6 +13,9 @@
 // Model identity (checkpoint, revision, sampling, serving) stays in
 // provenance.model and is rejected here, so the two cannot be mixed up.
 import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { relative, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 export const AGENT_HARNESS_SCHEMA = "kab.agent-harness/v1";
 export const POLICY_DIMENSIONS = Object.freeze(["toolInterface", "retrieval", "context", "planning", "termination"]);
@@ -48,6 +51,9 @@ export function validateAgentHarness(d) {
     }
     if (impl.version !== undefined && impl.version !== null && typeof impl.version !== "string") errors.push("implementation.version must be a string or null");
     if (impl.dirty !== undefined && impl.dirty !== null && typeof impl.dirty !== "boolean") errors.push("implementation.dirty must be a boolean or null");
+    if (impl.adapterSha256 !== undefined && impl.adapterSha256 !== null && !(typeof impl.adapterSha256 === "string" && /^[0-9a-f]{64}$/.test(impl.adapterSha256))) {
+      errors.push("implementation.adapterSha256 must be a sha256 hex digest or null");
+    }
   }
 
   if (!isPlain(d.policies)) errors.push("policies must be an object");
@@ -90,18 +96,38 @@ const sha256 = (v) => createHash("sha256").update(canonical(v)).digest("hex");
  * Validated record form: the descriptor plus harnessId/budgetId. Throws on an
  * invalid descriptor. `dirty` and `version` are recorded but excluded from
  * harnessId (a dirty tree is a provenance flag, not a different design).
+ * `adapterSha256` IS included: KAB-side code that shapes the agent's behaviour
+ * (tool wrappers, policy, bridge) is part of the scaffold, and hashing its
+ * content keeps the id honest even when the KAB checkout is dirty.
  */
 export function finalizeAgentHarness(d) {
   const errors = validateAgentHarness(d);
   if (errors.length) throw new Error(`invalid agent harness descriptor: ${errors.join("; ")}`);
-  const { name, kind, revision } = d.implementation;
+  const { name, kind, revision, adapterSha256 = null } = d.implementation;
   return {
     ...d,
-    harnessId: sha256({ schema: d.schema, implementation: { name, kind, revision }, policies: d.policies }),
+    harnessId: sha256({ schema: d.schema, implementation: { name, kind, revision, adapterSha256 }, policies: d.policies }),
     budgetId: sha256(d.budget),
     pinned: revision !== null && d.implementation.dirty !== true
   };
 }
+
+const HARNESS_SRC = resolve(fileURLToPath(import.meta.url), "../../..");
+
+/** sha256 over (path, content) of KAB source files, paths relative to harness/. */
+export function sourceSha256(paths) {
+  const h = createHash("sha256");
+  for (const p of [...paths].map((x) => resolve(HARNESS_SRC, x)).sort()) {
+    h.update(relative(HARNESS_SRC, p)).update("\0").update(readFileSync(p)).update("\0");
+  }
+  return h.digest("hex");
+}
+
+// KAB code that changes what an upstage-cli agent can do: the registry builder
+// and Docker tool wrappers, the task tool policy, and the two adapters.
+export const UPSTAGE_ADAPTER_SOURCES = Object.freeze([
+  "src/agent/sandboxed-tools.mjs", "src/agent/tool-policy.mjs", "src/agent/adapters/upstage.mjs", "src/agent/adapters/local.mjs"
+]);
 
 /**
  * The upstage-cli agent harness as KAB drives it (UpstageAgent, LocalModelAgent).
@@ -117,7 +143,8 @@ export function describeUpstageCliHarness({ cli, tools, sandboxed, language = nu
       kind: "in-process",
       version: null,
       revision: cli?.commit ?? null,
-      dirty: cli ? (cli.dirty === true || cli.matchesPin === false) : null
+      dirty: cli ? (cli.dirty === true || cli.matchesPin === false) : null,
+      adapterSha256: sourceSha256(UPSTAGE_ADAPTER_SOURCES)
     },
     policies: {
       toolInterface: {
