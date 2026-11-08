@@ -5,7 +5,7 @@
 import { describe, it } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -13,6 +13,7 @@ import { getLocalModelConfig } from "../src/agent/local-models.mjs";
 
 const SESSION = resolve(fileURLToPath(import.meta.url), "../../../models/serving/kserve-session.sh");
 const SOLAR_IMG = getLocalModelConfig("solar-open2").provenance.servingImage;
+const SOLAR_REV = getLocalModelConfig("solar-open2").provenance.revision;
 
 function fakes({ healthy = true, existing = "" } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "h35-"));
@@ -36,7 +37,12 @@ exit 0`);
   bin("nvidia-smi", "echo 0");
   bin("curl", healthy ? `grep -q ' running$' "${state}"` : "exit 7");
   bin("sleep", `exec /bin/sleep 0.05`); // the launcher's 10 s wait ticks
-  const env = { ...process.env, PATH: `${dir}:${process.env.PATH}`, KSERVE_SESSION_DIR: join(dir, "session"), KSERVE_SESSION_POLL: "0.1" };
+  // a fake HF hub with the pinned Solar snapshot directory (the Solar launcher checks it)
+  const hub = join(dir, "hub");
+  const snap = join(hub, "models--nota-ai--Solar-Open2-250B-Nota-NVFP4", "snapshots", SOLAR_REV);
+  mkdirSync(snap, { recursive: true });
+  writeFileSync(join(snap, "config.json"), "{}");
+  const env = { ...process.env, PATH: `${dir}:${process.env.PATH}`, KSERVE_HUB: hub, KSERVE_SESSION_DIR: join(dir, "session"), KSERVE_SESSION_POLL: "0.1" };
   const containers = () => readFileSync(state, "utf8").split("\n").filter(Boolean).map((l) => l.split(" ")[0]);
   const calls = () => (existsSync(log) ? readFileSync(log, "utf8").trim().split("\n").filter(Boolean) : []);
   return { dir, env, containers, calls, session: join(dir, "session") };

@@ -94,8 +94,9 @@ limitations: `docs/research/FOUR_MODEL_COMPARISON.md`.
 4. **Serving under the shared GPU queue.** Proposed: `models/serving/kserve-session.sh`
    (foreground queue job; tested with fakes). Needs owner approval and a first
    supervised live use (`docs/ops/MODEL_OPERATIONS.md`).
-5. Host paths are constants in `models/serving/kserve*.sh` and
-   `benchmarks/campaign/campaign.py` (hub path).
+5. The launchers' hub path is overridable (`KSERVE_HUB`, default unchanged);
+   their cache paths and the hub path in `benchmarks/campaign/campaign.py` are
+   still constants.
 6. Harness v2 milestones 3–8 (`docs/ROADMAP.md`).
 
 ## Known limits

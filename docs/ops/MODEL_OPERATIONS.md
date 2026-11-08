@@ -44,10 +44,10 @@ dedicated directory per stack. Both run a GPU gate before starting: they
 refuse when foreign compute memory exceeds an allowance, and Solar also
 requires about 85 GB free per GPU.
 
-Host paths are currently **constants in the scripts** (`HUB=`, `CACHE=`), as
-is the hub path in `benchmarks/campaign/campaign.py`. On another machine,
-edit them (or, better, make them environment variables in a reviewed change)
-and record that in the run. `models/serving-records/` holds the historical
+The Hugging Face hub path can be overridden with `KSERVE_HUB` (read-only
+mount; the default is the original host path). The cache directories (`CACHE=`)
+and the hub path in `benchmarks/campaign/campaign.py` are still constants. On
+another machine, set or edit them and record that in the run. `models/serving-records/` holds the historical
 copies used for the original validation; do not run those.
 
 ## Before any live run

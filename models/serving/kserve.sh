@@ -10,7 +10,7 @@
 set -uo pipefail
 
 PORT=8101
-HUB=/data/jackb/krasis/huggingface/hub
+HUB=${KSERVE_HUB:-/data/jackb/krasis/huggingface/hub}   # override per host (read-only mount)
 CACHE=/data/jackb/lil-cache-korean
 # Pinned digests (linux/amd64), verified 2026-10-22 via buildx imagetools inspect.
 IMG_CU130="vllm/vllm-openai@sha256:6ee133356d49ed24cee03dd0cda3d3980279a11c107ce3e752c89e76540f41c9"  # v0.32.0, CUDA 13.0.2

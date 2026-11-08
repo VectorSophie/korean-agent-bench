@@ -19,7 +19,7 @@
 set -uo pipefail
 
 PORT=8102
-HUB=/data/jackb/krasis/huggingface/hub
+HUB=${KSERVE_HUB:-/data/jackb/krasis/huggingface/hub}   # override per host (read-only mount)
 CACHE=/data/jackb/lil-cache-solar
 SNAP=models--nota-ai--Solar-Open2-250B-Nota-NVFP4/snapshots/3cc673335f4c2f41181e05a98fc2b8324d586a64
 # Pinned digest = provenance.servingImage in harness/src/agent/local-models.mjs.
