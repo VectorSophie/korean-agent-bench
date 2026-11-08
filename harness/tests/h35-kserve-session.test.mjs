@@ -18,22 +18,26 @@ function fakes({ healthy = true, existing = "" } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "h35-"));
   const state = join(dir, "containers");
   const log = join(dir, "docker.log");
-  writeFileSync(state, existing ? existing + "\n" : "");
+  writeFileSync(state, existing ? existing + " running\n" : "");
   const bin = (name, body) => { writeFileSync(join(dir, name), `#!/usr/bin/env bash\n${body}\n`); chmodSync(join(dir, name), 0o755); };
+  // state lines: "<name> running|exited". Like real docker: stop leaves an
+  // exited container (launchers run without --rm), ps lists running ones,
+  // ps -a all, rm -f removes.
   bin("docker", `echo "$*" >> "${log}"
 case "$1" in
-  ps) cat "${state}";;
-  run) n=""; prev=""; for a in "$@"; do [ "$prev" = --name ] && n=$a; prev=$a; done; echo "$n" >> "${state}"; echo cid;;
-  stop|rm) n=\${@: -1}; grep -vx "$n" "${state}" > "${state}.t"; mv "${state}.t" "${state}";;
+  ps) if [ "$2" = -a ]; then cut -d' ' -f1 "${state}"; else grep ' running$' "${state}" | cut -d' ' -f1; fi;;
+  run) n=""; prev=""; for a in "$@"; do [ "$prev" = --name ] && n=$a; prev=$a; done; echo "$n running" >> "${state}"; echo cid;;
+  stop) n=\${@: -1}; sed -i "s/^$n running$/$n exited/" "${state}";;
+  rm) n=\${@: -1}; grep -v "^$n " "${state}" > "${state}.t"; mv "${state}.t" "${state}";;
   image) echo "${SOLAR_IMG}";;
   logs) echo fake-logs;;
 esac
 exit 0`);
   bin("nvidia-smi", "echo 0");
-  bin("curl", healthy ? `grep -q kserve- "${state}"` : "exit 7");
+  bin("curl", healthy ? `grep -q ' running$' "${state}"` : "exit 7");
   bin("sleep", `exec /bin/sleep 0.05`); // the launcher's 10 s wait ticks
   const env = { ...process.env, PATH: `${dir}:${process.env.PATH}`, KSERVE_SESSION_DIR: join(dir, "session"), KSERVE_SESSION_POLL: "0.1" };
-  const containers = () => readFileSync(state, "utf8").split("\n").filter(Boolean);
+  const containers = () => readFileSync(state, "utf8").split("\n").filter(Boolean).map((l) => l.split(" ")[0]);
   const calls = () => (existsSync(log) ? readFileSync(log, "utf8").trim().split("\n").filter(Boolean) : []);
   return { dir, env, containers, calls, session: join(dir, "session") };
 }
@@ -73,7 +77,7 @@ describe("kserve-session: queue-held model server lifecycle (fakes only)", () =>
     const f = fakes({ existing: "kserve-kanana" });
     const r = runSync(f, ["kanana"], { CUDA_VISIBLE_DEVICES: "1" });
     assert.equal(r.status, 3);
-    assert.match(r.stdout, /already exist: kserve-kanana/);
+    assert.match(r.stdout, /already running: kserve-kanana/);
     assert.ok(!f.calls().some((c) => c.startsWith("run")), "nothing started");
     assert.deepEqual(f.containers(), ["kserve-kanana"], "and nothing stopped");
   });
@@ -89,6 +93,15 @@ describe("kserve-session: queue-held model server lifecycle (fakes only)", () =>
     assert.ok(f.calls().some((c) => c === "stop -t 30 kserve-kanana"));
     assert.deepEqual(f.containers(), []);
     assert.equal(existsSync(join(f.session, "kanana.json")), false);
+  });
+
+  it("consecutive sessions work: the first leaves no container behind", async () => {
+    const f = fakes();
+    for (const m of ["kanana", "exaone"]) {
+      const r = await runFor(f, [m], { CUDA_VISIBLE_DEVICES: "0" }, healthyThen(() => writeFileSync(join(f.session, "release"), "")));
+      assert.equal(r.code, 0, r.out);
+      assert.deepEqual(f.containers(), [], "stopped AND removed");
+    }
   });
 
   it("SIGTERM (queue kill) stops the container", async () => {
@@ -110,7 +123,7 @@ describe("kserve-session: queue-held model server lifecycle (fakes only)", () =>
   it("a server that dies ends the session with status 1", async () => {
     const f = fakes();
     const r = await runFor(f, ["kanana"], { CUDA_VISIBLE_DEVICES: "0" },
-      healthyThen(() => writeFileSync(join(f.dir, "containers"), "")));
+      healthyThen(() => writeFileSync(join(f.dir, "containers"), "kserve-kanana exited\n")));
     assert.equal(r.code, 1, r.out);
     assert.match(r.out, /kserve-kanana exited/);
   });

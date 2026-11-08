@@ -89,16 +89,19 @@ touch .cache/kserve-session/release                                          # e
 
 1. **Refuses outside an allocation.** `CUDA_VISIBLE_DEVICES` must be set by
    the queue (not empty, not `-1`) and hold exactly the model's TP count of GPUs.
-2. **Refuses to adopt** any existing `kserve-*` container. The launchers
-   alone would treat "already running" as success.
+2. **Refuses to adopt** any running `kserve-*` container. The launchers
+   alone would treat "already running" as success. An exited leftover holds
+   no GPU, and the launcher clears it by name.
 3. **Serves only on the queue's GPUs.** It exports `KSERVE_DEV` from the
    allocation (queue indices are nvidia-smi indices, PCI bus order) and calls
    the unchanged launcher, whose GPU gate still runs.
 4. **Holds the slot** while the container lives. It writes a state file
    (`<model>.json`: GPUs, PID, start time, lease).
-5. **Always stops the container** on release (`release` file), lease expiry
+5. **Always stops and removes the container** on release (`release` file), lease expiry
    (`KSERVE_LEASE_SEC`, default 12 h), `SIGTERM`/`SIGINT`/`SIGHUP` (e.g.
-   `gpuq -k`), server death, or failed readiness.
+   `gpuq -k`), server death, or failed readiness. Launcher steps run in the
+   background under `wait`, so a signal is handled at once, not after a
+   readiness wait that can take minutes.
 
 Tested by `harness/tests/h35-kserve-session.test.mjs`, with fake `docker`,
 `nvidia-smi` and `curl` driving the real launchers. **Not yet verified:**

@@ -97,7 +97,7 @@ describe("mini-swe-agent on a real DockerSandbox (official SWE-bench image)", { 
     assert.equal(order.stdout, "to-stdout\nto-stderr\nagain\n", "stderr interleaved in order, as upstream");
     assert.notEqual(net.code, 0);
     assert.match(net.stdout, /Network is unreachable|OSError|timed out/);
-    assert.match(link.stdout, /removed symlinks escaping the workspace: hostroot/);
+    assert.match(link.stderr, /removed symlinks escaping the workspace: hostroot/); // exception_info
     assert.notEqual(ro.code, 0, "read-only root");
     assert.match(ro.stdout, /Read-only file system|Permission denied/);
     assert.ok(!run.patch.filesChanged.includes("hostroot"));

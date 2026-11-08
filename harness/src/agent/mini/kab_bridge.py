@@ -32,20 +32,28 @@ def send(msg: dict) -> None:
 
 
 def verify_install(lock: dict) -> tuple[str | None, int]:
-    """The installed mini-swe-agent must be byte-identical to its (sha256-
-    verified) wheel, per the wheel's RECORD, and every locked dependency must
-    be installed at its locked version. Returns (problem or None, files checked)."""
-    dist = md.distribution("mini-swe-agent")
+    """Every installed distribution (mini-swe-agent and all its dependencies)
+    must be byte-identical to its wheel, per the wheel's RECORD hashes; every
+    locked dependency must be installed at its locked version; and no .pth
+    file (code run at interpreter start) may exist. Returns (problem or None,
+    files checked). About 1 s for the pinned set."""
+    import site
+
     checked = 0
-    for f in dist.files or []:
-        if not f.hash or f.hash.mode != "sha256":
-            continue
-        digest = base64.urlsafe_b64encode(hashlib.sha256(f.locate().read_bytes()).digest()).rstrip(b"=").decode()
-        if digest != f.hash.value:
-            return f"installed file differs from the wheel: {f}", checked
-        checked += 1
+    for dist in md.distributions():
+        for f in dist.files or []:
+            if not f.hash or f.hash.mode != "sha256":
+                continue
+            digest = base64.urlsafe_b64encode(hashlib.sha256(f.locate().read_bytes()).digest()).rstrip(b"=").decode()
+            if digest != f.hash.value:
+                return f"installed file differs from its wheel: {dist.metadata['Name']}: {f}", checked
+            checked += 1
     if checked == 0:
         return "no RECORD hashes to verify", 0
+    for sp in site.getsitepackages():
+        pth = sorted(Path(sp).glob("*.pth"))
+        if pth:
+            return f"unexpected .pth file(s) in site-packages: {[p.name for p in pth]}", checked
     for name, version in lock.items():
         try:
             got = md.version(name)

@@ -104,7 +104,8 @@ export class DockerSandbox {
     }
   }
 
-  async exec(command, args = [], { timeoutMs = this.timeoutMs, env } = {}) {
+  // outputLimit: per-stream character cap (spawnWithTimeout's default if unset)
+  async exec(command, args = [], { timeoutMs = this.timeoutMs, env, outputLimit } = {}) {
     if (!this._workdir) throw new Error("DockerSandbox.setup() must be called before exec()");
     const name = `harness-${randomBytes(6).toString("hex")}`;
     const dockerArgs = buildDockerRunArgs({
@@ -126,6 +127,7 @@ export class DockerSandbox {
     try {
       const r = await spawnWithTimeout("docker", dockerArgs, {
         timeoutMs,
+        ...(outputLimit ? { outputLimit } : {}),
         onTimeout: () => removeContainer(name)
       });
       if (r.timedOut) removeContainer(name);

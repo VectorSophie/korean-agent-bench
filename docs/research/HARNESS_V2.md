@@ -326,6 +326,10 @@ is a non-Docker sandbox.
 | `stderr=STDOUT` at the process level | `exec 2>&1; ` prepended inside the container | keeps stderr in order with stdout, as upstream does |
 | `step_limit: 250`, `cost_limit: 3` | `step_limit` = `budget.maxTurns` (default 250), `cost_limit` off (local model), wall clock = task timeout | budget is an experimental variable (`budgetId`) |
 | `model_kwargs` for a hosted API | `api_base`, `max_tokens` and sampling from `local-models.mjs`. `top_k` and `chat_template_kwargs` go through `extra_body` (asserted at the server) | model identity is KAB's |
+| unbounded output | per-stream cap of 8,000,000 characters; past it the action returns returncode −1 with an exception, so a cut-off submission is never accepted | host memory; fail closed |
+| agent's symlinks untouched | after each action, links the agent created that point outside `/workspace` (as the container resolves them) are removed. The note goes to `exception_info`, never to the output. The repository's own links are kept | host-side safety, as in v1 |
+| wall clock checked only before each model call | the same, plus a hard kill of the bridge at task timeout + 900 s, recorded as `budget_exhausted` | a hung request must not hold the slot forever |
+| trajectory file | mini's trajectory is stored in the run record (`trace.agentTrajectory`, local raw records only) | provenance |
 
 **Prediction:** mini's submission (the text after
 `COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT`) is the prediction, as upstream writes
@@ -343,11 +347,24 @@ alongside. The workspace diff includes the agent's own files, such as `patch.txt
 | repository | synthetic | synthetic (no SWE-bench content) |
 
 h34 checks that the edited code runs in the container, that the submission is
-byte-identical to `git diff` and applies to the base, and that `--network none`,
+byte-identical to `git diff` (well under the output cap) and applies to the base, and that `--network none`,
 the read-only root, escaping-symlink removal and in-order stderr all hold.
 Negative tests (h33) cover host execution, a cwd outside the mount, malformed
 commands, a foreign environment class, a modified config, a v2 run without a
 pinned descriptor, and a v1 adapter on a v2 task.
+
+### Security fix found by the independent review (affects v1 code too)
+
+Before 2026-11-08, `PatchTracker` ran host `git add`/`git diff` inside the
+agent-writable workspace. An agent that set `core.fsmonitor`, a filter or
+diff driver, or a `post-index-change` hook in the workspace `.git` could make
+the **host** run a command at patch capture. This was reproduced with git 2.43.
+The tracker now uses a harness-owned git directory outside the workspace, with
+no system or global config, hooks and fsmonitor off, and no external diff or
+textconv. The workspace `.git` is only touched before the agent starts
+(h4 regression tests fail on the old tracker). **v1 audit:** none of the 3,716
+tool calls recorded in the 200 local main-campaign SWE-bench records touches
+git config, hooks, attributes or `.git`, and no v1 patch touches `.git`.
 
 ### Not yet done
 

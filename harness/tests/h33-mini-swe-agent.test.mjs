@@ -9,7 +9,7 @@ import { describe, it, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { spawn, execFileSync } from "node:child_process";
-import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync, mkdirSync } from "node:fs";
+import { cpSync, existsSync, lstatSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync, mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -54,8 +54,11 @@ class FakeDocker {
       writeFileSync(join(w, "patch.txt"), execFileSync("git", ["diff", "--", "calc.py"], { cwd: w, encoding: "utf8" }));
       return ok("");
     }
+    if (cmd === `echo ${SUBMIT}`) return ok(`${SUBMIT}\n`);
     if (cmd === `echo ${SUBMIT} && cat patch.txt`) return ok(`${SUBMIT}\n${readFileSync(join(w, "patch.txt"), "utf8")}`);
     if (cmd === "ln -s /etc/passwd leak") { symlinkSync("/etc/passwd", join(w, "leak")); return ok(""); }
+    if (cmd === "ln -s /workspace/calc.py alias") { symlinkSync("/workspace/calc.py", join(w, "alias")); return ok(""); }
+    if (cmd === "big") return { ok: true, exitCode: 0, stdout: `${SUBMIT}\ndiff --git a/x b/x\n`, stderr: "", timedOut: false, truncated: true };
     if (cmd === "sleep 999") return { ok: false, exitCode: null, stdout: "partial", stderr: "", timedOut: true };
     return { ok: false, exitCode: 127, stdout: "", stderr: `fake: ${cmd}: not scripted\n`, timedOut: false };
   }
@@ -83,6 +86,7 @@ before(async () => {
     req.on("end", () => {
       requests.push({ url: req.url, body: JSON.parse(body || "{}") });
       const next = script.shift() ?? noTool();
+      if (next.httpStatus) return res.writeHead(next.httpStatus, { "content-type": "application/json" }).end(JSON.stringify(next.body));
       res.writeHead(200, { "content-type": "application/json" }).end(JSON.stringify(next));
     });
   });
@@ -177,6 +181,24 @@ describe("mini-swe-agent through the KAB bridge (fake model, fake container)", {
     assert.equal(fake.calls.length, 0);
   });
 
+  it("vLLM's context-length rejection ends as context_exhausted (litellm ContextWindowExceededError), without retries", async () => {
+    const repo = synthRepo();
+    requests = [];
+    script = [{ httpStatus: 400, body: { object: "error", type: "BadRequestError", code: 400, message: "This model's maximum context length is 16384 tokens. However, your request has 20000 input tokens. Please reduce the length of the input messages." } }];
+    const { run } = await runMini(repo);
+    assert.equal(run.trace.stopReason, "context_exhausted", run.trace.agentError ?? "");
+    assert.equal(requests.length, 1, "not retried");
+    assert.equal(toPrediction(run, "m").model_patch, "");
+  });
+
+  it("keeps mini's own trajectory in the run record", async () => {
+    const repo = synthRepo();
+    script = [bash(`echo ${SUBMIT}`)];
+    const { run } = await runMini(repo);
+    assert.equal(run.trace.agentTrajectory.trajectory_format, "mini-swe-agent-1.1");
+    assert.equal(run.trace.agentTrajectory.info.exit_status, "Submitted");
+  });
+
   it("a command timeout comes back as upstream's returncode -1 with exception text", async () => {
     const a = new MiniSweAgent({ model: "kanana" });
     const fake = new FakeDocker();
@@ -224,8 +246,28 @@ describe("mini-swe-agent: refusals (negative tests)", { skip }, () => {
     const wd = mkdtempSync(join(tmpdir(), "h33-"));
     fake.workdir = wd;
     const r = await a._exec({ id: 1, command: "ln -s /etc/passwd leak", cwd: WORKDIR, timeout: 5 }, ctx(fake, wd));
-    assert.match(r.output, /removed symlinks escaping the workspace: leak/);
+    assert.match(r.exception_info, /removed symlinks escaping the workspace: leak/);
+    assert.equal(r.output, "", "the note never enters the output (which may be a submission)");
     assert.equal(existsSync(join(wd, "leak")), false);
+  });
+
+  it("keeps links that stay inside the workspace as the container sees it, and the repository's own links", async () => {
+    const a = new MiniSweAgent({ model: "kanana" });
+    const fake = new FakeDocker();
+    const wd = mkdtempSync(join(tmpdir(), "h33-"));
+    fake.workdir = wd;
+    symlinkSync("/usr/share/doc", join(wd, "repo-link")); // committed by the repository: task content
+    const r = await a._exec({ id: 1, command: "ln -s /workspace/calc.py alias", cwd: WORKDIR, timeout: 5 }, { ...ctx(fake, wd), preexistingLinks: new Set(["repo-link"]) });
+    assert.equal(r.exception_info, "");
+    assert.ok(lstatSync(join(wd, "alias")).isSymbolicLink(), "/workspace/... resolves inside the container");
+    assert.ok(lstatSync(join(wd, "repo-link")).isSymbolicLink());
+  });
+
+  it("output past the cap fails closed: a cut-off submission is never accepted", async () => {
+    const a = new MiniSweAgent({ model: "kanana" });
+    const r = await a._exec({ id: 1, command: "big", cwd: WORKDIR, timeout: 5 }, ctx(new FakeDocker(), mkdtempSync(join(tmpdir(), "h33-"))));
+    assert.equal(r.returncode, -1, "upstream submits only on returncode 0");
+    assert.match(r.exception_info, /output exceeded/);
   });
 
   it("the bridge refuses any other mini environment class (e.g. local host execution)", async () => {
@@ -258,6 +300,8 @@ describe("mini-swe-agent: refusals (negative tests)", { skip }, () => {
     const run = await new TaskRunner({ selectSandbox: () => new FakeDocker() }).run(v2task(repo), new MiniSweAgent({ model: "kanana", baseUrl, configPath: copy }));
     assert.equal(run.status, "error");
     assert.match(run.trace.agentError, /sha256 .* != pinned/);
+    assert.equal(run.patch.prediction_source, "agent_submission", "declared by the adapter, not by the (failed) result");
+    assert.equal(toPrediction(run, "m").model_patch, "", "a failed run never predicts its partial workspace diff");
   });
 
   it("missing harness provenance: a kab.task/v2 run without a pinned descriptor is an error", async () => {

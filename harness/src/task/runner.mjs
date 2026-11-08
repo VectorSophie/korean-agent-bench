@@ -301,7 +301,9 @@ export class TaskRunner {
           contextStrategyUsed: task.context?.strategy || "default",
           stopReason: agentResult.stopReason ?? null,
           agentOk: agentResult.ok,
-          agentError: agentResult.ok ? null : (agentResult.error ?? null)
+          agentError: agentResult.ok ? null : (agentResult.error ?? null),
+          // An agent harness's own trajectory, when it keeps one (mini-swe-agent)
+          agentTrajectory: agentResult.trajectory ?? null
         },
         patch: {
           initialCommit,
@@ -309,7 +311,7 @@ export class TaskRunner {
           filesChanged: patchRecord.filesChanged,
           // Which patch is the prediction: the workspace diff (v1, default) or
           // the agent's own submission (e.g. mini-swe-agent). Both are kept.
-          prediction_source: agentResult.predictionSource === "agent_submission" ? "agent_submission" : "workspace_diff",
+          prediction_source: (adapter.predictionSource ?? agentResult.predictionSource) === "agent_submission" ? "agent_submission" : "workspace_diff",
           agent_submission: typeof agentResult.submission === "string" ? agentResult.submission : null
         },
         sandbox: sandboxInfo,

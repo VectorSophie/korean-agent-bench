@@ -7,16 +7,15 @@
 // workspace mounted). Host shell execution is refused.
 import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
-import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, lstatSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, rmSync, unlinkSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { join, posix, relative, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import yaml from "js-yaml";
 import { CodingAgent } from "../interface.mjs";
 import { getLocalModelConfig, LOCAL_MODEL_IDS } from "../local-models.mjs";
 import { AGENT_HARNESS_SCHEMA, sourceSha256 } from "../harness-config.mjs";
-import { removeEscapingSymlinks } from "../sandboxed-tools.mjs";
 
 const REPO_ROOT = resolve(fileURLToPath(import.meta.url), "../../../../..");
 const BRIDGE = resolve(fileURLToPath(import.meta.url), "../../mini/kab_bridge.py");
@@ -41,7 +40,39 @@ export const MINI = Object.freeze({
 });
 // KAB code + the dependency lock: litellm/openai versions change requests.
 export const MINI_LOCK = join(REPO_ROOT, "benchmarks/mini-swe-agent/requirements.lock");
-export const MINI_ADAPTER_SOURCES = Object.freeze(["src/agent/adapters/mini-swe-agent.mjs", "src/agent/mini/kab_bridge.py", "../benchmarks/mini-swe-agent/requirements.lock"]);
+// Also the sandbox code that shapes what an action sees (output, isolation).
+export const MINI_ADAPTER_SOURCES = Object.freeze([
+  "src/agent/adapters/mini-swe-agent.mjs", "src/agent/mini/kab_bridge.py", "../benchmarks/mini-swe-agent/requirements.lock",
+  "src/sandbox/docker.mjs", "src/sandbox/native.mjs", "../vendor/upstage-cli/src/sandbox/docker-flags.mjs"
+]);
+
+/**
+ * Symlinks in the workspace whose target, as the CONTAINER resolves it
+ * (workspace mounted at WORKDIR), lies outside the workspace. Lexical on
+ * purpose: `ln -s /workspace/a b` is inside even though the host path
+ * /workspace/a does not exist. `.git` is skipped (never tracked by the
+ * harness, see PatchTracker).
+ */
+export function escapingLinks(root) {
+  const out = [];
+  const walk = (dir) => {
+    for (const ent of readdirSync(dir, { withFileTypes: true })) {
+      if (ent.name === ".git") continue;
+      const p = join(dir, ent.name);
+      if (ent.isSymbolicLink()) {
+        const rel = relative(root, p);
+        const inContainer = posix.join(WORKDIR, rel.split("\\").join("/"));
+        const t = readlinkSync(p);
+        const target = posix.resolve(posix.dirname(inContainer), t);
+        if (target !== WORKDIR && !target.startsWith(WORKDIR + "/")) out.push(rel);
+      } else if (ent.isDirectory()) {
+        walk(p);
+      }
+    }
+  };
+  walk(root);
+  return out;
+}
 
 /** name → version from the exact lock (comments ignored). */
 export function readLock(path = MINI_LOCK) {
@@ -50,6 +81,10 @@ export function readLock(path = MINI_LOCK) {
 export const WORKDIR = "/workspace"; // DockerSandbox mount point (upstage-cli docker-flags)
 export const UPSTREAM_STEP_LIMIT = 250; // swebench.yaml agent.step_limit
 const MAX_COMMAND_CHARS = 100_000;
+// Upstream keeps all output (its observation template elides the middle past
+// 10,000 chars). KAB must cap host memory; past this cap the action fails
+// closed (returncode -1) so a cut-off submission can never count as Submitted.
+export const OUTPUT_LIMIT = 8_000_000;
 const MAX_PROTOCOL_LINE = 4_000_000;
 const ENV_KEY = /^[A-Z_][A-Z0-9_]*$/;
 // BASH_ENV=/root/.bashrc activates the testbed conda env for upstream's root
@@ -94,6 +129,9 @@ export class MiniSweAgent extends CodingAgent {
   get displayName() { return `mini-swe-agent ${MINI.version} (${this._config?.displayName ?? `--model one of ${LOCAL_MODEL_IDS.join(", ")}`})`; }
   get modelKey() { return this._key; }
   get taskSchema() { return "kab.task/v2"; }
+  // Declared, not taken from the result: a failed run must predict "" (as
+  // upstream would), never fall back to a partial workspace diff.
+  get predictionSource() { return "agent_submission"; }
   // Every action goes through context.executor; run() refuses non-Docker executors.
   get supportsSandbox() { return true; }
   isAvailable() { return !!this._config && existsSync(this._python); }
@@ -138,11 +176,14 @@ export class MiniSweAgent extends CodingAgent {
       }
     };
 
+    // Links the repository itself contains are task content, not the agent's.
+    const preexistingLinks = new Set(escapingLinks(workdir));
     const scratch = mkdtempSync(join(tmpdir(), "kab-mini-"));
     const trajectoryPath = join(scratch, "trajectory.json");
     const events = [];
     let result = null;
     let fatal = null;
+    let trajectory = null;
     try {
       const child = spawn(this._python, ["-I", BRIDGE], {
         cwd: scratch,
@@ -160,7 +201,10 @@ export class MiniSweAgent extends CodingAgent {
       const exited = new Promise((res) => child.on("close", (code) => res(code)));
       const kill = () => { try { child.kill("SIGKILL"); } catch { /* gone */ } };
       // Hard ceiling: the bridge may not outlive the task's wall clock.
-      const deadline = setTimeout(kill, (timeoutSec + 120) * 1000);
+      // Upstream checks its wall clock only before each model call, so one
+      // last turn (several actions, a long generation) may overrun it.
+      let killedAtDeadline = false;
+      const deadline = setTimeout(() => { killedAtDeadline = true; kill(); }, (timeoutSec + 900) * 1000);
       // A bridge that dies mid-run must not crash the harness with EPIPE; its
       // exit is reported below (no result → error).
       child.stdin.on("error", () => {});
@@ -183,7 +227,7 @@ export class MiniSweAgent extends CodingAgent {
             throw new Error(`mini bridge protocol error: ${e.message}`, { cause: e });
           }
           if (msg?.type === "exec") {
-            send(await this._exec(msg, { executor, workdir, timeoutSec, interpreter, execEnv, events }));
+            send(await this._exec(msg, { executor, workdir, timeoutSec, interpreter, execEnv, events, preexistingLinks }));
           } else if (msg?.type === "result") {
             result = msg;
           } else if (msg?.type === "fatal") {
@@ -200,7 +244,11 @@ export class MiniSweAgent extends CodingAgent {
       }
       const code = await exited;
       if (fatal) throw new Error(`mini bridge refused to run: ${fatal}`);
+      if (!result && killedAtDeadline) {
+        result = { exitStatus: "TimeExceeded", submission: "", killedAtDeadline: true };
+      }
       if (!result) throw new Error(`mini bridge exited (${code}) without a result: ${log.slice(-2000)}`);
+      try { trajectory = JSON.parse(readFileSync(trajectoryPath, "utf8")); } catch { /* none written */ }
     } finally {
       rmSync(scratch, { recursive: true, force: true });
     }
@@ -208,6 +256,12 @@ export class MiniSweAgent extends CodingAgent {
 
     // exit_status → KAB stop reason. Infrastructure (server unreachable, 5xx
     // after upstream's retries) is an error, never a task outcome.
+    if (result.killedAtDeadline) {
+      return {
+        ok: false, error: "TimeExceeded (bridge killed at the hard deadline)", turns: null, toolCalls: events.filter((e) => e.type === "tool_start").length,
+        usage: null, events, stopReason: "budget_exhausted", submission: "", trajectory
+      };
+    }
     const STOP = { Submitted: "done", LimitsExceeded: "budget_exhausted", TimeExceeded: "budget_exhausted", RepeatedFormatError: "model_protocol_error", ContextWindowExceededError: "context_exhausted" };
     const stopReason = STOP[result.exitStatus];
     if (!stopReason) throw new Error(`mini-swe-agent ended with ${result.exitStatus || "no exit status"}: ${result.error ?? ""}`);
@@ -225,6 +279,8 @@ export class MiniSweAgent extends CodingAgent {
       // it); the runner keeps the workspace diff alongside it.
       submission: result.submission,
       predictionSource: "agent_submission",
+      // mini's own trajectory (all messages); kept in the local run record
+      trajectory,
       model: {
         provider: cfg.provenance.provider,
         id: cfg.servedModelName,
@@ -269,7 +325,7 @@ export class MiniSweAgent extends CodingAgent {
   }
 
   // One action from the bridge → one command in the task's container.
-  async _exec(msg, { executor, workdir, timeoutSec, interpreter, execEnv, events }) {
+  async _exec(msg, { executor, workdir, timeoutSec, interpreter, execEnv, events, preexistingLinks = new Set() }) {
     const reply = (output, returncode, exception_info = "") => ({ id: msg.id, output, returncode, exception_info });
     const command = msg.command;
     events.push({ type: "tool_start", tool: "bash", args: { command: typeof command === "string" ? command.slice(0, 2000) : command } });
@@ -283,12 +339,20 @@ export class MiniSweAgent extends CodingAgent {
     // mini only ever uses its configured cwd; anything else could escape the mount.
     if (msg.cwd !== WORKDIR) return done(reply("", -1, `KAB sandbox: cwd ${JSON.stringify(msg.cwd)} refused (only ${WORKDIR})`));
     const limitSec = Math.min(Number.isInteger(msg.timeout) && msg.timeout > 0 ? msg.timeout : 30, timeoutSec);
-    const r = await executor.exec(interpreter[0], [...interpreter.slice(1), MERGE_STDERR + command], { timeoutMs: limitSec * 1000, env: execEnv });
+    const r = await executor.exec(interpreter[0], [...interpreter.slice(1), MERGE_STDERR + command], { timeoutMs: limitSec * 1000, env: execEnv, outputLimit: OUTPUT_LIMIT });
     if (r.infraError) throw new Error(`sandbox error: ${r.infraError}`);
-    const escaped = removeEscapingSymlinks(workdir);
-    const note = escaped.length ? `\n[kab] removed symlinks escaping the workspace: ${escaped.join(", ")}` : "";
-    const output = `${r.stdout ?? ""}${r.stderr ?? ""}${note}`;
-    if (r.timedOut) return done(reply(output, -1, timeoutInfo(command, limitSec)));
-    return done(reply(output, r.exitCode ?? -1));
+    // Links the agent made that point out of the workspace (as the container
+    // resolves them) are removed; the note goes to exception_info, never into
+    // the output (which may be a submission).
+    const escaped = escapingLinks(workdir).filter((p) => !preexistingLinks.has(p));
+    for (const p of escaped) {
+      const abs = join(workdir, p);
+      if (lstatSync(abs).isSymbolicLink()) unlinkSync(abs);
+    }
+    const note = escaped.length ? `KAB sandbox: removed symlinks escaping the workspace: ${escaped.join(", ")}` : "";
+    const output = `${r.stdout ?? ""}${r.stderr ?? ""}`;
+    if (r.timedOut) return done(reply(output, -1, [timeoutInfo(command, limitSec), note].filter(Boolean).join("\n")));
+    if (r.truncated) return done(reply(output, -1, `KAB sandbox: output exceeded ${OUTPUT_LIMIT} characters and was cut; the command is treated as failed (a submission is not accepted)`));
+    return done(reply(output, r.exitCode ?? -1, note));
   }
 }

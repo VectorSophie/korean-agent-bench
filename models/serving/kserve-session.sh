@@ -41,16 +41,19 @@ IFS=, read -ra GPUS <<< "$CVD"
 if [ "${#GPUS[@]}" -ne "$TP" ]; then
   echo "REFUSED: $MODEL needs exactly $TP GPU(s); the queue assigned '$CVD'. Submit with -G $TP."; exit 3
 fi
-# 2. Never adopt or replace a server this session did not start.
-existing=$(docker ps -a --format '{{.Names}}' | grep '^kserve-' || true)
+# 2. Never adopt or replace a RUNNING server this session did not start (an
+#    exited leftover holds no GPU; the launcher clears it by name).
+existing=$(docker ps --format '{{.Names}}' | grep '^kserve-' || true)
 if [ -n "$existing" ]; then
-  echo "REFUSED: kserve container(s) already exist: $existing (another session, or an orphan to inspect by hand)"; exit 3
+  echo "REFUSED: kserve container(s) already running: $existing (another session, or an orphan to inspect by hand)"; exit 3
 fi
 
 mkdir -p "$DIR"
 rm -f "$DIR/release"
 STATE="$DIR/$MODEL.json"
-stop_server() { "$L" stop "${KEY[@]}" >/dev/null 2>&1 || true; rm -f "$STATE"; }
+# The launchers' `stop` leaves the exited container; remove it so nothing of
+# this session outlives it.
+stop_server() { "$L" stop "${KEY[@]}" >/dev/null 2>&1 || true; docker rm -f "$NAME" >/dev/null 2>&1 || true; rm -f "$STATE"; }
 on_exit() { trap - EXIT INT TERM HUP; stop_server; }
 trap on_exit EXIT
 trap 'echo "[session] signal: stopping $NAME"; exit 143' INT TERM HUP
@@ -58,8 +61,11 @@ trap 'echo "[session] signal: stopping $NAME"; exit 143' INT TERM HUP
 # 3. Serve on exactly the queue's GPUs (queue indices = nvidia-smi indices,
 #    PCI bus order), through the unchanged launcher and its GPU gate.
 export KSERVE_DEV="$CVD"
-"$L" start "${KEY[@]}" ${MAXLEN:+"$MAXLEN"} || { echo "[session] start failed"; exit 1; }
-"$L" wait "${KEY[@]}" || { echo "[session] server did not become healthy"; exit 1; }
+# In the background + `wait`, so a queue SIGTERM is handled at once, not after
+# a launcher step that can take minutes (bash defers traps for foreground jobs).
+run() { "$L" "$@" & wait $!; }
+run start "${KEY[@]}" ${MAXLEN:+"$MAXLEN"} || { echo "[session] start failed"; exit 1; }
+run wait "${KEY[@]}" || { echo "[session] server did not become healthy"; exit 1; }
 
 started=$(date +%s)
 printf '{"model":"%s","container":"%s","gpus":"%s","pid":%d,"startedAt":%d,"leaseSec":%d}\n' \
@@ -71,5 +77,5 @@ while :; do
   if [ -e "$DIR/release" ]; then echo "[session] released"; exit 0; fi
   if [ $(( $(date +%s) - started )) -ge "$LEASE" ]; then echo "[session] lease of ${LEASE}s over"; exit 0; fi
   if ! docker ps --format '{{.Names}}' | grep -q "^${NAME}$"; then echo "[session] $NAME exited"; exit 1; fi
-  sleep "$POLL"
+  sleep "$POLL" & wait $!
 done
