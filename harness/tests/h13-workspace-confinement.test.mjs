@@ -259,6 +259,7 @@ describe("PatchTracker.reset restores the pristine start state", () => {
     writeFileSync(join(ws, "nested", "x"), "x");
 
     await tracker.reset(initial);
+    tracker.dispose();
 
     assert.equal(readFileSync(join(ws, "a.txt"), "utf8"), "one\n");
     assert.equal(readFileSync(join(ws, "build", "fixture-output.bin"), "utf8"), "original");
