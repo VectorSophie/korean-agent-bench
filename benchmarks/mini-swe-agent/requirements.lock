@@ -37,7 +37,6 @@ markdown-it-py==4.2.0
 MarkupSafe==3.0.3
 mdit-py-plugins==0.6.1
 mdurl==0.1.2
-mini-swe-agent @ file:///home/jackb/workspace/korean-agent-bench/.cache/wheels/mini_swe_agent-2.4.6-py3-none-any.whl#sha256=a35463c553ac825c7773b03cfa69cd44958e3af20155dcc5711fdf9e4c67cd54
 multidict==6.7.1
 multiprocess==0.70.19
 numpy==2.5.1
