@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { execSync, execFileSync } from "node:child_process";
+import { execSync, execFileSync, spawnSync } from "node:child_process";
 
 import { PatchTracker as RealPatchTracker } from "../src/tracking/patch-tracker.mjs";
 import { CodingAgent } from "../src/agent/interface.mjs";
@@ -299,6 +299,38 @@ describe("PatchTracker with a harness-owned git dir: fidelity and lifecycle", ()
     await t.reset(base);
     assert.equal(existsSync(marker), false);
     assert.equal(existsSync(sub), false, "reset removes the nested repository");
+  });
+
+  it("inherited GIT_* variables (e.g. GIT_DIR from a hook) are ignored", async () => {
+    const outer = mkdtempSync(join(ROOT, "h4-outer-"));
+    execFileSync("git", ["init", "-q"], { cwd: outer });
+    const dir = ws();
+    const saved = { GIT_DIR: process.env.GIT_DIR, GIT_INDEX_FILE: process.env.GIT_INDEX_FILE };
+    process.env.GIT_DIR = join(outer, ".git");
+    process.env.GIT_INDEX_FILE = join(outer, "stray-index");
+    let base, d;
+    try {
+      const t = new PatchTracker(dir);
+      base = await t.captureInitial();
+      writeFileSync(join(dir, "a.txt"), "changed\n");
+      d = await t.captureDiff(base);
+    } finally {
+      for (const [k, v] of Object.entries(saved)) if (v === undefined) delete process.env[k]; else process.env[k] = v;
+    }
+    assert.deepEqual(d.filesChanged, ["a.txt"]);
+    assert.equal(spawnSync("git", ["rev-parse", "HEAD"], { cwd: outer }).status !== 0, true, "nothing committed to the outer repo");
+    assert.equal(existsSync(join(outer, "stray-index")), false);
+  });
+
+  it("a path git refuses to add is reported, never an empty patch", async () => {
+    const dir = ws();
+    const t = new PatchTracker(dir);
+    const base = await t.captureInitial();
+    writeFileSync(join(dir, "a.txt"), "edited\n");
+    mkdirSync(join(dir, ".GIT"));
+    writeFileSync(join(dir, ".GIT", "x"), "x");
+    const d = await t.captureDiff(base);
+    assert.match(d.captureError ?? "", /git add -A failed/);
   });
 
   it("dispose removes the harness git dir; the workspace repository stays", async () => {

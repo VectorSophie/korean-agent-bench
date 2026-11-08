@@ -172,6 +172,8 @@ export class TaskRunner {
       cpSync(repoPath, workdir, { recursive: true, verbatimSymlinks: true });
 
       patchTracker = new PatchTracker(workdir);
+      // initialCommit: the snapshot in the harness-owned tracking repo (same tree
+      // as the workspace HEAD the agent sees; the SHA can differ from it)
       const initialCommit = await patchTracker.captureInitial({ commit: task.commit || null });
       await sandbox.setup(workdir);
 
@@ -205,7 +207,7 @@ export class TaskRunner {
       const patchRecord = await patchTracker.captureDiff(initialCommit);
 
       // ── Evaluation ───────────────────────────────────────────────────────
-      let infraError = null;
+      let infraError = patchRecord.captureError ? `patch capture failed: ${patchRecord.captureError}` : null;
 
       // Restore trusted evaluation files (scored tests / graders) from the
       // pristine fixture BEFORE any testPatch or checks. The agent's real edits

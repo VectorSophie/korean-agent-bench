@@ -21,6 +21,9 @@ const IDENT = ["-c", "user.email=harness@upstage", "-c", "user.name=Harness", "-
 // external diff/textconv, and no system/global config (filters, includes).
 const HARDEN = ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false", "-c", "protocol.allow=never"];
 const GIT_ENV = { GIT_CONFIG_NOSYSTEM: "1", GIT_CONFIG_GLOBAL: "/dev/null", GIT_TERMINAL_PROMPT: "0" };
+// Inherited GIT_* (GIT_DIR, GIT_INDEX_FILE, GIT_CONFIG_PARAMETERS, ... set by a
+// hook or CI) would redirect or reconfigure every call; none are passed on.
+const childEnv = () => ({ ...Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith("GIT_"))), ...GIT_ENV });
 
 /**
  * Tracks the agent's changes with a git directory the HARNESS owns, outside
@@ -50,7 +53,7 @@ export class PatchTracker {
     const out = (buf) => (raw ? buf.toString("utf8") : buf.toString("utf8").trim());
     const where = workspaceRepo || !this.gitDir ? [] : ["--git-dir", this.gitDir, "--work-tree", this.workdir];
     try {
-      return out(execFileSync("git", [...HARDEN, ...IDENT, ...where, ...args], { cwd: this.workdir, input, stdio: "pipe", maxBuffer: 64 * 1024 * 1024, env: { ...process.env, ...GIT_ENV } }));
+      return out(execFileSync("git", [...HARDEN, ...IDENT, ...where, ...args], { cwd: this.workdir, input, stdio: "pipe", maxBuffer: 64 * 1024 * 1024, env: childEnv() }));
     } catch (err) {
       if (allowFail) return err.stdout ? out(err.stdout) : "";
       throw new Error(`git ${args.join(" ")} failed: ${err.stderr?.toString("utf8") || err.message}`, { cause: err });
@@ -124,7 +127,9 @@ export class PatchTracker {
 
   async captureDiff(initialCommit) {
     // Stage all changes so diff is accurate even without agent committing
-    this._git(["add", "-A"], { allowFail: true });
+    // A failed add (e.g. a path git refuses) must not look like "no changes"
+    let captureError = null;
+    try { this._git(["add", "-A"]); } catch (err) { captureError = err.message; }
 
     const D = ["diff", "--cached", "--no-ext-diff", "--no-textconv"];
     const unifiedDiff = this._git([...D, initialCommit], { allowFail: true, raw: true });
@@ -149,7 +154,8 @@ export class PatchTracker {
       filesChanged,
       linesAdded,
       linesRemoved,
-      stat: numstat || ""
+      stat: numstat || "",
+      captureError
     };
   }
 }
