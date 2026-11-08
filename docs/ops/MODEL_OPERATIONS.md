@@ -44,10 +44,10 @@ dedicated directory per stack. Both run a GPU gate before starting: they
 refuse when foreign compute memory exceeds an allowance, and Solar also
 requires about 85 GB free per GPU.
 
-Host paths are currently **constants in the scripts** (`HUB=`, `CACHE=`), as
-is the hub path in `benchmarks/campaign/campaign.py`. On another machine,
-edit them (or, better, make them environment variables in a reviewed change)
-and record that in the run. `models/serving-records/` holds the historical
+The Hugging Face hub path can be overridden with `KSERVE_HUB` (read-only
+mount; the default is the original host path). The cache directories (`CACHE=`)
+and the hub path in `benchmarks/campaign/campaign.py` are still constants. On
+another machine, set or edit them and record that in the run. `models/serving-records/` holds the historical
 copies used for the original validation; do not run those.
 
 ## Before any live run
@@ -63,19 +63,78 @@ copies used for the original validation; do not run those.
 - The machine is shared (other research jobs run on the same GPUs). Never
   stop, replace or restart a model server or GPU process you did not start.
   Never bypass a launcher's GPU gate.
-- **The GPU queue.** This host now requires all GPU work to go through a
-  shared task-spooler queue (the operator's `gpuq`, with a GPU count and never
-  explicit device ids). The v1 launchers predate this: they start detached
-  `docker run -d` containers, which a queue slot cannot hold. **Before the
-  next live run**, decide with the owner how a long-lived server holds a queue
-  slot (e.g. a foreground launcher variant that blocks for the session). Until
-  then, do not start servers.
+- **The GPU queue.** This host requires all GPU work to go through a shared
+  task-spooler queue (the operator's `gpuq`, with a GPU count and never
+  explicit device ids). The v1 launchers predate this and start detached
+  `docker run -d` containers, which would outlive a queue slot. Use the
+  session wrapper below; the owner must approve the first live use.
 - Do not upgrade drivers, CUDA, PyTorch/JAX or serving images. Do not
   download checkpoints or pull large images without the owner's approval.
 - Docker storage is a hard constraint. v1 used a +100 GB image budget, which
   is why SWE-bench stage 2 was not run (`results/main-2026-10-30-v1/records/stage2-decision.json`).
   Never prune images or caches you did not create.
 - Timings on this machine are contended. Report them as such.
+
+## Serving under the GPU queue (proposed, tested with fakes, 2026-11-08)
+
+`models/serving/kserve-session.sh <kanana|exaone|ax|solar> [maxlen]` is
+itself the queue job, and it runs in the foreground for the whole serving
+session:
+
+```bash
+gpuq -L kserve-kanana -G 1 models/serving/kserve-session.sh kanana 16384   # ax/solar: -G 2
+# … wait for $KSERVE_SESSION_DIR/kanana.json, run preflight and the campaign …
+touch .cache/kserve-session/release                                          # end the session
+```
+
+1. **Refuses outside an allocation.** `CUDA_VISIBLE_DEVICES` must be set by
+   the queue (not empty, not `-1`) and hold exactly the model's TP count of GPUs.
+   The parent process must be the queue's `ts` client, and `TS_SOCKET` must be
+   the shared queue's socket, so an exported variable alone is not enough.
+2. **Refuses to adopt** any running `kserve-*` container. The launchers
+   alone would treat "already running" as success. An exited leftover holds
+   no GPU, and the launcher clears it by name.
+3. **Serves only on the queue's GPUs.** It exports `KSERVE_DEV` from the
+   allocation (queue indices are nvidia-smi indices, PCI bus order) and calls
+   the unchanged launcher, whose GPU gate still runs.
+4. **Holds the slot** while the container lives. It writes a state file
+   (`<model>.json`: GPUs, PID, start time, lease).
+5. **Always stops and removes the container** on release (`release` file), lease expiry
+   (`KSERVE_LEASE_SEC`, default 12 h), `SIGTERM`/`SIGINT`/`SIGHUP` (e.g.
+   `gpuq -k`), server death, or failed readiness. Launcher steps run in the
+   background under `wait`, so a signal is handled at once, not after a
+   readiness wait that can take minutes.
+
+Tested by `harness/tests/h35-kserve-session.test.mjs`, with fake `docker`,
+`nvidia-smi` and `curl` driving the real launchers.
+
+**Read-only audit against the queue (2026-11-08).** Source: the `gpuq`
+wrapper and task-spooler at commit `1522ab0` (the operator's build); `gpuq`
+itself was not run.
+
+- `client.c`: a `-G n` job gets `CUDA_VISIBLE_DEVICES` = the assigned NVML
+  indices joined with `,`; without `-G` it is `-1`. The wrapper sets
+  `CUDA_DEVICE_ORDER=PCI_BUS_ID`, so the indices are `nvidia-smi` indices,
+  which is what `NVIDIA_VISIBLE_DEVICES` in the launchers uses.
+- `execute.c`: the job is forked by the submitting `ts` client, runs in its
+  own session (`setsid`) and `execvp`s the command, so its parent is `ts`.
+- `client.c`: `gpuq -k` sends SIGTERM to the job's process group, which the
+  session traps.
+- `gpu.c`, `jobs.c`: a GPU is dispatchable only if no queue job holds it and
+  more than 90% of its memory is free, checked once at dispatch. An orphaned
+  server container (session SIGKILLed, or the `ts` client killed) therefore
+  blocks further dispatch to that GPU rather than sharing it.
+
+**Still unknown until a supervised live run:** how the session behaves if
+the `ts` server restarts while it runs (queue state is in memory only),
+whether vLLM's 0.92 memory fraction plus foreign processes passes the
+launchers' gate on a queue-assigned GPU, and the real readiness time. A
+SIGKILLed session or `ts` client leaves the container running until a person
+removes it. Limit: a `SIGKILL`
+of the session cannot be trapped. The orphaned container then blocks the next
+session (rule 2) until a person inspects it. `benchmarks/campaign/campaign.py`
+(v1, frozen) still calls the launchers directly. A v2 driver would submit
+the session instead.
 
 ## Known limits
 

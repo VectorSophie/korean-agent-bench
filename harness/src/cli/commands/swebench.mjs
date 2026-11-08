@@ -3,12 +3,13 @@ import { resolve } from "node:path";
 import { TaskRunner } from "../../task/runner.mjs";
 import { LOCAL_MODEL_IDS } from "../../agent/local-models.mjs";
 import { runServingPreflight, formatPreflight } from "../../preflight/serving.mjs";
-import { loadInstances, ensureRepo, prepareSnapshot, snapshotDir, buildTask, toPrediction, ReplayPatchAgent } from "../../benchmarks/swebench.mjs";
+import { loadInstances, ensureRepo, prepareSnapshot, snapshotDir, buildTask, buildTaskV2, toPrediction, ReplayPatchAgent } from "../../benchmarks/swebench.mjs";
 import { resolveAgent } from "./run.mjs";
 
 const USAGE = `Usage:
   harness swebench prepare --instance <id>[,<id>...] | --ids-file <file.json>   (serial: clone + single-commit snapshot)
-  harness swebench run --instance <instance_id> (--agent <id> [--preflight] | --replay-patch <file>) [--runs-dir DIR]
+  harness swebench run --instance <instance_id> (--agent <id> [--model <key>] [--preflight] | --replay-patch <file>) [--runs-dir DIR]
+    (--agent mini-swe-agent --model <key>: Harness v2 task kab.task/v2)
   harness swebench predictions --model-name <name> --out <predictions.jsonl> <run.json> [...]
 Resolution is decided only by benchmarks/swebench/evaluate.py (official evaluator).`;
 
@@ -35,8 +36,9 @@ async function runInstance(options) {
   } else if (typeof options.agent === "string") {
     adapter = resolveAgent(options.agent, options);
     if (options.preflight) {
-      if (!LOCAL_MODEL_IDS.includes(options.agent)) throw new Error("--preflight applies to local models only");
-      preflight = await runServingPreflight(options.agent);
+      const modelKey = adapter.modelKey ?? options.agent;
+      if (!LOCAL_MODEL_IDS.includes(modelKey)) throw new Error("--preflight applies to local models only");
+      preflight = await runServingPreflight(modelKey);
       console.log(formatPreflight(preflight));
       if (!preflight.reportable) {
         process.exitCode = 3;
@@ -49,7 +51,9 @@ async function runInstance(options) {
     return null;
   }
   // Fail closed: no cloning during a run; the snapshot must already exist.
-  const task = buildTask(instance, { repoDir: snapshotDir(instance) });
+  const task = adapter.taskSchema === "kab.task/v2"
+    ? buildTaskV2(instance, { repoDir: snapshotDir(instance) })
+    : buildTask(instance, { repoDir: snapshotDir(instance) });
   const runner = new TaskRunner({ runsDir: resolve(options["runs-dir"] || "runs") });
   const run = await runner.run(task, adapter, { preflight });
   console.log(`${instance.instance_id}: run ${run.id} — agent ${run.agentId}, patch ${run.patch?.filesChanged?.length ?? 0} file(s); local status '${run.status}' is not a score`);

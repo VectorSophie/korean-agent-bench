@@ -2,7 +2,9 @@
 # Creates isolated, pinned Python environments for the external benchmarks'
 # OFFICIAL tooling (ADR 0009). CPU only: torch comes from the CPU wheel index,
 # so nothing CUDA is installed. Output: .cache/venv-bfcl, .cache/venv-swebench
-# (gitignored). Usage: benchmarks/setup.sh [bfcl|swebench|all]
+# (gitignored). Usage: benchmarks/setup.sh [bfcl|swebench|mini|all]
+#   mini: .cache/venv-mini, the mini-swe-agent agent harness (Harness v2,
+#   docs/research/HARNESS_V2.md §7); dependencies from an exact lock file.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 PY=${PYTHON:-python3}
@@ -10,6 +12,9 @@ BFCL_EVAL_VERSION=2026.3.23     # = gorilla 6ea57973c7a6 (datasets/registry.json
 SWEBENCH_VERSION=5.0.2          # = SWE-bench/SWE-bench 490635b2e9e7
 BFCL_EVAL_WHEEL_SHA256=3bb6dfa5f0c68ad403c9ec50b00db2bb3b4cc9b38ab1ff33f48fe30d853d3a0a
 SWEBENCH_WHEEL_SHA256=b7f0416a1e686eca22c2f749b5f816685a202835032f6683080e2b53545bbb62
+MINI_VERSION=2.4.6              # = SWE-agent/mini-swe-agent tag v2.4.6, a83fcae82d2a (MIT)
+MINI_WHEEL_SHA256=a35463c553ac825c7773b03cfa69cd44958e3af20155dcc5711fdf9e4c67cd54
+# Lock = its declared requirements as resolvable at its upload time (pip --uploaded-prior-to)
 TORCH_CPU_INDEX=https://download.pytorch.org/whl/cpu
 
 # Download the official package wheel, verify it against the pinned sha256,
@@ -45,4 +50,13 @@ if [[ "${1:-all}" =~ ^(swebench|all)$ ]]; then
   .cache/venv-swebench/bin/pip install -q "$whl"
   .cache/venv-swebench/bin/pip freeze --all > .cache/venv-swebench/freeze.txt
   echo "swebench $(.cache/venv-swebench/bin/python -c 'import importlib.metadata as m; print(m.version("swebench"))') ready"
+fi
+if [[ "${1:-all}" =~ ^(mini|all)$ ]]; then
+  mk venv-mini
+  .cache/venv-mini/bin/pip install -q -r benchmarks/mini-swe-agent/requirements.lock
+  whl=$(verified_wheel venv-mini mini-swe-agent "$MINI_VERSION" "$MINI_WHEEL_SHA256")
+  .cache/venv-mini/bin/pip install -q --no-deps "$whl"
+  .cache/venv-mini/bin/pip check
+  .cache/venv-mini/bin/pip freeze --all > .cache/venv-mini/freeze.txt
+  echo "mini-swe-agent $(.cache/venv-mini/bin/python -c 'import importlib.metadata as m; print(m.version("mini-swe-agent"))') ready"
 fi

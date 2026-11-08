@@ -41,7 +41,16 @@ export function spawnWithTimeout(command, args, { cwd, env, timeoutMs, shell = f
     let stderr = "";
     let timedOut = false;
     let spawnError = null;
-    const cap = (s) => (s.length > outputLimit ? s.slice(0, outputLimit) : s);
+    let truncated = false;
+    const cap = (s) => {
+      if (s.length <= outputLimit) return s;
+      truncated = true;
+      return s.slice(0, outputLimit);
+    };
+    // decode as one UTF-8 stream: a multibyte character split across chunks
+    // must not become U+FFFD
+    child.stdout.setEncoding("utf8");
+    child.stderr.setEncoding("utf8");
     child.stdout.on("data", (c) => { stdout = cap(stdout + c); });
     child.stderr.on("data", (c) => { stderr = cap(stderr + c); });
     const timer = setTimeout(() => {
@@ -58,6 +67,7 @@ export function spawnWithTimeout(command, args, { cwd, env, timeoutMs, shell = f
         stdout,
         stderr: spawnError ? `${stderr}${spawnError}` : stderr,
         timedOut,
+        truncated,
         spawnError,
         durationMs: Date.now() - start
       });

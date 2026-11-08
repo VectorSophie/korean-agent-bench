@@ -12,7 +12,8 @@ korean-agent-bench/
 │   ├── src/upstream.mjs     the ONLY locator for upstage-cli (ADR 0002)
 │   ├── src/agent/           adapters (mock, upstage, local, claude-code, aider, opencode),
 │   │                        local-models.mjs (four-model registry), tool policy, sandboxed tools,
-│   │                        harness-config.mjs (agent-harness identity, Harness v2)
+│   │                        harness-config.mjs (agent-harness identity, Harness v2),
+│   │                        adapters/mini-swe-agent.mjs + mini/kab_bridge.py (external harness)
 │   ├── src/task/            task schema, loader, runner (provenance), SWE-bench/Aider importers
 │   ├── src/sandbox/         native + Docker sandboxes, trusted read-only mount registry
 │   ├── src/evaluation/      checks, trusted evaluators, scorer, pass@k, failure taxonomy
@@ -22,7 +23,7 @@ korean-agent-bench/
 │   ├── tasks/ fixtures/     synthetic regression fixtures (datasets/registry.json)
 │   ├── benchmarks/v1/       benchmark-v1 manifest + reference solutions
 │   ├── docs/                harness docs and research reports (history preserved)
-│   └── tests/               h1–h32 (unit tier + Docker tier)
+│   └── tests/               h1–h35 (unit tier + Docker tier)
 ├── vendor/upstage-cli/      git submodule, pinned — the agent under test
 ├── benchmarks/              official-tooling integration: setup.sh, bfcl/, swebench/ (ADR 0009)
 ├── datasets/                registry.json (ADR 0003); bfcl/ and swe-bench-verified/ subsets, index, feasibility
@@ -76,6 +77,11 @@ What crosses the boundary, exhaustively (enforced by `tests/h24`):
 | tests h11, h12, h13, h14, h16 | tool registry/builtins, agent loop, session, defaults, local adapter | static imports |
 
 Nothing in upstage-cli imports the harness.
+
+mini-swe-agent (Harness v2) is a second agent under test, outside this boundary.
+It is a pinned Python package in `.cache/venv-mini` (`benchmarks/setup.sh mini`),
+run as a subprocess by `adapters/mini-swe-agent.mjs`. Its actions come back over
+a pipe and run in the task's `DockerSandbox`.
 
 ## Run data flow
 

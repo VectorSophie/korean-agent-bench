@@ -1,7 +1,7 @@
 # Harness v2: When does scaffolding become a burden?
 
-Status: **design, 2026-11-08.** Nothing in this document has been run on a
-model. Sections are labelled **[measured]** (evidence in this repository),
+Status: **design, 2026-11-08; mini-SWE-agent integrated offline (§7).**
+Nothing in this document has been run on a model. Sections are labelled **[measured]** (evidence in this repository),
 **[derived]** (follows from code or arithmetic, checked offline) or
 **[hypothesis]** (to be tested). The frozen v1 protocol and its results are
 not changed by this document.
@@ -138,7 +138,9 @@ coupling is in the **task spec**. `benchmarks/swebench.mjs` writes upstage-cli
 tool names (`read_file`, `run_shell`, …) and the turn envelope into
 `task.agent`. For v2 these move into the agent-harness descriptor. The
 SWE-bench task should keep only instance, base commit, image, prompt and
-sandbox.
+sandbox. **Done (2026-11-08):** `buildTaskV2` → `kab.task/v2` (no `agent`
+block, raw problem statement). The runner refuses v1 adapters on it and
+requires a pinned descriptor.
 
 ## 4. Literature and public baselines
 
@@ -288,30 +290,109 @@ record = descriptor + harnessId (implementation incl. KAB adapter source hash + 
 v1 agent behaviour is unchanged. The adapters pass the same loop budget, and
 v1 run records are not rewritten.
 
-## 7. Next: integrating mini-SWE-agent (Track A, first system)
+## 7. mini-SWE-agent: first external harness (integrated offline, 2026-11-08)
 
-Proposed adapter (`subprocess` kind). **Not implemented.**
+**State:** integrated and validated **offline only**. No model has run through
+it, and it has produced no score.
 
-1. Pin a mini-SWE-agent release (version and commit) in an isolated venv under
-   `.cache/`, through `benchmarks/setup.sh` with a hash check, like the BFCL wheel.
-2. Run it as a Python subprocess on the host with **a KAB environment class**.
-   Its `execute(action, cwd, timeout)` forwards each command over a JSON-lines
-   pipe to the Node adapter. The adapter runs it with
-   `context.executor.execShell` in the task's own hardened container and
-   returns `{output, returncode}`. The sandbox, image, mount and network policy
-   stay KAB's. The host process makes only model HTTP calls.
-3. Model: litellm `hosted_vllm/<servedModelName>` with `api_base` from
-   `local-models.mjs`. Sampling and `max_tokens` are taken from the same
-   config, and preflight is required.
-4. The patch is KAB's workspace diff (PatchTracker), not the agent's
-   submission output. Record this as a documented deviation from `mini-extra swebench`.
-5. Descriptor: `name: "mini-swe-agent"`, `kind: "subprocess"`, version and
-   commit, `toolInterface.id: "mini.bash"`, the step limit mapped to
-   `budget.maxTurns`, and the config file's hash as a policy param.
-6. Offline validation before any model: a replayed model (scripted litellm
-   responses) solves a synthetic fixture through the bridge; gold, empty and
-   wrong patches score as expected with the official evaluator. This mirrors
-   `results/swebench-offline-validation-2026-10-29/`.
+| | |
+|---|---|
+| Upstream | mini-swe-agent **2.4.6**, tag `v2.4.6` = `a83fcae82d2a…`, MIT, Python ≥ 3.10 |
+| Install | `benchmarks/setup.sh mini` → `.cache/venv-mini`. Wheel sha256 is enforced. Dependencies come from `benchmarks/mini-swe-agent/requirements.lock` (exact versions) |
+| Lock rule | the declared requirements resolved with `pip --uploaded-prior-to` the 2.4.6 upload time. Newer litellm (1.108.3) fails every tool-call request without the undeclared `mcp` package, so "latest" was not reproducible |
+| Config | upstream `config/benchmarks/swebench.yaml`, sha256 `9a9c86ac…` checked by both Node and Python |
+| Code | `harness/src/agent/adapters/mini-swe-agent.mjs` (adapter), `harness/src/agent/mini/kab_bridge.py` (bridge) |
+| Run | `harness swebench run --instance <id> --agent mini-swe-agent --model <key> [--preflight]`, which builds a `kab.task/v2` task |
+
+### How it runs
+
+mini's own `DefaultAgent`, `LitellmModel` (`hosted_vllm/<served name>`, the
+local endpoint), templates and submission check run unchanged in a Python
+subprocess with a scrubbed environment: no host credentials, proxies or mini
+user config. Only the environment class is KAB's: `KabBridgeEnvironment` sends
+each bash action over a pipe to the Node adapter. The adapter runs it in the
+task's `DockerSandbox` (hardened, `--network none`, only the workspace
+mounted) and returns `{output, returncode, exception_info}`. The bridge
+executes nothing itself. Any other mini environment class is refused, and so
+is a non-Docker sandbox.
+
+### Deviations from `mini-extra swebench` (all recorded in `provenance.agentHarness`)
+
+| Upstream | KAB | Why |
+|---|---|---|
+| repository at `/testbed` in the image | KAB snapshot mounted at `/workspace`. The prompt's `/testbed` is substituted (`implementation.config.promptSubstitutions`) | the sandbox mount point is fixed by upstage-cli's `docker-flags.mjs` (a cross-repo contract) |
+| one long-lived container, `docker exec` per action | a fresh hardened `docker run` per action, with the workspace persisted by the bind mount | KAB's sandbox model. State outside the workspace (`/tmp`, installs) does not persist. `toolInterface.containerPerAction` |
+| root user, `BASH_ENV=/root/.bashrc` activates conda | unprivileged user, `BASH_ENV` dropped, the task `PATH` selects the testbed interpreter | otherwise bash prints "Permission denied" into every observation and into the submitted patch (found by h34) |
+| `stderr=STDOUT` at the process level | `exec 2>&1; ` prepended inside the container | keeps stderr in order with stdout, as upstream does |
+| `step_limit: 250`, `cost_limit: 3` | `step_limit` = `budget.maxTurns` (default 250), `cost_limit` off (local model), wall clock = task timeout | budget is an experimental variable (`budgetId`) |
+| `model_kwargs` for a hosted API | `api_base`, `max_tokens` and sampling from `local-models.mjs`. `top_k` and `chat_template_kwargs` go through `extra_body` (asserted at the server) | model identity is KAB's |
+| unbounded output | per-stream cap of 8,000,000 characters; past it the action returns returncode −1 with an exception, so a cut-off submission is never accepted | host memory; fail closed |
+| agent's symlinks untouched | after each action, links the agent created that point outside `/workspace` (as the container resolves them) are removed. The note goes to `exception_info`, never to the output. The repository's own links are kept | host-side safety, as in v1 |
+| wall clock checked only before each model call | the same, plus a hard kill of the bridge at task timeout + 900 s, recorded as `budget_exhausted` | a hung request must not hold the slot forever |
+| trajectory file | mini's trajectory is stored in the run record (`trace.agentTrajectory`, local raw records only) | provenance |
+
+**Prediction:** mini's submission (the text after
+`COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT`) is the prediction, as upstream writes
+it. The run records `patch.prediction_source: "agent_submission"`,
+`patch.agent_submission`, and the workspace diff (`patch.model_patch`)
+alongside. The workspace diff includes the agent's own files, such as `patch.txt`.
+
+### What is real and what is faked in the tests
+
+| | h33 (unit, CI) | h34 (Docker tier, local) |
+|---|---|---|
+| mini loop, litellm client, swebench.yaml, bridge, adapter, runner, provenance | real | real |
+| model | scripted OpenAI-compatible HTTP server | scripted HTTP server |
+| container | in-process fake executor (simulated effects; nothing runs on the host) | **real** `DockerSandbox` on the official SWE-bench image |
+| repository | synthetic | synthetic (no SWE-bench content) |
+
+h34 checks that the edited code runs in the container, that the submission is
+byte-identical to `git diff` (well under the output cap) and applies to the base, and that `--network none`,
+the read-only root, escaping-symlink removal and in-order stderr all hold.
+Negative tests (h33) cover host execution, a cwd outside the mount, malformed
+commands, a foreign environment class, a modified config, a v2 run without a
+pinned descriptor, and a v1 adapter on a v2 task.
+
+### Official evaluator, offline (2026-11-08)
+
+`benchmarks/swebench/validate_mini_offline.py` runs `harness swebench run
+--agent mini-swe-agent` on the official instance `psf__requests-6028` (its
+official image, KAB's Docker sandbox, mini 2.4.6 with its verified install)
+with a **scripted** model that follows upstream's submit instructions. The
+submission goes through `harness swebench predictions` to the **official**
+evaluator: replayed gold patch **resolved**, empty submission
+**empty_patch**, ineffective diff **unresolved**. Each case also checks model
+identity (checkpoint, endpoint, sampling actually sent), the pinned harness,
+identical `harnessId`/`budgetId` across cases, `prediction_source =
+agent_submission`, stop reason `done`, one sandboxed action per model step,
+the kept trajectory, and that the submission equals git's diff of the
+replayed change. Pipeline checks, not scores; outputs stay under `.cache/`.
+
+### Security fix found by the independent review (affects v1 code too)
+
+Before 2026-11-08, `PatchTracker` ran host `git add`/`git diff` inside the
+agent-writable workspace. An agent that set `core.fsmonitor`, a filter or
+diff driver, or a `post-index-change` hook in the workspace `.git` could make
+the **host** run a command at patch capture. This was reproduced with git 2.43.
+The tracker now uses a harness-owned git directory outside the workspace, with
+no system or global config, hooks and fsmonitor off, and no external diff or
+textconv. The workspace `.git` is only touched before the agent starts
+(h4 regression tests fail on the old tracker). It landed separately, ahead
+of this integration (PR #16), with one more fix: the test patch is applied
+from stdin, not from a file in the workspace. **v1 audit:** none of the 3,716
+tool calls recorded in the 200 local main-campaign SWE-bench records touches
+git config, hooks, attributes or `.git`, and no v1 patch touches `.git`.
+
+### Not yet done
+
+- No live model run. The official-evaluator check above uses a scripted
+  model, so it says nothing about a real model's tool-call format, sampling
+  or context behaviour under mini.
+- The upstream retry loop (tenacity in mini's model client) is kept. A dead
+  server therefore takes upstream's backoff before the run ends as an
+  infrastructure error.
+- Trace accounting beyond turns, tool calls, tokens and finish reasons
+  (roadmap milestone 4).
 
 ## 8. What would be a genuine contribution
 
