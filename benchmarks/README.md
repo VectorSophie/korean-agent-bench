@@ -21,8 +21,11 @@ starts a model server; serving is covered by `docs/protocol/EXPERIMENT_PROTOCOL.
 ## Setup (CPU only, ~2.4 GB)
 
 ```bash
-benchmarks/setup.sh all     # .cache/venv-bfcl, .cache/venv-swebench; verifies wheel sha256
+benchmarks/setup.sh all     # .cache/venv-bfcl, .cache/venv-swebench, .cache/venv-mini; verifies wheel sha256
 ```
+
+`mini` (mini-swe-agent 2.4.6, the Harness v2 agent harness) installs from the
+exact lock `benchmarks/mini-swe-agent/requirements.lock` (about 0.7 GB).
 
 ## BFCL
 

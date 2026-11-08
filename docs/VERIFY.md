@@ -19,6 +19,7 @@ cd korean-agent-bench
 git submodule status                 # no leading '+': checkout matches the pin
 (cd vendor/upstage-cli && bun install --frozen-lockfile)
 (cd harness && npm ci)
+benchmarks/setup.sh mini             # mini-swe-agent venv for h33/h34 (else they skip)
 ```
 
 ## Checks
@@ -34,8 +35,8 @@ npm run benchmark:validate           # benchmark-v1 manifest
 npm run benchmark:qa                 # Docker: each fixture fails at baseline, passes with its reference solution
 ```
 
-Expected as of 2026-11-08 (submodule at `802cddd`): unit 425/425 (h32 added
-with Harness v2), `validate: OK (15 tasks, 0 warnings)`. Last full Docker-tier
+Expected as of 2026-11-08 (submodule at `802cddd`): unit 449/449 with the
+mini venv (h32–h35, Harness v2), `validate: OK (15 tasks, 0 warnings)`. Last full Docker-tier
 and QA counts recorded: 35/35 and 15/15 on 2026-10-29 (submodule `7380ef6`);
 the count may have grown since; CI on each PR is authoritative.
 

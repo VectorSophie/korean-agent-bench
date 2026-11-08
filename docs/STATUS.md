@@ -28,9 +28,18 @@ real upstream tool or data) · **not executed** · **planned** · **unsupported*
 | SWE-bench stage 2 (50 more instances) | **not executed** (resource decision: Docker storage) | `results/main-2026-10-30-v1/records/stage2-decision.json` |
 | Live serving preflight | verified (REPORTABLE before every BFCL round and SWE-bench attempt) | campaign runtime records |
 | Harness v2: agent-harness identity contract (`provenance.agentHarness`, `kab.agent-harness/v1`) | tested (`h32`, `h30`); no model run | `harness/src/agent/harness-config.mjs`; HARNESS_V2 §6 |
+| mini-swe-agent 2.4.6 as agent harness (`--agent mini-swe-agent --model <key>`, `kab.task/v2`, bridge into the KAB Docker sandbox) | tested offline: h33 (fake model + fake container), h34 (fake model, **real** DockerSandbox, official image); **no model run** | HARNESS_V2 §7 |
+| Queue-held serving session (`models/serving/kserve-session.sh`) | tested with fake docker/nvidia-smi/curl (h35); **not run under the real queue** | `docs/ops/MODEL_OPERATIONS.md` |
 | v1 retrieval query uses only SWE-bench wrapper words; Docker `run_shell` splits argv without quotes | characterized offline (`h32`); effect on v1 outcomes **unknown** | HARNESS_V2 §3A–B |
 
-## Verified on 2026-11-08
+## Verified on 2026-11-08 (mini-swe-agent branch)
+
+Unit **449/449** (h33 included; mini venv present), lint, check; Docker
+tests with local images h12, h17, h31, h34 **20/20**; h35 9/9 (fakes). One
+unit-suite run earlier that day had a single failure that did not reproduce in
+three later full runs (not identified).
+
+## Verified on 2026-11-08 (foundation)
 
 Local (Node v24.21.0, Bun 1.4.2, Python 3.12.3, Docker 29.1.3), branch
 `feat/harness-v2-foundation`: harness unit **425/425**, lint, check, smoke;
@@ -82,9 +91,9 @@ limitations: `docs/research/FOUR_MODEL_COMPARISON.md`.
    storage or rotation.
 3. The escaping-symlink guard skips nested `.git` directories (Gate C minor;
    pre-existing, not shown exploitable).
-4. **Serving under the shared GPU queue.** The host now requires GPU work to go
-   through a queue; the launchers start detached containers that a queue slot
-   cannot hold. Decide before the next live run (`docs/ops/MODEL_OPERATIONS.md`).
+4. **Serving under the shared GPU queue.** Proposed: `models/serving/kserve-session.sh`
+   (foreground queue job; tested with fakes). Needs owner approval and a first
+   supervised live use (`docs/ops/MODEL_OPERATIONS.md`).
 5. Host paths are constants in `models/serving/kserve*.sh` and
    `benchmarks/campaign/campaign.py` (hub path).
 6. Harness v2 milestones 3–8 (`docs/ROADMAP.md`).

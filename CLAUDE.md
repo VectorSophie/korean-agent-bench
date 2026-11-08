@@ -16,9 +16,11 @@ accounting, campaign orchestration and reporting. Never confuse the two.
   `docs/research/FOUR_MODEL_COMPARISON.md`, `results/main-2026-10-30-v1/`.
 - **v2 is in design.** The question is *when does scaffolding become a
   burden?*: harness × tool interface × context policy × budget. Read
-  `docs/research/HARNESS_V2.md` and `docs/ROADMAP.md`. Only the identity
-  contract exists (`harness/src/agent/harness-config.mjs`). No v2 experiment
-  has run.
+  `docs/research/HARNESS_V2.md` and `docs/ROADMAP.md`. In place: the identity
+  contract (`harness/src/agent/harness-config.mjs`), `kab.task/v2`, and
+  mini-swe-agent 2.4.6 as the first external harness, **integrated offline
+  only** (HARNESS_V2 §7). No v2 experiment has run, and no model has run
+  through mini.
 - Dated status and open items: `docs/STATUS.md`.
 
 ## Frozen: do not change
@@ -37,7 +39,8 @@ research history to match a newer narrative.
 | `harness/src/upstream.mjs` | the **only** locator of upstage-cli. The allowed imports are listed in `docs/ARCHITECTURE.md` and enforced by `tests/h24` |
 | `benchmarks/` | official BFCL / SWE-bench tooling, `campaign/` driver, analysis, verify, report (Python) |
 | `datasets/registry.json` | every task set, its license and permitted use |
-| `models/serving/` | maintained launchers; `docs/ops/MODEL_OPERATIONS.md` |
+| `models/serving/` | maintained launchers and the queue-held `kserve-session.sh`; `docs/ops/MODEL_OPERATIONS.md` |
+| `harness/src/agent/adapters/mini-swe-agent.mjs`, `harness/src/agent/mini/kab_bridge.py` | mini-swe-agent adapter and its Python bridge (`benchmarks/setup.sh mini`) |
 | `docs/` | `STATUS`, `ARCHITECTURE`, `VERIFY`, `ROADMAP`, `adr/`, `research/`, `models/`, `ops/`, `protocol/`, `audits/` |
 
 Terminology: `provenance.harness` is KAB's evaluator. `provenance.agentHarness`
@@ -86,7 +89,7 @@ small images. See `docs/VERIFY.md`.
 |---|---|
 | any change | `docs/STATUS.md`, `docs/ARCHITECTURE.md` |
 | v2 research or design | `docs/research/HARNESS_V2.md`, `docs/ROADMAP.md`, `docs/research/FOUR_MODEL_COMPARISON.md` |
-| new agent adapter | `harness/src/agent/interface.mjs`, `harness-config.mjs`, `tests/h32`, HARNESS_V2 §6–7 |
+| new agent adapter | `harness/src/agent/interface.mjs`, `harness-config.mjs`, the mini adapter as the worked example, `tests/h32`–`h34`, HARNESS_V2 §6–7 |
 | models or serving | `docs/ops/MODEL_OPERATIONS.md`, `docs/models/`, ADR 0008, ADR 0010 |
 | external benchmarks | `benchmarks/README.md`, ADR 0009, `datasets/registry.json` |
 | running a campaign | `docs/protocol/EXPERIMENT_PROTOCOL.md`, ADR 0011, `benchmarks/campaign/` |
