@@ -41,6 +41,15 @@ IFS=, read -ra GPUS <<< "$CVD"
 if [ "${#GPUS[@]}" -ne "$TP" ]; then
   echo "REFUSED: $MODEL needs exactly $TP GPU(s); the queue assigned '$CVD'. Submit with -G $TP."; exit 3
 fi
+# A CUDA_VISIBLE_DEVICES exported in a shell is not an allocation. The queue's
+# ts client execs the job directly (parent = ts), and the gpuq wrapper exports
+# the shared queue's socket (plain `ts` uses another queue). Tests substitute
+# the parent name via KSERVE_SESSION_PARENT.
+QSOCK=${GPUQ_SOCKET:-$HOME/.local/state/gpuq/ts.sock}
+parent=$(ps -o comm= -p "$PPID" 2>/dev/null | tr -d ' ')
+if [ "$parent" != "${KSERVE_SESSION_PARENT:-ts}" ] || [ "${TS_SOCKET:-}" != "$QSOCK" ]; then
+  echo "REFUSED: not started by the shared GPU queue (parent '$parent', TS_SOCKET '${TS_SOCKET:-}'). Submit with: gpuq -L $NAME -G $TP $0 $MODEL"; exit 3
+fi
 # 2. Never adopt or replace a RUNNING server this session did not start (an
 #    exited leftover holds no GPU; the launcher clears it by name).
 existing=$(docker ps --format '{{.Names}}' | grep '^kserve-' || true)

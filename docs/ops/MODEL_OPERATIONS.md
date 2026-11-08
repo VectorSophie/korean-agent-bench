@@ -89,6 +89,8 @@ touch .cache/kserve-session/release                                          # e
 
 1. **Refuses outside an allocation.** `CUDA_VISIBLE_DEVICES` must be set by
    the queue (not empty, not `-1`) and hold exactly the model's TP count of GPUs.
+   The parent process must be the queue's `ts` client, and `TS_SOCKET` must be
+   the shared queue's socket, so an exported variable alone is not enough.
 2. **Refuses to adopt** any running `kserve-*` container. The launchers
    alone would treat "already running" as success. An exited leftover holds
    no GPU, and the launcher clears it by name.
@@ -104,10 +106,31 @@ touch .cache/kserve-session/release                                          # e
    readiness wait that can take minutes.
 
 Tested by `harness/tests/h35-kserve-session.test.mjs`, with fake `docker`,
-`nvidia-smi` and `curl` driving the real launchers. **Not yet verified:**
-running under the real queue. That would need a GPU allocation and the owner's
-approval. Also not verified: the queue's `CUDA_VISIBLE_DEVICES` convention for
-`-G` jobs (taken from the operator's queue documentation). Limit: a `SIGKILL`
+`nvidia-smi` and `curl` driving the real launchers.
+
+**Read-only audit against the queue (2026-11-08).** Source: the `gpuq`
+wrapper and task-spooler at commit `1522ab0` (the operator's build); `gpuq`
+itself was not run.
+
+- `client.c`: a `-G n` job gets `CUDA_VISIBLE_DEVICES` = the assigned NVML
+  indices joined with `,`; without `-G` it is `-1`. The wrapper sets
+  `CUDA_DEVICE_ORDER=PCI_BUS_ID`, so the indices are `nvidia-smi` indices,
+  which is what `NVIDIA_VISIBLE_DEVICES` in the launchers uses.
+- `execute.c`: the job is forked by the submitting `ts` client, runs in its
+  own session (`setsid`) and `execvp`s the command, so its parent is `ts`.
+- `client.c`: `gpuq -k` sends SIGTERM to the job's process group, which the
+  session traps.
+- `gpu.c`, `jobs.c`: a GPU is dispatchable only if no queue job holds it and
+  more than 90% of its memory is free, checked once at dispatch. An orphaned
+  server container (session SIGKILLed, or the `ts` client killed) therefore
+  blocks further dispatch to that GPU rather than sharing it.
+
+**Still unknown until a supervised live run:** how the session behaves if
+the `ts` server restarts while it runs (queue state is in memory only),
+whether vLLM's 0.92 memory fraction plus foreign processes passes the
+launchers' gate on a queue-assigned GPU, and the real readiness time. A
+SIGKILLed session or `ts` client leaves the container running until a person
+removes it. Limit: a `SIGKILL`
 of the session cannot be trapped. The orphaned container then blocks the next
 session (rule 2) until a person inspects it. `benchmarks/campaign/campaign.py`
 (v1, frozen) still calls the launchers directly. A v2 driver would submit

@@ -28,16 +28,19 @@ real upstream tool or data) · **not executed** · **planned** · **unsupported*
 | SWE-bench stage 2 (50 more instances) | **not executed** (resource decision: Docker storage) | `results/main-2026-10-30-v1/records/stage2-decision.json` |
 | Live serving preflight | verified (REPORTABLE before every BFCL round and SWE-bench attempt) | campaign runtime records |
 | Harness v2: agent-harness identity contract (`provenance.agentHarness`, `kab.agent-harness/v1`) | tested (`h32`, `h30`); no model run | `harness/src/agent/harness-config.mjs`; HARNESS_V2 §6 |
-| mini-swe-agent 2.4.6 as agent harness (`--agent mini-swe-agent --model <key>`, `kab.task/v2`, bridge into the KAB Docker sandbox) | tested offline: h33 (fake model + fake container), h34 (fake model, **real** DockerSandbox, official image); **no model run** | HARNESS_V2 §7 |
-| Host-side patch capture uses a harness-owned git dir (agent-planted git config/hooks can no longer run on the host; pre-existing hole, found by review) | tested (`h4` fails on the old tracker); v1 records audited: no tool call touched git config/hooks | HARNESS_V2 §7 "Security fix" |
-| Queue-held serving session (`models/serving/kserve-session.sh`) | tested with fake docker/nvidia-smi/curl (h35); **not run under the real queue** | `docs/ops/MODEL_OPERATIONS.md` |
+| mini-swe-agent 2.4.6 as agent harness (`--agent mini-swe-agent --model <key>`, `kab.task/v2`, bridge into the KAB Docker sandbox) | tested offline: h33 (fake model + fake container), h34 (fake model, **real** DockerSandbox, official image); **verified offline** into the official evaluator with a scripted model (gold resolved / empty / wrong unresolved); **no model run** | HARNESS_V2 §7; `benchmarks/swebench/validate_mini_offline.py` |
+| Host-side patch capture uses a harness-owned git dir (agent-planted git config/hooks can no longer run on the host; pre-existing hole, found by review) | tested (`h4` fails on the old tracker); v1 records audited: no tool call touched git config/hooks; landed separately (PR #16) | HARNESS_V2 §7 "Security fix" |
+| Queue-held serving session (`models/serving/kserve-session.sh`) | tested with fake docker/nvidia-smi/curl (h35); audited read-only against the queue's source; **not run under the real queue** | `docs/ops/MODEL_OPERATIONS.md` |
 | v1 retrieval query uses only SWE-bench wrapper words; Docker `run_shell` splits argv without quotes | characterized offline (`h32`); effect on v1 outcomes **unknown** | HARNESS_V2 §3A–B |
 
 ## Verified on 2026-11-08 (mini-swe-agent branch)
 
-See the PR #15 description for the counts after the review fixes. One
-unit-suite run earlier that day had a single failure that did not reproduce in
-three later full runs (not identified).
+Local, on top of the security fix: harness unit **467/467**, Docker tier
+**39/39** (incl. h34, local images only), `validate_mini_offline.py` PASS
+(official evaluator). CI
+results are per PR. The single unit failure seen earlier that day came from a
+run made while `runner.mjs` was mid-edit; 12 later full runs (6 per branch)
+had no failure, so no flaky test was found.
 
 ## Verified on 2026-11-08 (foundation)
 
@@ -92,8 +95,9 @@ limitations: `docs/research/FOUR_MODEL_COMPARISON.md`.
 3. The escaping-symlink guard skips nested `.git` directories (Gate C minor;
    pre-existing, not shown exploitable).
 4. **Serving under the shared GPU queue.** Proposed: `models/serving/kserve-session.sh`
-   (foreground queue job; tested with fakes). Needs owner approval and a first
-   supervised live use (`docs/ops/MODEL_OPERATIONS.md`).
+   (foreground queue job; tested with fakes; checked read-only against the
+   queue's source). Needs owner approval and a first supervised live use
+   (`docs/ops/MODEL_OPERATIONS.md`).
 5. The launchers' hub path is overridable (`KSERVE_HUB`, default unchanged);
    their cache paths and the hub path in `benchmarks/campaign/campaign.py` are
    still constants.

@@ -14,6 +14,9 @@ import { getLocalModelConfig } from "../src/agent/local-models.mjs";
 const SESSION = resolve(fileURLToPath(import.meta.url), "../../../models/serving/kserve-session.sh");
 const SOLAR_IMG = getLocalModelConfig("solar-open2").provenance.servingImage;
 const SOLAR_REV = getLocalModelConfig("solar-open2").provenance.revision;
+const QSOCK = "/nonexistent/gpuq/ts.sock";
+// the session's parent here is this test process (under gpuq it is the ts client)
+const SELF = spawnSync("ps", ["-o", "comm=", "-p", String(process.pid)], { encoding: "utf8" }).stdout.trim();
 
 function fakes({ healthy = true, existing = "" } = {}) {
   const dir = mkdtempSync(join(tmpdir(), "h35-"));
@@ -42,7 +45,8 @@ exit 0`);
   const snap = join(hub, "models--nota-ai--Solar-Open2-250B-Nota-NVFP4", "snapshots", SOLAR_REV);
   mkdirSync(snap, { recursive: true });
   writeFileSync(join(snap, "config.json"), "{}");
-  const env = { ...process.env, PATH: `${dir}:${process.env.PATH}`, KSERVE_HUB: hub, KSERVE_SESSION_DIR: join(dir, "session"), KSERVE_SESSION_POLL: "0.1" };
+  const env = { ...process.env, PATH: `${dir}:${process.env.PATH}`, KSERVE_HUB: hub, KSERVE_SESSION_DIR: join(dir, "session"), KSERVE_SESSION_POLL: "0.1",
+        KSERVE_SESSION_PARENT: SELF, TS_SOCKET: QSOCK, GPUQ_SOCKET: QSOCK };
   const containers = () => readFileSync(state, "utf8").split("\n").filter(Boolean).map((l) => l.split(" ")[0]);
   const calls = () => (existsSync(log) ? readFileSync(log, "utf8").trim().split("\n").filter(Boolean) : []);
   return { dir, env, containers, calls, session: join(dir, "session") };
@@ -67,6 +71,18 @@ describe("kserve-session: queue-held model server lifecycle (fakes only)", () =>
       const r = spawnSync("bash", [SESSION, "kanana"], { env, encoding: "utf8" });
       assert.equal(r.status, 3);
       assert.match(r.stdout, /not inside a GPU-queue allocation/);
+    }
+    assert.deepEqual(f.calls(), []);
+  });
+
+  it("refuses a CUDA_VISIBLE_DEVICES not set by the shared queue (wrong parent or socket)", () => {
+    const f = fakes();
+    for (const extra of [{ KSERVE_SESSION_PARENT: "" }, { TS_SOCKET: "/tmp/socket-ts.other" }, { TS_SOCKET: "" }]) {
+      const env = { ...f.env, CUDA_VISIBLE_DEVICES: "0", ...extra };
+      if (extra.KSERVE_SESSION_PARENT === "") delete env.KSERVE_SESSION_PARENT; // default: parent must be ts
+      const r = spawnSync("bash", [SESSION, "kanana"], { env, encoding: "utf8" });
+      assert.equal(r.status, 3, r.stdout);
+      assert.match(r.stdout, /not started by the shared GPU queue/);
     }
     assert.deepEqual(f.calls(), []);
   });

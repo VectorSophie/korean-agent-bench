@@ -353,6 +353,21 @@ Negative tests (h33) cover host execution, a cwd outside the mount, malformed
 commands, a foreign environment class, a modified config, a v2 run without a
 pinned descriptor, and a v1 adapter on a v2 task.
 
+### Official evaluator, offline (2026-11-08)
+
+`benchmarks/swebench/validate_mini_offline.py` runs `harness swebench run
+--agent mini-swe-agent` on the official instance `psf__requests-6028` (its
+official image, KAB's Docker sandbox, mini 2.4.6 with its verified install)
+with a **scripted** model that follows upstream's submit instructions. The
+submission goes through `harness swebench predictions` to the **official**
+evaluator: replayed gold patch **resolved**, empty submission
+**empty_patch**, ineffective diff **unresolved**. Each case also checks model
+identity (checkpoint, endpoint, sampling actually sent), the pinned harness,
+identical `harnessId`/`budgetId` across cases, `prediction_source =
+agent_submission`, stop reason `done`, one sandboxed action per model step,
+the kept trajectory, and that the submission equals git's diff of the
+replayed change. Pipeline checks, not scores; outputs stay under `.cache/`.
+
 ### Security fix found by the independent review (affects v1 code too)
 
 Before 2026-11-08, `PatchTracker` ran host `git add`/`git diff` inside the
@@ -362,15 +377,17 @@ the **host** run a command at patch capture. This was reproduced with git 2.43.
 The tracker now uses a harness-owned git directory outside the workspace, with
 no system or global config, hooks and fsmonitor off, and no external diff or
 textconv. The workspace `.git` is only touched before the agent starts
-(h4 regression tests fail on the old tracker). **v1 audit:** none of the 3,716
+(h4 regression tests fail on the old tracker). It landed separately, ahead
+of this integration (PR #16), with one more fix: the test patch is applied
+from stdin, not from a file in the workspace. **v1 audit:** none of the 3,716
 tool calls recorded in the 200 local main-campaign SWE-bench records touches
 git config, hooks, attributes or `.git`, and no v1 patch touches `.git`.
 
 ### Not yet done
 
-- No live model run, and no official evaluation of a mini prediction (the
-  replay validation of `results/swebench-offline-validation-2026-10-29/`
-  covers the evaluator, not this harness).
+- No live model run. The official-evaluator check above uses a scripted
+  model, so it says nothing about a real model's tool-call format, sampling
+  or context behaviour under mini.
 - The upstream retry loop (tenacity in mini's model client) is kept. A dead
   server therefore takes upstream's backoff before the run ends as an
   infrastructure error.
