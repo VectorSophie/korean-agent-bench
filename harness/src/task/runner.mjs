@@ -152,8 +152,10 @@ export class TaskRunner {
     const workdir = mkdtempSync(join(tmpdir(), `harness-${safe(task.id)}-`));
 
     // Ctrl-C / SIGTERM: containers and the workspace must not outlive the run
+    let patchTracker = null;
     const cleanup = () => {
       try { sandbox.teardown(); } catch { /* best effort */ }
+      try { patchTracker?.dispose(); } catch { /* best effort */ }
       try { rmSync(workdir, { recursive: true, force: true }); } catch { /* best effort */ }
     };
     const onSignal = (sig) => {
@@ -169,7 +171,7 @@ export class TaskRunner {
       // sandbox and turned into spurious hunks in every captured patch.
       cpSync(repoPath, workdir, { recursive: true, verbatimSymlinks: true });
 
-      const patchTracker = new PatchTracker(workdir);
+      patchTracker = new PatchTracker(workdir);
       const initialCommit = await patchTracker.captureInitial({ commit: task.commit || null });
       await sandbox.setup(workdir);
 
@@ -351,6 +353,7 @@ export class TaskRunner {
       } catch {
         // ignore cleanup errors
       }
+      try { patchTracker?.dispose(); } catch { /* ignore */ }
     }
   }
 
