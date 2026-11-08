@@ -4,6 +4,8 @@ import { createToolPolicy, enforceToolPolicy } from "../tool-policy.mjs";
 import { confineRegistryToSandbox, confineFileTools, removeEscapingSymlinks } from "../sandboxed-tools.mjs";
 
 import { importFromCli } from "../../upstream.mjs";
+import { describeUpstageCliHarness } from "../harness-config.mjs";
+import { getHarnessInfo } from "../../task/runner.mjs";
 
 /**
  * The tool registry an agent gets for one attempt — the same one the live
@@ -85,6 +87,7 @@ export class UpstageAgent extends CodingAgent {
     const adapter = new UpstageAdapter({ model: this._model || undefined });
     const session = createSession(workdir);
 
+    const loopBudget = { ...DEFAULT_LOOP_BUDGET, maxSteps: maxTurns, maxWallTimeMs: timeoutMs };
     const gen = runAgentLoop({
       input: task.prompt,
       registry,
@@ -93,7 +96,7 @@ export class UpstageAgent extends CodingAgent {
       stream: false,
       session,
       // maxTurns / timeout are enforced through the loop budget (settings.maxTurns is not read by the loop)
-      budget: { ...DEFAULT_LOOP_BUDGET, maxSteps: maxTurns, maxWallTimeMs: timeoutMs },
+      budget: loopBudget,
       settings: {},
       addDirs: []
     });
@@ -122,7 +125,14 @@ export class UpstageAgent extends CodingAgent {
         maxOutputTokens: null,
         contextLimit: null
       },
-      tools: { ...tools, schemaHash: toolSchemaHash }
+      tools: { ...tools, schemaHash: toolSchemaHash },
+      harness: describeUpstageCliHarness({
+        cli: getHarnessInfo().upstageCli,
+        tools: { ...tools, schemaHash: toolSchemaHash },
+        sandboxed: executor?.type === "docker",
+        language: null,
+        budget: { maxTurns, maxToolCalls: loopBudget.maxToolCalls, timeoutSec: timeoutMs / 1000 }
+      })
     };
   }
 }

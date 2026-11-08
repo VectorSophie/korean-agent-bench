@@ -71,6 +71,17 @@ describe("context budget reaches the real upstage-cli loop", () => {
         { contextLimit: recorded.contextLimit, maxOutputTokens: recorded.maxOutputTokens, charsPerToken: recorded.charsPerToken },
         { contextLimit: cfg.contextLimit, maxOutputTokens: cfg.contextOutputReservation, charsPerToken: cfg.contextCharsPerToken }
       );
+      // Harness v2 identity: the same envelope, recorded as the agent harness's budget
+      const h = run.provenance.agentHarness;
+      assert.equal(h.implementation.name, "upstage-cli");
+      assert.equal(h.implementation.revision, run.provenance.harness.upstageCli.commit);
+      assert.deepEqual(
+        { maxTurns: h.budget.maxTurns, maxOutputTokens: h.budget.maxOutputTokens, contextLimit: h.budget.contextLimit, outputReservation: h.budget.outputReservation },
+        { maxTurns: 2, maxOutputTokens: cfg.maxOutputTokens, contextLimit: cfg.contextLimit, outputReservation: cfg.contextOutputReservation }
+      );
+      assert.deepEqual(h.policies.toolInterface.advertised, [...run.provenance.tools.advertised].sort());
+      assert.equal(h.policies.toolInterface.schemaHash, run.provenance.tools.schemaHash);
+      assert.match(h.harnessId, /^[0-9a-f]{64}$/);
       assert.equal(requests.length, 1);
       assert.ok(tokenizeCalls.length >= 1, "the exact count was requested");
       assert.equal(tokenizeCalls[0].model, cfg.servedModelName);

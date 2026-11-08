@@ -15,6 +15,7 @@ import { AuditLog } from "../tracking/audit-log.mjs";
 import { CostTracker } from "../tracking/cost-tracker.mjs";
 import { writeReport } from "../report/generator.mjs";
 import { CLI_ROOT } from "../upstream.mjs";
+import { finalizeAgentHarness } from "../agent/harness-config.mjs";
 
 const HARNESS_DIR = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -178,10 +179,14 @@ export class TaskRunner {
       const agentContext = { workdir, sandbox: task.sandbox || {}, executor: sandbox, auditLog, task };
       let agentResult;
       let agentError = null;
+      let agentHarness = null;
       const agentStart = Date.now();
       try {
         agentResult = await adapter.run(task, agentContext);
         agentError = validateAgentResult(agentResult);
+        // Agent-harness identity (Harness v2): optional for now; an invalid
+        // descriptor is an infrastructure error, never a silently unlabeled run.
+        if (!agentError && agentResult.harness != null) agentHarness = finalizeAgentHarness(agentResult.harness);
       } catch (err) {
         agentError = `adapter threw: ${err instanceof Error ? err.message : String(err)}`;
       }
@@ -303,6 +308,7 @@ export class TaskRunner {
           repo: { source: task.repo, pinnedCommit: task.commit ?? null, initialCommit, testPatchApplied: !!task.testPatch && !infraError },
           agent: { id: agentId, adapter: adapter.constructor?.name ?? null, displayName: adapter.displayName ?? null },
           model: agentResult.model ?? null,
+          agentHarness,
           limits: { maxTurns: task.agent?.maxTurns ?? null, maxTokens: task.agent?.maxTokens ?? null, timeoutSec },
           tools: agentResult.tools ?? null,
           environment: {
