@@ -4,6 +4,7 @@ import { ClaudeCodeAgent } from "./adapters/claude-code.mjs";
 import { AiderAgent } from "./adapters/aider.mjs";
 import { OpenCodeAgent } from "./adapters/opencode.mjs";
 import { LocalModelAgent } from "./adapters/local.mjs";
+import { MiniSweAgent } from "./adapters/mini-swe-agent.mjs";
 
 const BUILTIN_ADAPTERS = [
   { ids: ["mock"], factory: () => new MockAgent() },
@@ -23,7 +24,10 @@ const BUILTIN_ADAPTERS = [
   { ids: ["exaone"], factory: (opts) => new LocalModelAgent({ ...opts, model: "exaone" }) },
   { ids: ["exaone-nothink"], factory: (opts) => new LocalModelAgent({ ...opts, model: "exaone-nothink" }) },
   { ids: ["ax"], factory: (opts) => new LocalModelAgent({ ...opts, model: "ax" }) },
-  { ids: ["solar-open2"], factory: (opts) => new LocalModelAgent({ ...opts, model: "solar-open2" }) }
+  { ids: ["solar-open2"], factory: (opts) => new LocalModelAgent({ ...opts, model: "solar-open2" }) },
+  // Harness v2: mini-swe-agent (pinned, offline-validated) driving a local
+  // model: `--agent mini-swe-agent --model <key>`. Runs kab.task/v2 tasks only.
+  { ids: ["mini-swe-agent"], factory: (opts) => new MiniSweAgent(opts) }
 ];
 
 export class AgentRegistry {

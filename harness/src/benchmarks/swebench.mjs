@@ -158,15 +158,52 @@ export function buildTask(instance, { repoDir, image = instance.image, envelope 
   };
 }
 
+/**
+ * Harness v2 task (`kab.task/v2`): the official instance only. Unlike v1 it has
+ * no `agent` block (no upstage-cli tool names, no turn budget) and the prompt
+ * is the raw problem statement; each agent harness applies its own template,
+ * tools and budget, which are recorded in provenance.agentHarness.
+ */
+export const TASK_V2_SANDBOX = Object.freeze({ timeoutSec: ENVELOPE.timeoutSec, memory: ENVELOPE.memory, cpus: ENVELOPE.cpus, path: ENVELOPE.path });
+
+export function buildTaskV2(instance, { repoDir, image = instance.image, sandbox = TASK_V2_SANDBOX } = {}) {
+  return {
+    schema: "kab.task/v2",
+    id: `swebench-${instance.instance_id}`,
+    version: 2,
+    description: `SWE-bench Verified ${instance.instance_id} (prediction generation only)`,
+    repo: repoDir,
+    prompt: instance.problem_statement,
+    sandbox: {
+      type: "docker", image, network: "none", timeout: sandbox.timeoutSec, dependencies: "image",
+      memory: sandbox.memory, cpus: sandbox.cpus, env: { PATH: sandbox.path }
+    },
+    checks: { fail_to_pass: [], pass_to_pass: [], custom: [] },
+    tags: ["swebench-verified", "prediction-only"],
+    _meta: {
+      source: "swebench-verified",
+      dataset: DATASET,
+      version: REVISION,
+      instance_id: instance.instance_id,
+      base_commit: instance.base_commit,
+      promptTemplate: null,
+      officialEvaluation: "swebench.harness.run_evaluation"
+    }
+  };
+}
+
 /** A run record → one official prediction row. Missing patch → "" (the
- *  official evaluator classifies it as an empty patch). */
+ *  official evaluator classifies it as an empty patch). The patch is the one
+ *  the run names as its prediction (workspace diff unless the agent harness
+ *  submits its own, e.g. mini-swe-agent). */
 export function toPrediction(run, modelName) {
   const instanceId = run?.provenance?.task?.id?.replace(/^swebench-/, "");
   if (!instanceId || !run.id) throw new Error("not a SWE-bench run record");
+  const patch = run.patch?.prediction_source === "agent_submission" ? run.patch.agent_submission : run.patch?.model_patch;
   return {
     instance_id: instanceId,
     model_name_or_path: modelName,
-    model_patch: typeof run.patch?.model_patch === "string" ? run.patch.model_patch : ""
+    model_patch: typeof patch === "string" ? patch : ""
   };
 }
 

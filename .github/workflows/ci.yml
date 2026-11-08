@@ -38,6 +38,14 @@ jobs:
         run: bun install --frozen-lockfile
         working-directory: vendor/upstage-cli
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: mini-swe-agent (pinned wheel + lock; Harness v2 tests h33/h34)
+        working-directory: .
+        run: benchmarks/setup.sh mini
+
       - name: Install harness dependencies
         run: npm ci
 

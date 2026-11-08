@@ -139,6 +139,14 @@ export class TaskRunner {
       throw new Error(`Task repo not found locally: ${repoPath}${/^[\w.-]+\/[\w.-]+$/.test(task.repo) ? " (looks like a GitHub owner/name — clone it first)" : ""}`);
     }
 
+    // Harness v2 tasks carry no agent-specific settings (tools, budget); only
+    // an adapter written for them may run them, and it must declare a pinned
+    // agent harness (checked after the run).
+    const taskV2 = task.schema === "kab.task/v2";
+    if (taskV2 && adapter.taskSchema !== "kab.task/v2") {
+      throw new Error(`Agent '${adapter.id}' does not support task schema kab.task/v2 (task '${task.id}')`);
+    }
+
     const sandbox = this._selectSandbox(task);
     if (sandbox.type === "docker" && !adapter.supportsSandbox) {
       throw new Error(`Agent '${adapter.id}' executes commands on the host and cannot be isolated; refusing to run it on sandbox.type=docker task '${task.id}'`);
@@ -191,6 +199,7 @@ export class TaskRunner {
         // Agent-harness identity (Harness v2): optional for now; an invalid
         // descriptor is an infrastructure error, never a silently unlabeled run.
         if (!agentError && agentResult.harness != null) agentHarness = finalizeAgentHarness(agentResult.harness);
+        if (!agentError && taskV2 && !agentHarness?.pinned) agentError = "kab.task/v2 requires a pinned agent-harness descriptor (provenance.agentHarness)";
       } catch (err) {
         agentError = `adapter threw: ${err instanceof Error ? err.message : String(err)}`;
       }
@@ -297,13 +306,18 @@ export class TaskRunner {
         patch: {
           initialCommit,
           model_patch: patchRecord.unifiedDiff,
-          filesChanged: patchRecord.filesChanged
+          filesChanged: patchRecord.filesChanged,
+          // Which patch is the prediction: the workspace diff (v1, default) or
+          // the agent's own submission (e.g. mini-swe-agent). Both are kept.
+          prediction_source: agentResult.predictionSource === "agent_submission" ? "agent_submission" : "workspace_diff",
+          agent_submission: typeof agentResult.submission === "string" ? agentResult.submission : null
         },
         sandbox: sandboxInfo,
         provenance: {
           harness: getHarnessInfo(),
           task: {
             id: task.id,
+            schema: task.schema ?? "kab.task/v1",
             version: task.version ?? null,
             specSha256: createHash("sha256").update(JSON.stringify(task)).digest("hex"),
             dataset: task._meta?.source ?? null,
