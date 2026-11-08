@@ -22,7 +22,7 @@ All work was done from fresh clones. The existing local checkout
 |---|---|---|
 | upstage-cli `harness/**` (master) | `harness/**` | `git filter-repo --path harness/ --path HARNESS.md`; 41 commits (38 touching harness, plus merges), authors and dates kept, each with an `Upstream-Commit:` trailer |
 | upstage-cli `HARNESS.md` | `harness/docs/HARNESS.md` | same history (`--path-rename`) |
-| upstage-cli `src/**` | `vendor/upstage-cli` (submodule; pinned `6d1e932` at extraction, now `7380ef6`, the cleanup merge) | not copied (ADR 0002; pin history there) |
+| upstage-cli `src/**` | `vendor/upstage-cli` (submodule; pinned `6d1e932` at extraction, then `7380ef6`, the cleanup merge; later moves in ADR 0002, `802cddd` as of 2026-11-08) | not copied (ADR 0002; pin history there) |
 | upstage-cli `eslint.config.mjs` (re-exported by the harness) | inlined into `harness/eslint.config.mjs` | same rules |
 | upstage-cli `src/model/local-openai-adapter.mjs` | stays upstream, loaded via the submodule | ADR 0006 |
 | PR #12 content | branch `import/upstage-cli-pr-12` (not merged into `main`) | patch re-applied minus held-out material; see below |

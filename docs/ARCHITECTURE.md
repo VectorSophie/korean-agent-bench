@@ -11,7 +11,8 @@ korean-agent-bench/
 ├── harness/                 evaluation harness (Node, ESM) — migrated with history
 │   ├── src/upstream.mjs     the ONLY locator for upstage-cli (ADR 0002)
 │   ├── src/agent/           adapters (mock, upstage, local, claude-code, aider, opencode),
-│   │                        local-models.mjs (four-model registry), tool policy, sandboxed tools
+│   │                        local-models.mjs (four-model registry), tool policy, sandboxed tools,
+│   │                        harness-config.mjs (agent-harness identity, Harness v2)
 │   ├── src/task/            task schema, loader, runner (provenance), SWE-bench/Aider importers
 │   ├── src/sandbox/         native + Docker sandboxes, trusted read-only mount registry
 │   ├── src/evaluation/      checks, trusted evaluators, scorer, pass@k, failure taxonomy
@@ -21,7 +22,7 @@ korean-agent-bench/
 │   ├── tasks/ fixtures/     synthetic regression fixtures (datasets/registry.json)
 │   ├── benchmarks/v1/       benchmark-v1 manifest + reference solutions
 │   ├── docs/                harness docs and research reports (history preserved)
-│   └── tests/               h1–h29 (unit tier + Docker tier)
+│   └── tests/               h1–h32 (unit tier + Docker tier)
 ├── vendor/upstage-cli/      git submodule, pinned — the agent under test
 ├── benchmarks/              official-tooling integration: setup.sh, bfcl/, swebench/ (ADR 0009)
 ├── datasets/                registry.json (ADR 0003); bfcl/ and swe-bench-verified/ subsets, index, feasibility
@@ -93,7 +94,9 @@ Nothing in upstage-cli imports the harness.
 5. The run record is written with `provenance`: harness commit and
    dirtiness, upstage-cli checked-out and pinned commits (`upstageCli`),
    task spec hash, repo commits, agent, model configuration as declared in
-   `local-models.mjs`, limits, tools, environment image.
+   `local-models.mjs`, the agent-harness descriptor (`agentHarness`: scaffold
+   implementation and revision, policies, budget, `harnessId`/`budgetId`),
+   limits, tools, environment image.
 
 ## External benchmark data flow (ADR 0009)
 
@@ -123,7 +126,8 @@ live run of either.
 | Concern | Lives in |
 |---|---|
 | Which models, revisions, sampling, endpoints | `harness/src/agent/local-models.mjs` |
-| How a model is served | `models/serving-records/kserve*.sh` (operator) |
+| How a model is served | `models/serving/kserve*.sh` (operator; `docs/ops/MODEL_OPERATIONS.md`); `models/serving-records/` keeps the historical copies |
+| Which agent harness ran (scaffold, policies, budget) | `provenance.agentHarness` from the adapter, validated by `harness-config.mjs` (`docs/research/HARNESS_V2.md`) |
 | What a task set may be used for | `datasets/registry.json` |
 | How an agent behaves (loop, tools, prompts) | `vendor/upstage-cli` at its pin |
 | How a run is conducted and reported | `docs/protocol/EXPERIMENT_PROTOCOL.md` |

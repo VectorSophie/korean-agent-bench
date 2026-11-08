@@ -16,6 +16,10 @@ ability. The repository's own task sets are AI-authored regression fixtures,
 excluded from model comparison. Status and open items:
 [`docs/STATUS.md`](docs/STATUS.md).
 
+**Next (design, 2026-11-08): Harness v2**, *when does scaffolding become a
+burden?* [`docs/research/HARNESS_V2.md`](docs/research/HARNESS_V2.md),
+[`docs/ROADMAP.md`](docs/ROADMAP.md). New agents start at [`CLAUDE.md`](CLAUDE.md).
+
 ## Quick start
 
 ```bash
@@ -34,17 +38,19 @@ requires serving it first: [`docs/protocol/EXPERIMENT_PROTOCOL.md`](docs/protoco
 
 | | |
 |---|---|
+| [`CLAUDE.md`](CLAUDE.md) | entry point for coding agents: what is frozen, safety rules, what to read |
 | [`docs/STATUS.md`](docs/STATUS.md) | dated status: what works, what is verified, what is not yet known |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | layout, dependency boundary with upstage-cli, run data flow |
 | [`docs/adr/`](docs/adr/) | architecture decision records |
 | [`docs/models/`](docs/models/README.md) | one card per model: checkpoint, revision, quantization, serving, hardware, limitations |
 | [`docs/protocol/`](docs/protocol/EXPERIMENT_PROTOCOL.md) | how runs are prepared, executed and reported |
-| [`docs/research/`](docs/research/README.md) | dated research history and the four-model comparison |
+| [`docs/research/`](docs/research/README.md) | dated research history, the four-model comparison, and the Harness v2 design ([`HARNESS_V2.md`](docs/research/HARNESS_V2.md), [`ROADMAP.md`](docs/ROADMAP.md)) |
+| [`docs/ops/`](docs/ops/MODEL_OPERATIONS.md) | model storage, serving, preflight and shared-machine rules |
 | [`docs/MIGRATION.md`](docs/MIGRATION.md) | what moved from upstage-cli, how, and how it was verified |
 | [`benchmarks/`](benchmarks/README.md) | BFCL and SWE-bench Verified: acquisition, generation, official scoring |
 | [`datasets/registry.json`](datasets/registry.json) | every task set, its origin, version, license and permitted use |
 | [`docs/audits/`](docs/audits/) | dated audits (evidence disclosure, critique gates A–C) |
-| [`harness/`](harness/) | the harness ([`harness/docs/HARNESS.md`](harness/docs/HARNESS.md)) |
+| [`harness/`](harness/) | the evaluator (historical design doc: [`harness/docs/HARNESS.md`](harness/docs/HARNESS.md)) |
 | [`models/serving/`](models/serving/) | maintained model launchers |
 | [`models/serving-records/`](models/serving-records/) | model-serving evidence (verbatim, checksummed) |
 | [`results/`](results/) | run records and campaign results (checksummed) |

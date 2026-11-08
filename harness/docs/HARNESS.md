@@ -1,5 +1,11 @@
 # ✦✧ Harness — Agentic Evaluation Framework
 
+> **Historical document** (2026-04-27 → 2026-10-21, written while the harness
+> lived inside upstage-cli). Paths such as `src/sandbox/docker-flags.mjs` refer
+> to upstage-cli; the current CLI also has `preflight` and `swebench` commands
+> and needs Node ≥ 22. For the current system read `docs/ARCHITECTURE.md`,
+> `docs/VERIFY.md` and `CLAUDE.md` at the repository root.
+
 The harness is a standalone evaluation system inside `harness/` that benchmarks coding agents on real bug-fixing tasks. It consumes the main CLI's internals; for isolation it shares `src/sandbox/docker-flags.mjs` (the `docker run` security-flag builder) with the main agent.
 
 Positioned against the field:

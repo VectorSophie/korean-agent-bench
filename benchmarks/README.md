@@ -4,8 +4,9 @@ How to acquire, run and score BFCL and SWE-bench Verified with their
 **official** tooling. Decisions and limits: `docs/adr/0009-external-benchmark-integration.md`.
 Versions, licenses, subsets and provenance: `datasets/registry.json`.
 
-Status (2026-10-29): both pipelines are validated **offline** (mock model /
-replayed patches, official scorers). **No model has been run.** Nothing below
+Status: both pipelines were validated **offline** on 2026-10-29 (mock model /
+replayed patches, official scorers) and then used for the main comparison
+`main-2026-10-30-v1` (four models; `results/main-2026-10-30-v1/`). Nothing below
 starts a model server; serving is covered by `docs/protocol/EXPERIMENT_PROTOCOL.md`.
 
 | | BFCL | SWE-bench Verified |
