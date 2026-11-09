@@ -94,18 +94,26 @@ def call_record(index: int, response: Any) -> dict:
     }
 
 
-def observed(query, calls: list):
-    """Wraps model.query to record each call. Observation only: arguments,
-    return value and exceptions pass through unchanged. One record per
-    DefaultAgent model call (upstream's retries of one call are inside it,
-    so durationMs includes their backoff). Each record is sent to Node as it
-    happens, so a run that dies later still has its calls."""
+def observe(model, calls: list) -> None:
+    """Wraps model.query to record each logical call, and model._query (what
+    upstream's tenacity loop calls once per attempt) to count transport
+    attempts. Observation only: arguments, return values and exceptions pass
+    through unchanged. Each record is sent to Node as the call ends, so a run
+    that dies later still has its calls."""
     import time
 
     from minisweagent.exceptions import FormatError
 
+    query, raw_query = model.query, model._query
+    attempts = [0]
+
+    def counted(*args, **kwargs):
+        attempts[0] += 1
+        return raw_query(*args, **kwargs)
+
     def wrapper(*args, **kwargs):
         started, t0 = time.time(), time.monotonic()
+        attempts[0] = 0
         rec = None
         try:
             message = query(*args, **kwargs)
@@ -122,10 +130,12 @@ def observed(query, calls: list):
             raise
         finally:
             rec["startedAt"], rec["durationMs"] = int(started * 1000), int((time.monotonic() - t0) * 1000)
+            rec["transportAttempts"] = attempts[0]
             calls.append(rec)
             send({"type": "call", "record": rec})
 
-    return wrapper
+    model._query = counted
+    model.query = wrapper
 
 
 def main() -> int:
@@ -215,7 +225,8 @@ def main() -> int:
 
     env = KabBridgeEnvironment(**env_cfg)
     model = get_model(config=config["model"])
-    model.query = observed(model.query, calls)
+    if cfg.get("observe", True):
+        observe(model, calls)
     agent_cfg = dict(config["agent"])
     agent_cfg["output_path"] = Path(cfg["trajectoryPath"]) if cfg.get("trajectoryPath") else None
     agent = DefaultAgent(model, env, **agent_cfg)

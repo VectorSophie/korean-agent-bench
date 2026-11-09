@@ -4,6 +4,7 @@ import { buildAgentRegistry, extractUsage } from "./upstage.mjs";
 import { getLocalModelConfig, LOCAL_MODEL_IDS } from "../local-models.mjs";
 import { describeUpstageCliHarness } from "../harness-config.mjs";
 import { getHarnessInfo } from "../../task/runner.mjs";
+import { aggregateUsage, observeOpenAIAdapter } from "../model-calls.mjs";
 
 export const CONTEXT_SAFETY_MARGIN_RATIO = 0.05;
 
@@ -33,8 +34,11 @@ import { importFromCli } from "../../upstream.mjs";
  * and ONE registry path for every model — model differences are pure config.
  */
 export class LocalModelAgent extends CodingAgent {
-  constructor({ model, baseUrl, timeoutMs } = {}) {
+  /** observeCalls: per-call records (trace.modelCalls); false only for tests
+   *  that check the observation changes nothing. */
+  constructor({ model, baseUrl, timeoutMs, observeCalls = true } = {}) {
     super();
+    this._observeCalls = observeCalls;
     this._key = (model || "").toLowerCase() || null;
     this._config = this._key ? getLocalModelConfig(this._key) : null;
     this._baseUrlOverride = baseUrl || null;
@@ -123,6 +127,8 @@ export class LocalModelAgent extends CodingAgent {
       deadline: Date.now() + timeoutMs
     });
 
+    // Observation only (model-calls.mjs): same requests, results and errors.
+    const observer = this._observeCalls ? observeOpenAIAdapter(adapter) : null;
     const session = createSession(workdir);
 
     // The served model's validated limits, handed to upstage-cli's loop
@@ -164,7 +170,8 @@ export class LocalModelAgent extends CodingAgent {
       contextBudget
     });
 
-    const { result, events } = await collectAgentLoop(gen);
+    const { result, events } = await collectAgentLoop(observer ? observer.tapEvents(gen) : gen);
+    const modelCalls = observer ? observer.finish(events) : null;
 
     if (auditLog) auditLog.recordEvents(events);
 
@@ -189,7 +196,8 @@ export class LocalModelAgent extends CodingAgent {
         // (invalid JSON, no choices) still re-throw below.
         stopReason = "model_protocol_error";
       } else {
-        throw new Error(errMsg || "local model adapter error");
+        // calls made before the failure stay in the run record (runner.mjs)
+        throw Object.assign(new Error(errMsg || "local model adapter error"), { modelCalls });
       }
     }
 
@@ -202,7 +210,9 @@ export class LocalModelAgent extends CodingAgent {
       error: result?.ok ? undefined : result?.response,
       turns,
       toolCalls: events.filter((e) => e.type === "tool_start").length,
-      usage: extractUsage(events),
+      // per-call totals (null when unknown); usageFromEvents below is v1's sum
+      usage: modelCalls ? aggregateUsage(modelCalls) : extractUsage(events),
+      modelCalls,
       events,
       stopReason,
       // Provenance sink (runner stores this verbatim into provenance.model).
@@ -224,6 +234,9 @@ export class LocalModelAgent extends CodingAgent {
         baseUrl: this._resolvedBaseUrl(),
         contextBudget: { ...contextBudget, countTokens: "server /tokenize" },
         agentDiagnostics: agentDiagnostics(events),
+        // v1's token accounting (upstage-cli token_usage events: missing → 0,
+        // calls without usage skipped), kept to compare with v1 records
+        usageFromEvents: extractUsage(events),
         lastFinishReason: adapter.lastFinishReason ?? null,
         sampling: {
           temperature: adapter.temperature ?? null,

@@ -192,6 +192,78 @@ export function buildTaskV2(instance, { repoDir, image = instance.image, sandbox
   };
 }
 
+// ── One instance, several harnesses (Harness v2 Track A) ──────────────────
+// The common specification of an instance: what must be identical whatever
+// harness runs it. Each harness then gets its own task representation (the
+// frozen v1 task for upstage-cli, kab.task/v2 for mini-swe-agent); prompts,
+// tools and budgets are the documented per-harness differences.
+export const INSTANCE_SPEC_SCHEMA = "kab.swebench-instance/v1";
+const sha256 = (s) => createHash("sha256").update(s).digest("hex");
+const HARDENED_GIT = ["-c", "core.hooksPath=/dev/null", "-c", "core.fsmonitor=false"];
+
+/** Fails closed unless the snapshot is the untouched single-commit tree of base_commit. */
+export function instanceSpec(instance, { repoDir = snapshotDir(instance) } = {}) {
+  const marker = JSON.parse(readFileSync(join(repoDir, ".git", "kab-snapshot.json"), "utf8"));
+  if (marker.base_commit !== instance.base_commit || marker.repo !== instance.repo) {
+    throw new Error(`snapshot ${repoDir} is ${marker.repo}@${marker.base_commit}, not ${instance.repo}@${instance.base_commit}`);
+  }
+  const git = (...a) => execFileSync("git", [...HARDENED_GIT, ...a], { cwd: repoDir, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+  const tree = git("rev-parse", "HEAD^{tree}");
+  if (tree !== marker.tree) throw new Error(`snapshot ${repoDir}: HEAD tree ${tree} != recorded ${marker.tree}`);
+  if (git("status", "--porcelain", "--untracked-files=all") !== "") throw new Error(`snapshot ${repoDir} has uncommitted changes`);
+  const spec = {
+    schema: INSTANCE_SPEC_SCHEMA, dataset: DATASET, revision: REVISION,
+    instance_id: instance.instance_id, repo: instance.repo, base_commit: instance.base_commit,
+    snapshotTree: tree, image: instance.image, problemStatementSha256: sha256(instance.problem_statement),
+    scoring: { evaluator: "swebench.harness.run_evaluation", dataset: DATASET, revision: REVISION, instance_id: instance.instance_id }
+  };
+  // repoDir is where this machine keeps the snapshot; the tree is the identity
+  return { ...spec, specSha256: sha256(JSON.stringify(spec)), repoDir };
+}
+
+/** The task each harness runs for one instance specification. */
+export const TASK_FOR_HARNESS = Object.freeze({
+  "upstage-cli": (instance, spec) => buildTask(instance, { repoDir: spec.repoDir, image: spec.image }),
+  "mini-swe-agent": (instance, spec) => buildTaskV2(instance, { repoDir: spec.repoDir, image: spec.image })
+});
+
+/** What a task representation says about the instance, whatever its schema. */
+export function taskIdentity(task) {
+  return {
+    instance_id: task._meta?.instance_id ?? null, dataset: task._meta?.dataset ?? null, revision: task._meta?.version ?? null,
+    base_commit: task._meta?.base_commit ?? null, repoDir: task.repo ?? null, image: task.sandbox?.image ?? null,
+    evaluator: task._meta?.officialEvaluation ?? null, taskId: task.id
+  };
+}
+
+/** Throws unless the task is exactly the specified instance; returns the
+ *  documented per-harness differences (schema, prompt, budget). */
+export function verifyTaskIdentity(spec, task, instance) {
+  const got = taskIdentity(task);
+  const want = { instance_id: spec.instance_id, dataset: spec.dataset, revision: spec.revision, base_commit: spec.base_commit,
+    repoDir: spec.repoDir, image: spec.image, evaluator: spec.scoring.evaluator, taskId: `swebench-${spec.instance_id}` };
+  const bad = Object.keys(want).filter((k) => got[k] !== want[k]);
+  if (bad.length) throw new Error(`task ${task.id} does not match instance spec ${spec.instance_id}: ${bad.map((k) => `${k}=${JSON.stringify(got[k])} (want ${JSON.stringify(want[k])})`).join(", ")}`);
+  // the same issue text reaches every harness (wrapped in v1's template for upstage-cli)
+  if (sha256(instance.problem_statement) !== spec.problemStatementSha256 || typeof task.prompt !== "string" || !task.prompt.includes(instance.problem_statement)) {
+    throw new Error(`task ${task.id}: prompt does not carry the specified problem statement`);
+  }
+  return { schema: task.schema ?? "kab.task/v1", promptTemplate: task._meta.promptTemplate ?? null, promptSha256: sha256(task.prompt),
+    agentBudget: task.agent ? { maxTurns: task.agent.maxTurns, maxToolCalls: task.agent.maxToolCalls } : null };
+}
+
+/** Checks a finished run record against the task it was given (fail closed). */
+export function verifyRunAgainstTask(run, task, spec) {
+  const p = run?.provenance ?? {};
+  const problems = [];
+  if (p.task?.id !== task.id) problems.push(`provenance.task.id ${p.task?.id}`);
+  if (p.task?.specSha256 !== sha256(JSON.stringify(task))) problems.push("provenance.task.specSha256 differs from the task given");
+  if (p.environment?.image !== spec.image) problems.push(`environment.image ${p.environment?.image}`);
+  if (p.repo?.source !== spec.repoDir) problems.push(`repo.source ${p.repo?.source}`);
+  if (run?.instance_id !== task.id) problems.push(`instance_id ${run?.instance_id}`);
+  return problems;
+}
+
 /** A run record → one official prediction row. Missing patch → "" (the
  *  official evaluator classifies it as an empty patch). The patch is the one
  *  the run names as its prediction (workspace diff unless the agent harness

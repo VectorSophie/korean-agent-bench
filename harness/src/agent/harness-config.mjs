@@ -126,7 +126,7 @@ export function sourceSha256(paths) {
 // KAB code that changes what an upstage-cli agent can do: the registry builder
 // and Docker tool wrappers, the task tool policy, and the two adapters.
 export const UPSTAGE_ADAPTER_SOURCES = Object.freeze([
-  "src/agent/sandboxed-tools.mjs", "src/agent/tool-policy.mjs", "src/agent/adapters/upstage.mjs", "src/agent/adapters/local.mjs",
+  "src/agent/sandboxed-tools.mjs", "src/agent/tool-policy.mjs", "src/agent/adapters/upstage.mjs", "src/agent/adapters/local.mjs", "src/agent/model-calls.mjs",
   "src/sandbox/docker.mjs", "src/sandbox/native.mjs"
 ]);
 

@@ -1,0 +1,17 @@
+{
+ "schema": "kab.harness-pilot/v1",
+ "name": "harness-pilot-v1",
+ "purpose": "Feasibility of a Track A comparison (upstage-cli vs mini-swe-agent) under one served model: accounting, stop reasons, context exhaustion, effort per attempt. Not a benchmark; no ranking or significance claim. ADR 0012.",
+ "model": "exaone",
+ "instances": ["psf__requests-1724", "psf__requests-2931", "psf__requests-1142"],
+ "instanceSelection": "benchmarks/campaign/make_campaign.py pilot rule: psf/requests instances disjoint from datasets/swe-bench-verified/subset-v1.json, ranked by sha256('korean-agent-bench/pilot-v1:' + id); the first three. 1724 and 2931 are the v1 pilot instances; 1142 needs its official image pulled (owner approval) before execution.",
+ "arms": {
+  "A": { "harness": "upstage-cli", "budget": "v1 envelope (harness/src/benchmarks/swebench.mjs ENVELOPE): 30 loop steps, 60 tool calls, 2700 s, 8192 output reservation (input budget 7372)" },
+  "B": { "harness": "mini-swe-agent", "maxTurns": 250, "budget": "upstream swebench.yaml: 250 model calls, 2700 s wall clock; vLLM clamps max_tokens, so the prompt may grow to 16384" },
+  "B30": { "harness": "mini-swe-agent", "maxTurns": 30, "budget": "as B with 30 model calls: a sensitivity arm matched by call count, not a turn-matched control" }
+ },
+ "repeats": 2,
+ "orderSeed": "kab/harness-pilot-v1",
+ "resources": { "gpus": 1, "leaseSec": 14400, "attemptTimeoutSec": 2700, "attemptReserveSec": 3900, "maxSessions": 6, "maxAttempts": 18, "imagePulls": "only psf__requests-1142, with owner approval" },
+ "evaluation": "official SWE-bench evaluator (benchmarks/swebench/evaluate.py, swebench.harness.run_evaluation), one predictions file per (arm, repeat); every scheduled attempt in the denominator"
+}

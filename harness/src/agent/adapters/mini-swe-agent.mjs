@@ -16,6 +16,7 @@ import yaml from "js-yaml";
 import { CodingAgent } from "../interface.mjs";
 import { getLocalModelConfig, LOCAL_MODEL_IDS } from "../local-models.mjs";
 import { AGENT_HARNESS_SCHEMA, sourceSha256 } from "../harness-config.mjs";
+import { aggregateUsage, newCallRecord } from "../model-calls.mjs";
 
 const REPO_ROOT = resolve(fileURLToPath(import.meta.url), "../../../../..");
 const BRIDGE = resolve(fileURLToPath(import.meta.url), "../../mini/kab_bridge.py");
@@ -42,7 +43,7 @@ export const MINI = Object.freeze({
 export const MINI_LOCK = join(REPO_ROOT, "benchmarks/mini-swe-agent/requirements.lock");
 // Also the sandbox code that shapes what an action sees (output, isolation).
 export const MINI_ADAPTER_SOURCES = Object.freeze([
-  "src/agent/adapters/mini-swe-agent.mjs", "src/agent/mini/kab_bridge.py", "../benchmarks/mini-swe-agent/requirements.lock",
+  "src/agent/adapters/mini-swe-agent.mjs", "src/agent/mini/kab_bridge.py", "src/agent/model-calls.mjs", "../benchmarks/mini-swe-agent/requirements.lock",
   "src/sandbox/docker.mjs", "src/sandbox/native.mjs", "../vendor/upstage-cli/src/sandbox/docker-flags.mjs"
 ]);
 
@@ -105,20 +106,6 @@ export function loadUpstreamConfig(path = MINI.configPath) {
   return yaml.load(raw.toString("utf8"));
 }
 
-/** Run totals from per-call records (trace.modelCalls). Over the calls that
- *  returned a response (a call that failed without one, e.g. a context-length
- *  rejection, has no usage and is counted in failedCalls), each total is the
- *  exact sum of provider-reported values, or null when any of them lacks
- *  that value: an unknown is never counted as 0. */
-export function aggregateUsage(calls) {
-  const answered = calls.filter((c) => c.outcome !== "error");
-  const sum = (k) => (answered.every((c) => Number.isInteger(c[k])) ? answered.reduce((s, c) => s + c[k], 0) : null);
-  return {
-    promptTokens: sum("promptTokens"), completionTokens: sum("completionTokens"), totalTokens: sum("totalTokens"),
-    reasoningTokens: sum("reasoningTokens"), modelCalls: calls.length, failedCalls: calls.length - answered.length
-  };
-}
-
 // Upstream's TimeoutExpired path reports returncode -1 and this message shape.
 const timeoutInfo = (cmd, s) => `An error occurred while executing the command: Command '${cmd}' timed out after ${s} seconds`;
 
@@ -128,9 +115,12 @@ export class MiniSweAgent extends CodingAgent {
    * @param {string} o.model    local-models.mjs key (model identity stays there)
    * @param {string} [o.baseUrl] endpoint override (tests: a fake server)
    * @param {object} [o.budget] { maxTurns } — default: upstream step_limit
+   * @param {boolean} [o.observeCalls] per-call records; false only for tests
+   *   that check the observation changes nothing
    */
-  constructor({ model, baseUrl, budget = {}, python = MINI.python, configPath = MINI.configPath } = {}) {
+  constructor({ model, baseUrl, budget = {}, python = MINI.python, configPath = MINI.configPath, observeCalls = true } = {}) {
     super();
+    this._observeCalls = observeCalls;
     this._key = (model || "").toLowerCase() || null;
     this._config = this._key ? getLocalModelConfig(this._key) : null;
     this._baseUrl = baseUrl || null;
@@ -237,7 +227,7 @@ export class MiniSweAgent extends CodingAgent {
       const send = (o) => child.stdin.write(JSON.stringify(o) + "\n");
 
       send({
-        task: task.prompt, workdir: WORKDIR, trajectoryPath, overrides,
+        task: task.prompt, workdir: WORKDIR, trajectoryPath, overrides, observe: this._observeCalls,
         expectedVersion: MINI.version, configName: MINI.configName, expectedConfigSha256: MINI.configSha256,
         lock: readLock()
       });
@@ -253,7 +243,7 @@ export class MiniSweAgent extends CodingAgent {
             throw new Error(`mini bridge protocol error: ${e.message}`, { cause: e });
           }
           if (msg?.type === "call") {
-            calls.push({ ...msg.record, index: calls.length, firstToolCall: null, toolCallsExecuted: 0 });
+            calls.push(Object.assign(newCallRecord(calls.length), msg.record, { index: calls.length, firstToolCall: null, toolCallsExecuted: 0 }));
           } else if (msg?.type === "exec") {
             // the model call whose response asked for this action (exec ids are 1-based, in trace.toolCalls order)
             const c = calls.at(-1);
@@ -290,7 +280,7 @@ export class MiniSweAgent extends CodingAgent {
     if (result.killedAtDeadline) {
       return {
         ok: false, error: "TimeExceeded (bridge killed at the hard deadline)", turns: null, toolCalls: events.filter((e) => e.type === "tool_start").length,
-        usage: aggregateUsage(calls), modelCalls: calls, events, stopReason: "budget_exhausted", submission: "", trajectory
+        usage: this._observeCalls ? aggregateUsage(calls) : null, modelCalls: this._observeCalls ? calls : null, events, stopReason: "budget_exhausted", submission: "", trajectory
       };
     }
     const STOP = { Submitted: "done", LimitsExceeded: "budget_exhausted", TimeExceeded: "budget_exhausted", RepeatedFormatError: "model_protocol_error", ContextWindowExceededError: "context_exhausted" };
@@ -302,8 +292,8 @@ export class MiniSweAgent extends CodingAgent {
       error: result.exitStatus === "Submitted" ? undefined : result.exitStatus,
       turns: result.nCalls,
       toolCalls: result.nActions,
-      usage: aggregateUsage(calls),
-      modelCalls: calls,
+      usage: this._observeCalls ? aggregateUsage(calls) : null,
+      modelCalls: this._observeCalls ? calls : null,
       events,
       stopReason,
       // mini's own output is the prediction (as `mini-extra swebench` writes

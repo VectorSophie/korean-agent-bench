@@ -419,7 +419,9 @@ describe("mini-swe-agent per-call trace (trace.modelCalls) and context limit", {
     assert.equal(run.trace.stopReason, "done", run.trace.agentError ?? "");
     assert.equal(requests.length, 2, "two HTTP requests");
     assert.equal(run.trace.modelCalls.length, 1, "one model call");
-    assert.deepEqual([run.trace.modelCalls[0].outcome, run.trace.modelCalls[0].promptTokens], ["response", 600]);
+    assert.deepEqual([run.trace.modelCalls[0].outcome, run.trace.modelCalls[0].promptTokens, run.trace.modelCalls[0].transportAttempts], ["response", 600, 2],
+      "transport attempts = the HTTP requests the server saw (litellm adds none of its own here)");
+    assert.equal(run.metrics.transportAttempts, 2);
     assert.ok(run.trace.modelCalls[0].durationMs >= 3000, "upstream waits at least 4 s before retrying");
   });
 
@@ -437,6 +439,23 @@ describe("mini-swe-agent per-call trace (trace.modelCalls) and context limit", {
     assert.deepEqual(run.trace.modelCalls, [rec]);
     // unknown usage has an unknown cost, even for a priced model (was 0)
     assert.equal(new CostTracker(1, "solar-pro2").estimate({ promptTokens: null, completionTokens: null, totalTokens: null }), null);
+  });
+
+  it("observation changes nothing: same request bodies, tool calls, submission and trajectory messages", async () => {
+    const sequence = () => [withUsage(bash("cat calc.py"), 10, 1), withUsage(bash("sed -i 's/a - b/a + b/' calc.py", "git diff -- calc.py > patch.txt"), 20, 2), withUsage(bash(`echo ${SUBMIT} && cat patch.txt`), 30, 3)];
+    const outcome = async (observeCalls) => {
+      requests = [];
+      script = sequence();
+      const { run } = await runMini(synthRepo(), { observeCalls });
+      const msgs = run.trace.agentTrajectory.messages.map(({ extra: _e, ...m }) => m);
+      return { bodies: requests.map((r) => r.body), sub: run.patch.agent_submission, tools: run.trace.toolCalls.map((c) => c.args), msgs, mc: run.trace.modelCalls, usage: run.metrics.promptTokens };
+    };
+    const off = await outcome(false);
+    const on = await outcome(true);
+    assert.deepEqual([off.mc, off.usage], [null, null], "unobserved is unknown, not 0");
+    assert.equal(on.mc.length, 3);
+    assert.deepEqual(on.bodies, off.bodies);
+    assert.deepEqual([on.sub, on.tools, on.msgs], [off.sub, off.tools, off.msgs]);
   });
 
   it("approaching then exceeding 16K: a cut-off reply is a format error, vLLM's rejection ends as context_exhausted once, with no submission", async () => {

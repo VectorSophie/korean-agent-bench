@@ -11,6 +11,7 @@ import { aggregate } from "../evaluation/scorer.mjs";
 import { classifyFailure } from "../evaluation/taxonomy.mjs";
 import { selectSandbox } from "../sandbox/manager.mjs";
 import { PatchTracker } from "../tracking/patch-tracker.mjs";
+import { aggregateUsage } from "../agent/model-calls.mjs";
 import { AuditLog } from "../tracking/audit-log.mjs";
 import { CostTracker } from "../tracking/cost-tracker.mjs";
 import { writeReport } from "../report/generator.mjs";
@@ -258,7 +259,9 @@ export class TaskRunner {
 
       const completedAt = Date.now();
       const durationMs = completedAt - startedAt;
-      const usage = agentResult.usage && typeof agentResult.usage === "object" ? agentResult.usage : null;
+      // a failed run that kept its per-call records still has their totals
+      const usage = agentResult.usage && typeof agentResult.usage === "object" ? agentResult.usage
+        : Array.isArray(agentResult.modelCalls) ? aggregateUsage(agentResult.modelCalls) : null;
       const modelId = agentResult.model?.id ?? null;
       const estimatedCostUsd = new CostTracker(task.scoring?.costBudgetUsd || 1.0, modelId).estimate(usage);
 
@@ -272,6 +275,8 @@ export class TaskRunner {
         modelCalls: isCount(usage?.modelCalls) ? usage.modelCalls : null,
         // calls without a response (no usage; their tokens are not in the totals)
         failedModelCalls: isCount(usage?.failedCalls) ? usage.failedCalls : null,
+        // HTTP requests (client retries included); null when not observable
+        transportAttempts: isCount(usage?.transportAttempts) ? usage.transportAttempts : null,
         estimatedCostUsd,
         costPerSuccessfulFix: status === "pass" ? estimatedCostUsd : null,
         agentDurationMs,

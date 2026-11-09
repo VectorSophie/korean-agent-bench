@@ -507,11 +507,19 @@ limit is the expected ending on real instances. Not yet observed live.
 - The upstream retry loop (tenacity in mini's model client) is kept. A dead
   server therefore takes upstream's backoff before the run ends as an
   infrastructure error (now visible as `durationMs` of the failed call).
-- upstage-cli has no per-call record (`trace.modelCalls` is `null` for it);
-  its `token_usage` events turn missing usage into 0 and skip calls without
-  usage. Needed before the pilot (§8).
+- ~~upstage-cli has no per-call record~~ Done (2026-11-09): KAB observes the
+  adapter it constructs (`src/agent/model-calls.mjs`): same
+  `kab.model-call/v1` records, transport attempts counted at `fetch`, the
+  provider's raw usage read from a clone of the response; tested against a
+  scripted server (h36), including that requests, tool calls and patches are
+  identical with and without observation. upstage-cli's own `token_usage`
+  sum (missing usage → 0, calls without usage skipped) is kept as
+  `provenance.model.usageFromEvents` for comparison with v1.
 
-## 8. First controlled comparison: pilot protocol (proposed, not run)
+## 8. First controlled comparison: pilot protocol (ADR 0012, proposed, not run)
+
+The frozen design is [ADR 0012](../adr/0012-harness-pilot-v1.md) with
+`benchmarks/pilot/harness-pilot-v1.json`; this section is the reasoning.
 
 **Question.** Can upstage-cli and mini-SWE-agent be compared as systems
 (Track A) on the same served model, instances, limits and official
@@ -521,75 +529,106 @@ checks feasibility and measurement; it estimates no effect and ranks nothing.
 **Held constant.** EXAONE 4.5 33B FP8 at `69570ad5`, thinking on, vLLM 0.32.0
 by digest, `max_model_len` 16,384, sampling from `local-models.mjs`, preflight
 REPORTABLE at the start of each session; served through `kserve-session.sh`
-under `gpuq`. Same instance images (digest recorded), same KAB DockerSandbox
-flags, same `ENVELOPE` wall clock (2,700 s), memory and CPUs; official
+under `gpuq`. The same instance specification for every harness
+(`instanceSpec`: instance id, base commit, verified snapshot tree, image,
+issue text, scoring input; re-verified right before every attempt, and the run
+record checked against the task after it), same KAB
+DockerSandbox flags, same wall clock (2,700 s), memory and CPUs; official
 evaluator; every scheduled attempt is in the denominator.
 
-**Instances.** The three development instances already used for pipeline
-work, never the 50 main-comparison instances: `psf__requests-1724` and
-`psf__requests-2931` (the v1 pilot ids, chosen disjoint from
-`subset-v1.json` by `make_campaign.py`), and `psf__requests-6028` (offline
-validation). Their images are local (3.6–3.8 GB each, ≈11 GB); no pulls.
+**Instances (corrected 2026-11-09).** The earlier draft listed
+`psf__requests-6028`; it is in stage 1 of the **main** comparison
+(`subset-v1.json`), so it is not a development instance. The pilot rule of
+`make_campaign.py` (psf/requests, disjoint from the main subset, ranked by the
+pilot seed) gives `psf__requests-1724` and `psf__requests-2931` (the v1 pilot
+ids; images local) and then `psf__requests-1142` (image **not** local: one
+pull of about 3.6 GB, owner decision). [measured, offline] The official
+evaluator scores the bare **gold** patch of 1724 `unresolved` here: its
+FAIL_TO_PASS tests pass, but one PASS_TO_PASS test
+(`test_mixed_case_scheme_acceptable`) fails with a `ConnectionError` to
+httpbin. Every arm is therefore capped at `unresolved` on 1724 in this
+environment; its accounting is still informative. ADR 0012 leaves the choice
+(keep 1724 with its outcomes flagged, or replace it, which needs more pulls)
+to the owner.
 
-**Arms.** Turns are not a common unit: an upstage-cli turn is one loop step
-that may run several tools (and its planner/critic may make extra calls),
-while a mini step is exactly one model call. So no arm is "30 turns in both".
+**Arms.** Turns are not a common unit. In upstage-cli `802cddd` the agent
+loop has one model call site (`src/agent/loop.mjs`, `adapter.complete`), so a
+loop step makes at most one logical call [derived from code], but a step may
+run several tools; a mini step is exactly one logical call. So no arm is "30
+turns in both".
 
 | Arm | Harness | Native budget | `budgetId` |
 |---|---|---|---|
-| A | upstage-cli `802cddd`, v1 envelope (7 tools, English prompt) | 30 turns, 60 tool calls, 2,700 s, 8,192 output reservation | as v1 |
-| B | mini 2.4.6, upstream `swebench.yaml`, full history | 250 calls (upstream), 2,700 s | new |
-| B30 | as B | 30 calls, 2,700 s | new (a sensitivity arm matched by call count, not a turn-matched control) |
+| A | upstage-cli `802cddd`, v1 task and envelope (7 tools, English prompt) | 30 loop steps, 60 tool calls, 2,700 s, input budget 7,372 tokens | v1 envelope |
+| B | mini 2.4.6, upstream `swebench.yaml`, full history | 250 logical calls (upstream), 2,700 s, prompt up to 16,384 | new |
+| B30 | as B | 30 logical calls, 2,700 s | new (a sensitivity arm matched by call count, not a turn-matched control) |
 
 3 instances × 3 arms × 2 repeats (no seed control on the server) = 18 attempts.
 
-**Differs by construction (the native policies are what Track A compares;
-each is recorded, none is equalized).**
-- *Input budget.* upstage-cli reserves 8,192 tokens for output in its context
-  budget (ADR 0011), so its input budget is 7,372 tokens (§5); mini sends
-  `max_tokens` 8,192 but vLLM clamps it, so mini's prompt can grow to the
-  full 16,384. mini gets roughly twice the input context. Recorded as peak
-  prompt tokens per attempt. A mini arm capped at an 8K input would need a
-  KAB-side guard, i.e. a new `harnessId`; it is not in this pilot.
+**Differs by construction: Track A compares the native policies; none of
+these is an isolated effect of harness complexity.**
+- *Input budget.* upstage-cli reserves 8,192 tokens for output plus a 5%
+  safety margin, so its prompts stay within 7,372 tokens (ADR 0010/0011, §5).
+  mini sends `max_tokens` 8,192, which vLLM clamps to what is left, so its
+  prompt may grow to 16,384: up to 2.2× the input context. Any A-vs-B
+  difference therefore mixes harness design with input budget. Recorded per
+  attempt as peak prompt tokens.
 - *Reasoning in history.* mini re-sends earlier reasoning (15.2% of the
   smoke's prompt tokens); upstage-cli does not.
 - *Prompts, tools and parsers.* Each harness's own system prompt, tool
-  surface and output parser (§5, Track A confounds).
+  surface and output parser (§5, Track A confounds). The issue text is the
+  same (v1's template wraps it for upstage-cli; mini gets it raw).
 
-**Common accounting per attempt** (all from the run record):
+**Matched-input-budget sensitivity condition (defined for later; not in the
+pilot; neither baseline changes).** `B-in7372`: mini 2.4.6 as B, plus a
+KAB-side guard in the bridge that counts each outgoing prompt with the
+server's `/tokenize` (as upstage-cli's own budget does) and ends the run as
+`context_exhausted` before sending a prompt over 7,372 tokens. With that cap,
+`max_tokens` 8,192 always fits, so vLLM never clamps and both harnesses have
+the same input ceiling. It adds a termination rule to mini, so it is a
+separate condition: new `harnessId` (context policy
+`mini.full-history+input-cap-7372`) and its own `budgetId`, compared with A,
+never substituted for B. The mirror condition (upstage-cli with a 16K input
+budget) needs a different output reservation, which is a new upstage-cli
+budget and serving validation, and is not proposed.
+
+**Common accounting per attempt** (`accounting()` in the driver; all from the
+run record; unavailable measurements are `null`, never estimated):
 
 | Quantity | Definition |
 |---|---|
-| model calls | HTTP chat completions issued by the harness, including format errors and failed calls (`trace.modelCalls`) |
-| tokens | server-reported prompt, completion, reasoning; sums over answered calls; `null` if any is missing; peak prompt tokens; re-sent reasoning tokens (mini: from the audit; upstage-cli: 0 by construction) |
-| tool actions | commands/tools executed in the sandbox (`trace.toolCalls`), and the failed ones |
+| logical calls | model calls made by the harness's own loop: upstage-cli `adapter.complete()`, mini `model.query()`; including format errors and calls that failed without a response (`trace.modelCalls`, `metrics.modelCalls`, `failedModelCalls`) |
+| transport attempts | HTTP requests to `/chat/completions`, client retries included (`metrics.transportAttempts`). upstage-cli: counted at `fetch` (≤ 3 per call: `maxRetries` 2). mini: one per litellm `_query` call, i.e. per tenacity attempt (≤ 10 per call); in the installed litellm that is one HTTP request (no handler-level retries for hosted_vllm; code reading). Verified equal to the requests a scripted server received, retries included (h33, h36); `null` when not observable |
+| tool actions | commands/tools executed in the sandbox (`trace.toolCalls`), failed ones counted; each call's slice is `firstToolCall`/`toolCallsExecuted` |
+| loop steps | each harness's own step count (`metrics.turns`), reported, never compared as a common unit |
+| tokens | server-reported prompt, completion, reasoning, summed over answered calls (`null` if any is missing); peak prompt tokens; re-sent reasoning tokens (mini: replay audit; upstage-cli: 0 by construction) |
 | wall clock | agent time (contended machine; reported as such), plus per-call `durationMs` |
-| termination | common stop reason (`done`, `budget_exhausted`, `context_exhausted`, `model_protocol_error`, infrastructure error) |
+| termination | common stop reason (`done`, `budget_exhausted`, `context_exhausted`, `model_protocol_error`) or attempt state (`infra_error`, `provenance_error`, `interrupted`, `not_executed`) |
 | outcome | official evaluator: resolved / unresolved / empty patch / error, with the prediction source |
 
-**Prerequisites (blockers).**
-1. Per-call records for upstage-cli: a KAB-side wrapper around the model
-   adapter that KAB already constructs (no submodule change), producing the
-   same `kab.model-call/v1` records. Without it, "model calls" and token
-   totals are not comparable.
-2. A v2 driver that submits one `kserve-session.sh` session, runs the 18
-   attempts in a fixed interleaved order, runs predictions and the evaluator,
-   and records a manifest (`results/` stays v1-only until a protocol ADR).
-3. A preregistration (this section, frozen by an ADR) before any model sees
-   these instances under v2.
+**Driver (`harness pilot`, built and validated offline).** Fixed order (repeat
+blocks; within a block every instance × arm once, interleaved by the seed);
+attempt ids `r<repeat>-<arm>-<instance>`; a manifest rewritten atomically on
+every state change with the spec hash, KAB commit, instance specs and local
+image ids, run-record hashes, per-arm `harnessId`/`budgetId`; fail-closed
+checks after each attempt (task identity against the run record, pinned
+harness, model identity, per-call records present, harness/budget identity
+constant within an arm). Stops: *resumable* when no attempt is touched (the
+lease would not cover the next attempt's 3,900 s reserve, or a check before
+the first attempt failed, e.g. preflight); *terminal* for an infrastructure
+error, a provenance failure, an attempt found interrupted on resume (never
+re-run), an instance snapshot or image that differs from the one recorded, or
+the session ceiling (6). Evaluation: one predictions file per (arm, repeat), the official
+evaluator, `results.json` with every scheduled attempt and `SHA256SUMS`.
 
 **Resources (estimates).** GPU: one queue session on 1 GPU; ~4 min to
 healthy. Arm A: v1 EXAONE median 149 s per attempt, max 918 s (50 main
 attempts; contended). Arms B/B30: unknown; hard ceiling 2,700 s each. Expected
-total about 1.5–3 h of GPU time; worst case 18 × 45 min = 13.5 h, so the
-session lease should be 4 h with a stop rule (any infrastructure error or an
-unexpected queue/server event stops the pilot, no automatic retry). An
-attempt cut off by the lease ending is recorded as an infrastructure error and
-stays in the denominator; attempts not started are listed as not executed, and
-the pilot is reported as incomplete rather than resumed silently. Docker: no
-new images; one container per attempt (upstage-cli) or per action (mini); run
-records with trajectories are ~0.1–1 MB each. Evaluation: 18 predictions on
-CPU with local images.
+total about 1.5–3 h of GPU time. Worst case 18 × 65 min (2,700 s budget,
+mini's 900 s hard-deadline slack, setup and capture) = 19.5 h: sessions of 4 h,
+at most 6, each continuing a lease-stopped pilot. Docker: the 1142
+image if approved; one container per attempt (upstage-cli) or per action
+(mini); run records ~0.1–1 MB each. Evaluation: 6 predictions files on CPU.
 
 **Not answered by the pilot.** With 6 attempts per arm, resolution
 differences are not interpretable; the outputs are the accounting itself,
