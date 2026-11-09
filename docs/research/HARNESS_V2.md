@@ -383,18 +383,191 @@ from stdin, not from a file in the workspace. **v1 audit:** none of the 3,716
 tool calls recorded in the 200 local main-campaign SWE-bench records touches
 git config, hooks, attributes or `.git`, and no v1 patch touches `.git`.
 
+### First live integration smoke (2026-11-09, supervised)
+
+Integration validation, **not** a benchmark result. One EXAONE 4.5 FP8
+session (thinking on, 16K) through the shared GPU queue (`gpuq` job 55,
+`kserve-session.sh`, GPU 0, healthy after ~220 s, released and the container
+removed). Serving preflight REPORTABLE (15 verified, 0 mismatches). One
+synthetic two-function repository (no SWE-bench content) through mini 2.4.6
+and the KAB DockerSandbox, budget 30 calls / 900 s. Raw records:
+`.cache/live-smoke-2026-11-09/` (not committed).
+
+[measured] 15 model calls, 15 tool calls (one per call), 0 format errors;
+two failed commands (`git diff --calc.py`) that the model corrected itself;
+stop reason `done` (upstream `Submitted`) after 66 s; the submission is the
+one-line fix, applies to the base and is the prediction. Model, harness and
+budget identities recorded. Prompt tokens grew from 1,024 to 4,097. Run
+totals in `metrics`: 37,616 prompt + 2,020 completion = 39,636 tokens,
+exactly the sum of the 15 provider-reported values.
+
+One task on one trivial repository says nothing about EXAONE's capability
+with mini or about any other model.
+
+### Observability and context audit (2026-11-09, CPU only)
+
+**Usage was recorded; per-call records were not.** [measured] The smoke
+summary printed `usage: null` because it read `run.trace.usage`, a field
+that does not exist; the totals were in `run.metrics` all along.
+`trace.turns` *was* empty: `AuditLog` builds turns only from upstage-cli's
+`thinking` events, which mini never emits. The same mechanism is wrong for
+upstage-cli too: a v1 run with 30 model calls has one `trace.turns` entry
+(it opens a turn once per event batch). `trace.turns` is left as it is (v1
+records use it) and is not a per-call record for either harness.
+
+**`trace.modelCalls` (new, `kab.model-call/v1`).** The bridge wraps
+`model.query` for observation only (arguments, return value and exceptions
+pass through; prompts, sampling, termination and command execution are
+unchanged, h33). One record per mini model call:
+
+| Field | Meaning |
+|---|---|
+| `index`, `startedAt`, `durationMs` | call order; wall clock of the call, including upstream's retries/backoff for it |
+| `outcome`, `error` | `response` · `format_error` (a reply mini could not parse; still a model call) · `error` (no response, e.g. a context-length rejection) |
+| `promptTokens`, `completionTokens`, `totalTokens`, `reasoningTokens` | the provider's own usage fields, or `null`. litellm turns an absent usage block into zeros; prompt = total = 0 is that placeholder and is recorded as `null` (a chat prompt is never 0 tokens) |
+| `reasoningChars` | characters of returned reasoning text, or `null`; parser-independent (Kanana's `deepseek_r1` parser always reports `reasoning_tokens` 0, `local-models.mjs`) |
+| `finishReason`, `toolCallsRequested` | from the response |
+| `firstToolCall`, `toolCallsExecuted` | the slice of `trace.toolCalls` this call's actions produced (an action after a submission is not executed) |
+
+`metrics.promptTokens/completionTokens/totalTokens/reasoningTokens` are now
+exact sums over the calls that returned a response, or `null` when any of
+them lacks the value (never 0 for unknown); `metrics.modelCalls` counts every
+call, and `usage.failedCalls` those without a response. mini's native
+trajectory stays in `trace.agentTrajectory`, unchanged. The adapter sources
+are part of `adapterSha256`, so mini's `harnessId` changes with this
+instrumentation even though its behaviour does not; runs before and after
+are distinguishable, as intended.
+
+**Earlier reasoning is re-sent and re-tokenized.** Three layers, separated:
+
+1. *mini stores* each assistant message as litellm returns it, including
+   `reasoning_content`; `_prepare_messages_for_api` drops only `extra`.
+2. *litellm sends* it: replaying the 15 recorded calls through mini's own
+   `LitellmModel` to a capture server
+   (`benchmarks/mini-swe-agent/audit_request_history.py capture`) gives
+   request bodies in which every earlier assistant message carries
+   `reasoning_content` (15/15 calls; h33 asserts it on the wire).
+3. *the server tokenizes* it: EXAONE's chat template keeps an assistant
+   message's reasoning when it comes after the last user message with
+   string content, which in mini's loop is the task prompt, so every
+   earlier turn qualifies. Rendering each captured body with the checkpoint's
+   own `chat_template.jinja` and tokenizer (`... tokenize`) reproduces the
+   server's `prompt_tokens` **exactly on 15/15 calls** with reasoning, and on
+   1/15 (the first call, which has none) without. [measured] The difference
+   at call *k* equals exactly the provider-reported reasoning tokens of calls
+   0…*k*−1: 718 of 4,097 prompt tokens at the last call; 5,699 of 37,616
+   prompt tokens (15.2%) over the run.
+
+This is EXAONE's template doing what it is written to do for a tool loop
+within one user query; it is not a mini bug. **upstage-cli differs**:
+[derived from code, `802cddd` `src/agent/loop.mjs`] it appends assistant turns
+to history as `{role, content, tool_calls}`, so earlier reasoning is not
+sent back. The two harnesses therefore spend the same 16K differently by
+construction; the pilot records it rather than equalizing it (§8).
+Rendering was done with transformers, not vLLM's own code; the exact match on
+every call is the evidence that it is the same rendering.
+
+**Context limit (vLLM 0.32.0, from the pinned image's source).** [derived]
+The prompt alone may use the full `max_model_len` (16,384); `max_tokens` is
+clamped to 16,384 − prompt (`entrypoints/serve/utils/api_utils.py`
+`get_max_tokens`); a longer prompt is rejected with HTTP 400 "This model's
+maximum context length is 16384 tokens. However, your prompt contains N
+input tokens…" (`renderers/params.py`). The earlier reading that 8,192 tokens
+are reserved for output was wrong. Near the limit a mini run therefore sees
+cut-off replies first (`finish_reason=length`, which upstream answers with its
+truncation feedback as a format error), then the 400. litellm maps that 400
+to `ContextWindowExceededError`, which mini does not retry; the run ends
+`context_exhausted` with an empty submission. Tested offline (h33, the
+server's exact error text): one request, no retry, no submission although a
+`patch.txt` exists, partial-run provenance intact, not an infrastructure
+error. The full-history policy is unchanged; any pruning would be a separate,
+named condition with its own `harnessId`.
+
+[hypothesis] At this smoke's growth (~220 prompt tokens per call, plus
+re-sent reasoning) a run reaches 16K after roughly 50–70 calls; SWE-bench
+observations are much larger, so `context_exhausted` before mini's 250-step
+limit is the expected ending on real instances. Not yet observed live.
+
 ### Not yet done
 
-- No live model run. The official-evaluator check above uses a scripted
-  model, so it says nothing about a real model's tool-call format, sampling
-  or context behaviour under mini.
+- No mini run on a real SWE-bench instance with a real model.
 - The upstream retry loop (tenacity in mini's model client) is kept. A dead
   server therefore takes upstream's backoff before the run ends as an
-  infrastructure error.
-- Trace accounting beyond turns, tool calls, tokens and finish reasons
-  (roadmap milestone 4).
+  infrastructure error (now visible as `durationMs` of the failed call).
+- upstage-cli has no per-call record (`trace.modelCalls` is `null` for it);
+  its `token_usage` events turn missing usage into 0 and skip calls without
+  usage. Needed before the pilot (§8).
 
-## 8. What would be a genuine contribution
+## 8. First controlled comparison: pilot protocol (proposed, not run)
+
+**Question.** Can upstage-cli and mini-SWE-agent be compared as systems
+(Track A) on the same served model, instances, limits and official
+evaluator, with accounting that means the same thing in both? This pilot
+checks feasibility and measurement; it estimates no effect and ranks nothing.
+
+**Held constant.** EXAONE 4.5 33B FP8 at `69570ad5`, thinking on, vLLM 0.32.0
+by digest, `max_model_len` 16,384, sampling from `local-models.mjs`, preflight
+REPORTABLE at the start of each session; served through `kserve-session.sh`
+under `gpuq`. Same instance images (digest recorded), same KAB DockerSandbox
+flags, same `ENVELOPE` wall clock (2,700 s), memory and CPUs; official
+evaluator; every scheduled attempt is in the denominator.
+
+**Instances.** The three development instances already used for pipeline
+work, never the 50 main-comparison instances: `psf__requests-1724` and
+`psf__requests-2931` (the v1 pilot ids, chosen disjoint from
+`subset-v1.json` by `make_campaign.py`), and `psf__requests-6028` (offline
+validation). Their images are local (3.6–3.8 GB each, ≈11 GB); no pulls.
+
+**Arms.** Turns are not a common unit: an upstage-cli turn is one loop step
+that may run several tools (and its planner/critic may make extra calls),
+while a mini step is exactly one model call. So no arm is "30 turns in both".
+
+| Arm | Harness | Native budget | `budgetId` |
+|---|---|---|---|
+| A | upstage-cli `802cddd`, v1 envelope (7 tools, English prompt) | 30 turns, 60 tool calls, 2,700 s, 8,192 output reservation | as v1 |
+| B | mini 2.4.6, upstream `swebench.yaml`, full history | 250 calls (upstream), 2,700 s | new |
+| B30 | as B | 30 calls, 2,700 s | new (separates budget from harness) |
+
+3 instances × 3 arms × 2 repeats (no seed control on the server) = 18 attempts.
+
+**Common accounting per attempt** (all from the run record):
+
+| Quantity | Definition |
+|---|---|
+| model calls | HTTP chat completions issued by the harness, including format errors and failed calls (`trace.modelCalls`) |
+| tokens | server-reported prompt, completion, reasoning; sums over answered calls; `null` if any is missing; peak prompt tokens; re-sent reasoning tokens (mini: from the audit; upstage-cli: 0 by construction) |
+| tool actions | commands/tools executed in the sandbox (`trace.toolCalls`), and the failed ones |
+| wall clock | agent time (contended machine; reported as such), plus per-call `durationMs` |
+| termination | common stop reason (`done`, `budget_exhausted`, `context_exhausted`, `model_protocol_error`, infrastructure error) |
+| outcome | official evaluator: resolved / unresolved / empty patch / error, with the prediction source |
+
+**Prerequisites (blockers).**
+1. Per-call records for upstage-cli: a KAB-side wrapper around the model
+   adapter that KAB already constructs (no submodule change), producing the
+   same `kab.model-call/v1` records. Without it, "model calls" and token
+   totals are not comparable.
+2. A v2 driver that submits one `kserve-session.sh` session, runs the 18
+   attempts in a fixed interleaved order, runs predictions and the evaluator,
+   and records a manifest (`results/` stays v1-only until a protocol ADR).
+3. A preregistration (this section, frozen by an ADR) before any model sees
+   these instances under v2.
+
+**Resources (estimates).** GPU: one queue session on 1 GPU; ~4 min to
+healthy. Arm A: v1 EXAONE median 149 s per attempt, max 918 s (50 main
+attempts; contended). Arms B/B30: unknown; hard ceiling 2,700 s each. Expected
+total about 1.5–3 h of GPU time; worst case 18 × 45 min = 13.5 h, so the
+session lease should be 4 h with a stop rule (any infrastructure error or an
+unexpected queue/server event stops the pilot, no automatic retry). Docker: no
+new images; one container per attempt (upstage-cli) or per action (mini); run
+records with trajectories are ~0.1–1 MB each. Evaluation: 18 predictions on
+CPU with local images.
+
+**Not answered by the pilot.** With 6 attempts per arm, resolution
+differences are not interpretable; the outputs are the accounting itself,
+stop-reason distributions, context exhaustion, and a power analysis for a
+real comparison.
+
+## 9. What would be a genuine contribution
 
 - Single-factor causal estimates of scaffold components for open, locally
   served models under realistic local budgets, with full provenance. This is

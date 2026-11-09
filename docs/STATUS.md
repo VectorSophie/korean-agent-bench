@@ -1,6 +1,6 @@
 # Status
 
-Snapshot as of **2026-11-08** (v1 main comparison complete and frozen; Harness v2 in
+Snapshot as of **2026-11-09** (v1 main comparison complete and frozen; Harness v2 in
 design, `docs/research/HARNESS_V2.md`). Update with
 a new date whenever a claim below changes. Legend: **implemented** (code
 exists) · **tested** (automated tests) · **verified** (exercised against the
@@ -28,10 +28,26 @@ real upstream tool or data) · **not executed** · **planned** · **unsupported*
 | SWE-bench stage 2 (50 more instances) | **not executed** (resource decision: Docker storage) | `results/main-2026-10-30-v1/records/stage2-decision.json` |
 | Live serving preflight | verified (REPORTABLE before every BFCL round and SWE-bench attempt) | campaign runtime records |
 | Harness v2: agent-harness identity contract (`provenance.agentHarness`, `kab.agent-harness/v1`) | tested (`h32`, `h30`); no model run | `harness/src/agent/harness-config.mjs`; HARNESS_V2 §6 |
-| mini-swe-agent 2.4.6 as agent harness (`--agent mini-swe-agent --model <key>`, `kab.task/v2`, bridge into the KAB Docker sandbox) | tested offline: h33 (fake model + fake container), h34 (fake model, **real** DockerSandbox, official image); **verified offline** into the official evaluator with a scripted model (gold resolved / empty / wrong unresolved); **no model run** | HARNESS_V2 §7; `benchmarks/swebench/validate_mini_offline.py` |
+| mini-swe-agent 2.4.6 as agent harness (`--agent mini-swe-agent --model <key>`, `kab.task/v2`, bridge into the KAB Docker sandbox) | tested offline: h33 (fake model + fake container), h34 (fake model, **real** DockerSandbox, official image); **verified offline** into the official evaluator with a scripted model (gold resolved / empty / wrong unresolved); **one supervised live integration smoke** (EXAONE, one synthetic task, 2026-11-09; not a benchmark); no real SWE-bench instance run with a model | HARNESS_V2 §7; `benchmarks/swebench/validate_mini_offline.py` |
+| Per-call trace for mini (`trace.modelCalls`, provider usage or `null`, tool calls mapped to calls); context-limit handling | tested (h33, exact sums, vLLM 0.32's own 400 text); upstage-cli has no per-call record yet | HARNESS_V2 §7 "Observability and context audit" |
+| Request-history audit: EXAONE's earlier reasoning is re-sent and re-tokenized under mini (15.2% of the smoke's prompt tokens); not under upstage-cli | measured on the smoke's 15 calls (exact `prompt_tokens` match, 15/15), no inference | `benchmarks/mini-swe-agent/audit_request_history.py`; HARNESS_V2 §7 |
 | Host-side patch capture uses a harness-owned git dir (agent-planted git config/hooks can no longer run on the host; pre-existing hole, found by review) | tested (`h4` fails on the old tracker); v1 records audited: no tool call touched git config/hooks; landed separately (PR #16) | HARNESS_V2 §7 "Security fix" |
-| Queue-held serving session (`models/serving/kserve-session.sh`) | tested with fake docker/nvidia-smi/curl (h35); audited read-only against the queue's source; **not run under the real queue** | `docs/ops/MODEL_OPERATIONS.md` |
+| Queue-held serving session (`models/serving/kserve-session.sh`) | tested with fake docker/nvidia-smi/curl (h35); audited read-only against the queue's source; **verified once under the real queue** (2026-11-09, `gpuq` job 55, EXAONE, released, container removed) | `docs/ops/MODEL_OPERATIONS.md` |
 | v1 retrieval query uses only SWE-bench wrapper words; Docker `run_shell` splits argv without quotes | characterized offline (`h32`); effect on v1 outcomes **unknown** | HARNESS_V2 §3A–B |
+
+## Verified on 2026-11-09 (observability and context audit)
+
+CPU only, no inference: harness unit **471/471** (h33 22/22 incl. the new
+per-call and 16K-limit tests), lint, check, evidence guard. Request-history
+audit replayed the live smoke's 15 calls (`audit_request_history.py`); the
+original run record is unchanged (sha256 checked). Docker tier **39/39**
+(local images only) and `validate_mini_offline.py` PASS with the
+instrumented bridge.
+
+**Live smoke (2026-11-09, supervised, GPU).** EXAONE 4.5 FP8, one queue
+session, preflight REPORTABLE, one synthetic task through mini: 15 calls, 15
+tool calls, 0 format errors, `done`, correct submission. Integration
+validation only, not a benchmark result (HARNESS_V2 §7).
 
 ## Verified on 2026-11-08 (mini-swe-agent branch)
 
@@ -94,14 +110,17 @@ limitations: `docs/research/FOUR_MODEL_COMPARISON.md`.
    storage or rotation.
 3. The escaping-symlink guard skips nested `.git` directories (Gate C minor;
    pre-existing, not shown exploitable).
-4. **Serving under the shared GPU queue.** Proposed: `models/serving/kserve-session.sh`
-   (foreground queue job; tested with fakes; checked read-only against the
-   queue's source). Needs owner approval and a first supervised live use
-   (`docs/ops/MODEL_OPERATIONS.md`).
+4. **Serving under the shared GPU queue.** `models/serving/kserve-session.sh`
+   ran once under the real queue (2026-11-09). Still unobserved: a `ts`
+   server restart mid-session, a SIGKILLed session (orphaned container), and
+   behaviour with more foreign GPU memory (`docs/ops/MODEL_OPERATIONS.md`).
 5. The launchers' hub path is overridable (`KSERVE_HUB`, default unchanged);
    their cache paths and the hub path in `benchmarks/campaign/campaign.py` are
    still constants.
 6. Harness v2 milestones 3–8 (`docs/ROADMAP.md`).
+7. **Before the first harness comparison pilot** (HARNESS_V2 §8, proposed,
+   not run): per-call records for upstage-cli, a v2 pilot driver, and a
+   preregistration ADR.
 
 ## Known limits
 
