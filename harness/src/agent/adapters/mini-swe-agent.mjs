@@ -105,6 +105,20 @@ export function loadUpstreamConfig(path = MINI.configPath) {
   return yaml.load(raw.toString("utf8"));
 }
 
+/** Run totals from per-call records (trace.modelCalls). Over the calls that
+ *  returned a response (a call that failed without one, e.g. a context-length
+ *  rejection, has no usage and is counted in failedCalls), each total is the
+ *  exact sum of provider-reported values, or null when any of them lacks
+ *  that value: an unknown is never counted as 0. */
+export function aggregateUsage(calls) {
+  const answered = calls.filter((c) => c.outcome !== "error");
+  const sum = (k) => (answered.every((c) => Number.isInteger(c[k])) ? answered.reduce((s, c) => s + c[k], 0) : null);
+  return {
+    promptTokens: sum("promptTokens"), completionTokens: sum("completionTokens"), totalTokens: sum("totalTokens"),
+    reasoningTokens: sum("reasoningTokens"), modelCalls: calls.length, failedCalls: calls.length - answered.length
+  };
+}
+
 // Upstream's TimeoutExpired path reports returncode -1 and this message shape.
 const timeoutInfo = (cmd, s) => `An error occurred while executing the command: Command '${cmd}' timed out after ${s} seconds`;
 
@@ -137,6 +151,18 @@ export class MiniSweAgent extends CodingAgent {
   isAvailable() { return !!this._config && existsSync(this._python); }
 
   async run(task, context) {
+    // Per-call records arrive as they happen ({"type":"call"}), so they survive
+    // a run that later fails: attached to the error for the runner to keep.
+    const calls = [];
+    try {
+      return await this._run(task, context, calls);
+    } catch (e) {
+      if (e && typeof e === "object" && calls.length) e.modelCalls = calls;
+      throw e;
+    }
+  }
+
+  async _run(task, context, calls) {
     const { workdir, executor, auditLog } = context;
     if (!this._config) throw new Error(`unknown local model '${this._key}' (known: ${LOCAL_MODEL_IDS.join(", ")})`);
     if (executor?.type !== "docker") {
@@ -226,7 +252,12 @@ export class MiniSweAgent extends CodingAgent {
           } catch (e) {
             throw new Error(`mini bridge protocol error: ${e.message}`, { cause: e });
           }
-          if (msg?.type === "exec") {
+          if (msg?.type === "call") {
+            calls.push({ ...msg.record, index: calls.length, firstToolCall: null, toolCallsExecuted: 0 });
+          } else if (msg?.type === "exec") {
+            // the model call whose response asked for this action (exec ids are 1-based, in trace.toolCalls order)
+            const c = calls.at(-1);
+            if (c) { c.toolCallsExecuted += 1; c.firstToolCall ??= msg.id - 1; }
             send(await this._exec(msg, { executor, workdir, timeoutSec, interpreter, execEnv, events, preexistingLinks }));
           } else if (msg?.type === "result") {
             result = msg;
@@ -259,20 +290,20 @@ export class MiniSweAgent extends CodingAgent {
     if (result.killedAtDeadline) {
       return {
         ok: false, error: "TimeExceeded (bridge killed at the hard deadline)", turns: null, toolCalls: events.filter((e) => e.type === "tool_start").length,
-        usage: null, events, stopReason: "budget_exhausted", submission: "", trajectory
+        usage: aggregateUsage(calls), modelCalls: calls, events, stopReason: "budget_exhausted", submission: "", trajectory
       };
     }
     const STOP = { Submitted: "done", LimitsExceeded: "budget_exhausted", TimeExceeded: "budget_exhausted", RepeatedFormatError: "model_protocol_error", ContextWindowExceededError: "context_exhausted" };
     const stopReason = STOP[result.exitStatus];
     if (!stopReason) throw new Error(`mini-swe-agent ended with ${result.exitStatus || "no exit status"}: ${result.error ?? ""}`);
 
-    const u = result.usage;
     return {
       ok: result.exitStatus === "Submitted",
       error: result.exitStatus === "Submitted" ? undefined : result.exitStatus,
       turns: result.nCalls,
       toolCalls: result.nActions,
-      usage: u.modelCalls ? { promptTokens: u.promptTokens, completionTokens: u.completionTokens, totalTokens: u.promptTokens + u.completionTokens, modelCalls: u.modelCalls } : null,
+      usage: aggregateUsage(calls),
+      modelCalls: calls,
       events,
       stopReason,
       // mini's own output is the prediction (as `mini-extra swebench` writes

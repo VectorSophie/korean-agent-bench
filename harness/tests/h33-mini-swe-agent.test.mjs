@@ -15,6 +15,7 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { MiniSweAgent, MINI, WORKDIR, loadUpstreamConfig, readLock } from "../src/agent/adapters/mini-swe-agent.mjs";
 import { TaskRunner } from "../src/task/runner.mjs";
+import { CostTracker } from "../src/tracking/cost-tracker.mjs";
 import { MockAgent } from "../src/agent/adapters/mock.mjs";
 import { CodingAgent } from "../src/agent/interface.mjs";
 import { NativeSandbox } from "../src/sandbox/native.mjs";
@@ -334,5 +335,137 @@ describe("kab.task/v2 carries no agent-specific settings", () => {
     assert.ok(!JSON.stringify(t).match(/run_shell|read_file|search_code/));
     assert.equal(t._meta.base_commit, "0".repeat(40));
     rmSync(repo, { recursive: true, force: true });
+  });
+});
+
+// ── per-call trace and the 16K limit (Observability and Context Audit) ─────
+// Usage values are chosen so every total is checkable by hand.
+const withUsage = (r, prompt, completion, extra = {}) => ({ ...r, usage: { prompt_tokens: prompt, completion_tokens: completion, total_tokens: prompt + completion, ...extra } });
+const withReasoning = (r, text) => ({ ...r, choices: [{ ...r.choices[0], message: { ...r.choices[0].message, reasoning_content: text } }] });
+const noUsage = (r) => { const { usage: _u, ...rest } = r; return rest; };
+// vLLM 0.32.0 renderers/params.py _token_len_check, as served (HTTP 400).
+const VLLM_CTX_400 = { httpStatus: 400, body: { error: { message: "This model's maximum context length is 16384 tokens. However, your prompt contains 16391 input tokens, which exceeds this limit even without any output tokens. Please reduce the length of the input prompt. (parameter=input_tokens, value=16391)", type: "BadRequestError", param: "input_tokens", code: 400 } } };
+const lengthCut = () => reply({ choices: [{ index: 0, finish_reason: "length", message: { role: "assistant", content: "THOUGHT: I will now" } }] });
+
+describe("mini-swe-agent per-call trace (trace.modelCalls) and context limit", { skip }, () => {
+  it("records each model call with provider usage, maps tool calls to the call that asked for them, and sums exactly", async () => {
+    const repo = synthRepo();
+    requests = [];
+    script = [
+      withUsage(withReasoning(bash("cat calc.py"), "Read the file first."), 1000, 50, { completion_tokens_details: { reasoning_tokens: 20 } }),
+      withUsage(bash("sed -i 's/a - b/a + b/' calc.py", "git diff -- calc.py > patch.txt"), 1200, 70, { completion_tokens_details: { reasoning_tokens: 30 } }),
+      withUsage(bash(`echo ${SUBMIT} && cat patch.txt`), 1500, 40)
+    ];
+    const { run } = await runMini(repo, { budget: { maxTurns: 10 } });
+    assert.equal(run.trace.stopReason, "done", run.trace.agentError ?? "");
+    const mc = run.trace.modelCalls;
+    assert.equal(mc.length, 3);
+    assert.equal(requests.length, 3, "one HTTP request per recorded call");
+    assert.deepEqual(mc.map((c) => [c.index, c.outcome, c.promptTokens, c.completionTokens, c.totalTokens, c.reasoningTokens, c.finishReason, c.toolCallsRequested, c.firstToolCall, c.toolCallsExecuted]), [
+      [0, "response", 1000, 50, 1050, 20, "tool_calls", 1, 0, 1],
+      [1, "response", 1200, 70, 1270, 30, "tool_calls", 2, 1, 2],
+      [2, "response", 1500, 40, 1540, null, "tool_calls", 1, 3, 1]
+    ]);
+    assert.deepEqual(mc.map((c) => c.reasoningChars), [20, null, null], "characters of returned reasoning; null when none");
+    // the reasoning of earlier turns is sent back with the history (what the live audit measured)
+    assert.equal(requests[1].body.messages.find((m) => m.role === "assistant").reasoning_content, "Read the file first.");
+    // the per-call slices cover trace.toolCalls exactly, in order
+    assert.equal(run.trace.toolCalls.length, mc.reduce((s, c) => s + c.toolCallsExecuted, 0));
+    assert.equal(run.trace.toolCalls[mc[1].firstToolCall + 1].args.command, "git diff -- calc.py > patch.txt");
+    for (const c of mc) assert.ok(Number.isInteger(c.durationMs) && c.durationMs >= 0 && Number.isInteger(c.startedAt));
+    const m = run.metrics;
+    assert.deepEqual([m.modelCalls, m.turns, m.toolCalls, m.promptTokens, m.completionTokens, m.totalTokens, m.reasoningTokens],
+      [3, 3, 4, 3700, 160, 3860, null], "reasoning total is null: one call did not report it");
+    // mini's native trajectory is kept unchanged alongside
+    assert.equal(run.trace.agentTrajectory.info.model_stats.api_calls, 3);
+  });
+
+  it("missing usage is null, never 0 (litellm's zero placeholder), and a reported 0 stays 0", async () => {
+    const repo = synthRepo();
+    script = [noUsage(bash("cat calc.py")), withUsage(bash(`echo ${SUBMIT}`), 800, 5, { completion_tokens_details: { reasoning_tokens: 0 } })];
+    const { run } = await runMini(repo);
+    const [a, b] = run.trace.modelCalls;
+    assert.deepEqual([a.promptTokens, a.completionTokens, a.totalTokens, a.reasoningTokens], [null, null, null, null]);
+    assert.deepEqual([b.promptTokens, b.completionTokens, b.totalTokens, b.reasoningTokens], [800, 5, 805, 0]);
+    assert.deepEqual([run.metrics.promptTokens, run.metrics.completionTokens, run.metrics.totalTokens, run.metrics.modelCalls], [null, null, null, 2]);
+  });
+
+  it("a format error is a model call: recorded with its usage, no tool call executed", async () => {
+    const repo = synthRepo();
+    script = [withUsage(noTool(), 900, 30), withUsage(bash(`echo ${SUBMIT}`), 1000, 10)];
+    const { run } = await runMini(repo);
+    assert.equal(run.trace.stopReason, "done");
+    assert.deepEqual(run.trace.modelCalls.map((c) => [c.outcome, c.promptTokens, c.finishReason, c.toolCallsExecuted, c.firstToolCall]),
+      [["format_error", 900, "stop", 0, null], ["response", 1000, "tool_calls", 1, 0]]);
+    assert.deepEqual([run.metrics.modelCalls, run.metrics.promptTokens, run.metrics.toolCalls], [2, 1900, 1]);
+  });
+
+  it("a submit in the middle of a multi-action reply: two requested, one executed, slices still line up", async () => {
+    const repo = synthRepo();
+    script = [withUsage(bash(`echo ${SUBMIT}`, "cat calc.py"), 700, 20)];
+    const { run, fake } = await runMini(repo);
+    assert.equal(run.trace.stopReason, "done");
+    const [c] = run.trace.modelCalls;
+    assert.deepEqual([c.toolCallsRequested, c.toolCallsExecuted, c.firstToolCall], [2, 1, 0]);
+    assert.equal(fake.calls.length, 1);
+    assert.equal(run.trace.toolCalls.length, 1);
+  });
+
+  it("upstream's retry of one call (HTTP 500, then 200) is one record whose duration includes the backoff", async () => {
+    const repo = synthRepo();
+    requests = [];
+    script = [{ httpStatus: 500, body: { error: { message: "transient", type: "InternalServerError", code: 500 } } }, withUsage(bash(`echo ${SUBMIT}`), 600, 10)];
+    const { run } = await runMini(repo);
+    assert.equal(run.trace.stopReason, "done", run.trace.agentError ?? "");
+    assert.equal(requests.length, 2, "two HTTP requests");
+    assert.equal(run.trace.modelCalls.length, 1, "one model call");
+    assert.deepEqual([run.trace.modelCalls[0].outcome, run.trace.modelCalls[0].promptTokens], ["response", 600]);
+    assert.ok(run.trace.modelCalls[0].durationMs >= 3000, "upstream waits at least 4 s before retrying");
+  });
+
+  it("calls made before an adapter failure are kept in the run record (infrastructure error), and cost is unknown, not 0", async () => {
+    const rec = { index: 0, outcome: "response", promptTokens: 500, completionTokens: 5, totalTokens: 505 };
+    class DiesAfterACall extends CodingAgent {
+      get id() { return "dies"; }
+      get taskSchema() { return "kab.task/v2"; }
+      get supportsSandbox() { return true; }
+      async run() { throw Object.assign(new Error("server went away"), { modelCalls: [rec] }); }
+    }
+    const repo = synthRepo();
+    const run = await new TaskRunner({ selectSandbox: () => new FakeDocker() }).run(v2task(repo), new DiesAfterACall());
+    assert.equal(run.status, "error");
+    assert.deepEqual(run.trace.modelCalls, [rec]);
+    // unknown usage has an unknown cost, even for a priced model (was 0)
+    assert.equal(new CostTracker(1, "solar-pro2").estimate({ promptTokens: null, completionTokens: null, totalTokens: null }), null);
+  });
+
+  it("approaching then exceeding 16K: a cut-off reply is a format error, vLLM's rejection ends as context_exhausted once, with no submission", async () => {
+    const repo = synthRepo();
+    requests = [];
+    script = [
+      withUsage(bash("sed -i 's/a - b/a + b/' calc.py"), 9000, 100),
+      withUsage(bash("git diff -- calc.py > patch.txt"), 12000, 100), // a patch exists in the workspace...
+      withUsage(lengthCut(), 16000, 384), // vLLM clamps max_tokens to 16384 - prompt; the reply is cut before a tool call
+      VLLM_CTX_400 // ...but the next prompt no longer fits
+    ];
+    const { run } = await runMini(repo, { model: "exaone" });
+    assert.equal(run.trace.stopReason, "context_exhausted", run.trace.agentError ?? "");
+    assert.equal(requests.length, 4, "the rejection is not retried");
+    assert.match(requests[3].body.messages.at(-1).content, /reached the output token limit \(finish_reason=length\)/, "upstream's own truncation feedback");
+    const mc = run.trace.modelCalls;
+    assert.deepEqual(mc.map((c) => [c.outcome, c.promptTokens, c.finishReason]),
+      [["response", 9000, "tool_calls"], ["response", 12000, "tool_calls"], ["format_error", 16000, "length"], ["error", null, null]]);
+    assert.match(mc[3].error, /^ContextWindowExceededError: /);
+    assert.deepEqual([run.metrics.modelCalls, run.metrics.failedModelCalls, run.metrics.promptTokens, run.metrics.completionTokens], [4, 1, 37000, 584],
+      "the rejected prompt is counted as a call but has no usage, so its tokens are not in the totals");
+    // no false submission: patch.txt exists, but nothing was submitted
+    assert.equal(run.patch.agent_submission, "");
+    assert.equal(toPrediction(run, "m").model_patch, "");
+    assert.ok(run.patch.filesChanged.includes("patch.txt"));
+    assert.notEqual(run.status, "error", "a model outcome, not infrastructure");
+    // valid partial-run provenance
+    assert.equal(run.provenance.agentHarness.pinned, true);
+    assert.equal(run.provenance.model.hfRepo, getLocalModelConfig("exaone").provenance.hfRepo);
+    assert.equal(run.trace.agentTrajectory.info.exit_status, "ContextWindowExceededError");
   });
 });

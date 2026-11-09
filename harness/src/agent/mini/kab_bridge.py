@@ -64,6 +64,70 @@ def verify_install(lock: dict) -> tuple[str | None, int]:
     return None, checked
 
 
+def _count(v: Any) -> int | None:
+    """A provider-reported token count, or None when absent (never 0 for missing)."""
+    return v if isinstance(v, int) and not isinstance(v, bool) and v >= 0 else None
+
+
+def call_record(index: int, response: Any) -> dict:
+    """One model call as KAB records it (trace.modelCalls, kab.model-call/v1).
+    Token counts are the provider's own usage fields, or None."""
+    r = response if isinstance(response, dict) else {}
+    u = r.get("usage") if isinstance(r.get("usage"), dict) else {}
+    # litellm turns an absent usage block into zeros. A chat prompt is never 0
+    # tokens (the template alone has some), so prompt == total == 0 is that
+    # placeholder: unknown, not 0.
+    if u.get("prompt_tokens") == 0 and u.get("total_tokens") == 0:
+        u = {}
+    details = u.get("completion_tokens_details") if isinstance(u.get("completion_tokens_details"), dict) else {}
+    c0 = (r.get("choices") or [None])[0]
+    choice = c0 if isinstance(c0, dict) else {}
+    message = choice.get("message") if isinstance(choice.get("message"), dict) else {}
+    return {
+        "index": index, "outcome": None, "error": None, "startedAt": None, "durationMs": None,
+        "promptTokens": _count(u.get("prompt_tokens")), "completionTokens": _count(u.get("completion_tokens")),
+        "totalTokens": _count(u.get("total_tokens")), "reasoningTokens": _count(details.get("reasoning_tokens")),
+        # Characters of returned reasoning text (None if none): parser-independent,
+        # unlike reasoning_tokens (Kanana's deepseek_r1 parser always reports 0).
+        "reasoningChars": len(rt) if isinstance(rt := message.get("reasoning_content") or message.get("reasoning"), str) and rt else None,
+        "finishReason": choice.get("finish_reason"), "toolCallsRequested": len(message.get("tool_calls") or []),
+    }
+
+
+def observed(query, calls: list):
+    """Wraps model.query to record each call. Observation only: arguments,
+    return value and exceptions pass through unchanged. One record per
+    DefaultAgent model call (upstream's retries of one call are inside it,
+    so durationMs includes their backoff). Each record is sent to Node as it
+    happens, so a run that dies later still has its calls."""
+    import time
+
+    from minisweagent.exceptions import FormatError
+
+    def wrapper(*args, **kwargs):
+        started, t0 = time.time(), time.monotonic()
+        rec = None
+        try:
+            message = query(*args, **kwargs)
+            rec = call_record(len(calls), (message.get("extra") or {}).get("response"))
+            rec["outcome"] = "response"
+            return message
+        except FormatError as e:  # upstream persisted the response on the error message
+            rec = call_record(len(calls), ((e.messages[0] if e.messages else {}).get("extra") or {}).get("response"))
+            rec["outcome"] = "format_error"
+            raise
+        except BaseException as e:
+            rec = call_record(len(calls), None)
+            rec["outcome"], rec["error"] = "error", f"{type(e).__name__}: {str(e)[:500]}"
+            raise
+        finally:
+            rec["startedAt"], rec["durationMs"] = int(started * 1000), int((time.monotonic() - t0) * 1000)
+            calls.append(rec)
+            send({"type": "call", "record": rec})
+
+    return wrapper
+
+
 def main() -> int:
     cfg = json.loads(sys.stdin.readline())
 
@@ -108,6 +172,7 @@ def main() -> int:
     config["agent"]["instance_template"] = template.replace("/testbed", cfg["workdir"])
 
     env_cfg = {k: v for k, v in config.get("environment", {}).items() if k != "environment_class"}
+    calls: list[dict] = []
 
     class KabBridgeEnvironmentConfig(BaseModel):
         cwd: str
@@ -150,6 +215,7 @@ def main() -> int:
 
     env = KabBridgeEnvironment(**env_cfg)
     model = get_model(config=config["model"])
+    model.query = observed(model.query, calls)
     agent_cfg = dict(config["agent"])
     agent_cfg["output_path"] = Path(cfg["trajectoryPath"]) if cfg.get("trajectoryPath") else None
     agent = DefaultAgent(model, env, **agent_cfg)
@@ -161,17 +227,6 @@ def main() -> int:
         info = agent.messages[-1].get("extra", {}) if agent.messages else {}
         error = f"{type(e).__name__}: {e}"
 
-    usage = {"promptTokens": 0, "completionTokens": 0, "modelCalls": 0}
-    finish_reasons = []
-    for m in agent.messages:
-        resp = (m.get("extra") or {}).get("response")
-        if isinstance(resp, dict):
-            u = resp.get("usage") or {}
-            usage["promptTokens"] += u.get("prompt_tokens") or 0
-            usage["completionTokens"] += u.get("completion_tokens") or 0
-            usage["modelCalls"] += 1
-            finish_reasons.append(((resp.get("choices") or [{}])[0]).get("finish_reason"))
-
     send({
         "type": "result",
         "exitStatus": info.get("exit_status", ""),
@@ -180,8 +235,7 @@ def main() -> int:
         "nCalls": agent.n_calls,
         "nActions": env._n,
         "installVerifiedFiles": verified_files,
-        "usage": usage,
-        "finishReasons": finish_reasons,
+        "finishReasons": [c["finishReason"] for c in calls if c["outcome"] != "error"],
         "miniVersion": minisweagent.__version__,
         "modelClass": f"{type(model).__module__}.{type(model).__name__}",
         "configName": cfg["configName"],
