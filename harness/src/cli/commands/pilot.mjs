@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
-import { join, relative, resolve, sep } from "node:path";
+import { isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { getHarnessInfo } from "../../task/runner.mjs";
 import { getLocalModelConfig } from "../../agent/local-models.mjs";
@@ -19,10 +19,10 @@ const USAGE = `Usage:
 and the serving preflight must be REPORTABLE. --validation is for fake model servers only; its results are not a pilot.
 <dir> must be outside the repository or under .cache/ (run records contain SWE-bench content).`;
 
-function checkOut(out) {
+export function checkOut(out) {
   const rel = relative(REPO_ROOT, out);
-  const inside = !rel.startsWith("..") && !rel.startsWith(sep) && rel !== "";
-  if (inside && !rel.startsWith(`.cache${sep}`)) throw new Error(`--out ${out} is inside the repository but not under .cache/`);
+  const outside = rel === ".." || rel.startsWith(`..${sep}`) || isAbsolute(rel);
+  if (!outside && !rel.startsWith(`.cache${sep}`)) throw new Error(`--out ${out} is inside the repository but not under .cache/ (run records contain SWE-bench content)`);
   return out;
 }
 

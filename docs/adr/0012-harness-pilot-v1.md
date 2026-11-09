@@ -4,7 +4,7 @@
 
 **Proposed** (2026-11-09). Not executed. The design is frozen by the hash of
 its machine-readable spec, `benchmarks/pilot/harness-pilot-v1.json`
-(sha256 `e19579c564520907cf82df75a8bcd1bfaf3e520c8baae42f599688d7335a57bd`);
+(sha256 `5cf96c18121e8f7f0fa3ed0d62598ef94c6237b68e9e21c6ffa99e5c78c360ad`);
 the driver refuses a manifest written under any other spec. It becomes
 **Accepted** when the owner approves it together with the open decisions
 below; any change to the spec before then gives a new hash and a revised ADR.
@@ -24,8 +24,9 @@ Measurement parity in place (HARNESS_V2 §7–8):
   logical calls, transport attempts and tool actions counted separately;
   unavailable values `null`;
 - one instance specification (`instanceSpec`) mapped to each harness's native
-  task (v1 task for upstage-cli, `kab.task/v2` for mini), verified before and
-  after every attempt;
+  task (v1 task for upstage-cli, `kab.task/v2` for mini); the snapshot (tree,
+  clean) and local image are re-verified right before every attempt and the
+  run record is checked against the task after it;
 - the queue-held serving session (`kserve-session.sh`), run once live
   (2026-11-09).
 
@@ -34,7 +35,10 @@ Measurement parity in place (HARNESS_V2 §7–8):
 1. **Model.** EXAONE 4.5 33B FP8 (`LGAI-EXAONE/EXAONE-4.5-33B-FP8` @ `69570ad5`),
    thinking on, vLLM 0.32.0 by digest, 1 GPU, `max_model_len` 16,384, sampling
    from `harness/src/agent/local-models.mjs`. Serving preflight REPORTABLE at
-   the start of every driver invocation; otherwise terminal stop.
+   the start of every driver invocation; otherwise the driver stops before any
+   attempt (resumable). The preflight is the real model-identity check: the
+   driver's own post-attempt comparison of `provenance.model` with
+   `local-models.mjs` compares configuration with configuration.
 2. **Instances.** `psf__requests-1724`, `psf__requests-2931`, `psf__requests-1142`:
    the first three under `make_campaign.py`'s pilot rule (psf/requests,
    disjoint from `datasets/swe-bench-verified/subset-v1.json`, ranked by
@@ -53,20 +57,25 @@ Measurement parity in place (HARNESS_V2 §7–8):
    `harness pilot plan`: repeat blocks, each (instance, arm) once per block,
    interleaved by `sha256('kab/harness-pilot-v1:' + attemptId)`. Attempt ids
    `r<repeat>-<arm>-<instance>`.
-5. **Resource ceilings.** One `gpuq -G 1` session through
+5. **Resource ceilings.** `gpuq -G 1` sessions through
    `models/serving/kserve-session.sh exaone 16384` with
-   `KSERVE_LEASE_SEC=14400` (4 h); at most two sessions; 2,700 s per attempt;
-   18 attempts; no image pulls except `psf__requests-1142` (owner approval);
-   no other benchmark, model or harness.
-6. **Stopping.** No automatic retry of anything. *Resumable* stop only when
-   the lease would end before the next attempt could finish (checked before
-   it starts); a later session continues the same schedule after a fresh
-   preflight. *Terminal* stop on: an infrastructure error, a provenance
-   failure (task identity, model identity, unpinned harness, missing per-call
-   records, harness or budget identity changing within an arm), an attempt
-   found interrupted, a changed instance snapshot or local image, a failed
-   preflight, or any unexpected queue or server behaviour observed by the
-   operator. A terminally stopped pilot is reported as incomplete and never
+   `KSERVE_LEASE_SEC=14400` (4 h), one at a time, at most 6 (`maxSessions`);
+   2,700 s agent budget per attempt; an attempt starts only if
+   `attemptReserveSec` = 3,900 s (budget + mini's 900 s hard-deadline slack +
+   300 s setup, capture and teardown) remain on the lease; 18 attempts. The
+   worst case (18 × 65 min) fits the 6 sessions exactly; the expected total is
+   1.5–3 h. No image pulls except `psf__requests-1142` (owner approval); no
+   other benchmark, model or harness.
+6. **Stopping.** No automatic retry of anything. *Resumable* stops touch no
+   attempt: the lease would end before the next attempt could finish, or a
+   check before the first attempt of an invocation failed (preflight not
+   REPORTABLE, an image not inspectable); a later session continues the same
+   schedule after a fresh preflight. *Terminal* stop on: an infrastructure
+   error, a provenance failure (task identity, unpinned harness, missing
+   per-call records, harness or budget identity changing within an arm), an
+   attempt found interrupted, an instance snapshot or local image that differs
+   from the one recorded, the session ceiling, or any unexpected queue or
+   server behaviour observed by the operator. A terminally stopped pilot is reported as incomplete and never
    resumed.
 7. **Incomplete-run accounting.** Every scheduled attempt is in the
    denominator with one state: `done` (scored by the official evaluator),
@@ -111,7 +120,8 @@ Measurement parity in place (HARNESS_V2 §7–8):
 | per-call records, transport attempts, null-not-zero, failed calls kept | the real upstage-cli loop and adapter (h36) and the real mini/litellm client (h33), each with a scripted OpenAI-compatible server that counts its HTTP requests | live inference |
 | observation changes nothing | identical request bodies, tool calls, patches, trajectories with and without it (h33, h36), streaming unchanged (h36) | live inference |
 | task identity across harnesses | real task builders and snapshot format (h37) | — |
-| driver order, states, resumability, stops, evaluation, hashes | h37 (fake model); `benchmarks/pilot/validate_pilot_offline.py`: the real CLI on 1724 and 2931, real Docker sandboxes, official evaluator (12/12 attempts; mini arms reproduce the gold reference) | live inference, the real queue, 1142 |
+| driver order, states, resumability, stops, evaluation, hashes | h37 (fake model); `benchmarks/pilot/validate_pilot_offline.py`: the real CLI on 1724 and 2931, real Docker sandboxes, official evaluator (12/12 attempts; mini arms reproduce the gold reference; arm A only on its no-tool, empty-patch path, its tool-call attribution is covered by h36) | live inference, the real queue, 1142 |
+| transport attempts | upstage-cli: counted at `fetch`, equal to the server's request count with retries (h36). mini: one count per litellm `_query` call (tenacity's per-attempt call); equal to HTTP requests in the installed litellm, whose handler does no retries of its own for hosted_vllm (`max_retry_on_unprocessable_entity_error` = 0; code reading) and verified for a 5xx retry (h33) | other litellm versions |
 | EXAONE request history and context limit | the live smoke's 15 recorded calls replayed (no inference); vLLM 0.32 source in the pinned image | a real SWE-bench instance |
 
 Not verified anywhere yet: a real model on a real SWE-bench instance under

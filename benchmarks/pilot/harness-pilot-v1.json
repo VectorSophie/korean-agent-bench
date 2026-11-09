@@ -12,6 +12,6 @@
  },
  "repeats": 2,
  "orderSeed": "kab/harness-pilot-v1",
- "resources": { "gpus": 1, "leaseSec": 14400, "attemptTimeoutSec": 2700, "maxAttempts": 18, "imagePulls": "only psf__requests-1142, with owner approval" },
+ "resources": { "gpus": 1, "leaseSec": 14400, "attemptTimeoutSec": 2700, "attemptReserveSec": 3900, "maxSessions": 6, "maxAttempts": 18, "imagePulls": "only psf__requests-1142, with owner approval" },
  "evaluation": "official SWE-bench evaluator (benchmarks/swebench/evaluate.py, swebench.harness.run_evaluation), one predictions file per (arm, repeat); every scheduled attempt in the denominator"
 }

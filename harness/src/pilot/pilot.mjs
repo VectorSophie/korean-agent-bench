@@ -7,12 +7,15 @@
 //   started (process gone) → interrupted on the next invocation; never re-run
 // Every scheduled attempt stays in the denominator; one that never ran is
 // reported as not_executed. Stops:
-//   resumable  the queue lease would end before the next attempt could finish
-//              (checked BEFORE an attempt starts, so nothing is cut off); a new
-//              queue session continues the same schedule after a fresh preflight
+//   resumable  nothing was touched: the queue lease would end before the next
+//              attempt could finish (attemptReserveSec, checked BEFORE it
+//              starts), or a check before the first attempt of this invocation
+//              failed (preflight, an image not inspectable); a new queue
+//              session continues the same schedule after a fresh preflight
 //   terminal   infrastructure error, provenance failure, an interrupted attempt,
-//              a changed instance/image, a failed preflight: never resumed (a new
-//              output directory is a new pilot)
+//              an instance snapshot or image that differs from the one recorded,
+//              the session ceiling: never resumed (a new output directory is a
+//              new pilot)
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
@@ -41,7 +44,8 @@ export function validatePilotSpec(spec) {
   if (!(Number.isInteger(spec?.repeats) && spec.repeats > 0)) errors.push("repeats");
   if (typeof spec?.orderSeed !== "string") errors.push("orderSeed");
   const r = spec?.resources ?? {};
-  for (const k of ["leaseSec", "attemptTimeoutSec", "maxAttempts"]) if (!(Number.isInteger(r[k]) && r[k] > 0)) errors.push(`resources.${k}`);
+  for (const k of ["leaseSec", "attemptTimeoutSec", "attemptReserveSec", "maxAttempts", "maxSessions"]) if (!(Number.isInteger(r[k]) && r[k] > 0)) errors.push(`resources.${k}`);
+  if (r.attemptReserveSec < r.attemptTimeoutSec) errors.push("resources.attemptReserveSec must cover attemptTimeoutSec plus setup, teardown and the harness's hard-deadline slack");
   if (!errors.length && inst.length * arms.length * spec.repeats > r.maxAttempts) errors.push("resources.maxAttempts is below the schedule size");
   if (errors.length) throw new Error(`invalid pilot spec: ${errors.join("; ")}`);
   return spec;
@@ -116,6 +120,7 @@ export async function runPilot({ spec, specSha256, out, mode, env, leaseEndsAt =
     if (manifest.mode !== mode) throw new Error(`manifest is a ${manifest.mode} pilot`);
     if (manifest.kab.commit !== env.kab.commit) throw new Error(`KAB commit changed (${manifest.kab.commit} → ${env.kab.commit}); refusing to resume`);
     if (manifest.stopped && !manifest.stopped.resumable) throw new Error(`pilot stopped (${manifest.stopped.reason}); a terminal stop is not resumed`);
+    if (manifest.completedAt) return manifest;
     manifest.stopped = null;
     for (const a of Object.values(manifest.attempts)) {
       if (a.state === "started") Object.assign(a, { state: "interrupted", endedAt: now(), note: "the driver ended during this attempt; not re-run" });
@@ -136,34 +141,44 @@ export async function runPilot({ spec, specSha256, out, mode, env, leaseEndsAt =
       attempts: Object.fromEntries(order.map((s) => [s.id, { ...s, state: "pending" }]))
     };
   }
-  manifest.invocations.push({ at: now(), kabCommit: env.kab.commit, kabDirty: env.kab.dirty, leaseEndsAt });
+  manifest.invocations.push({ at: now(), kabCommit: env.kab.commit, kabDirty: env.kab.dirty, leaseEndsAt, mode });
   const save = () => writeJsonAtomic(path, manifest);
   const stop = (reason, resumable = false) => { manifest.stopped = { reason, at: now(), resumable }; save(); log(`[pilot] STOP: ${reason}`); return manifest; };
+  if (mode === "live" && manifest.invocations.length > spec.resources.maxSessions) return stop(`session ceiling (${spec.resources.maxSessions}) reached; remaining attempts not executed`);
 
   // Instance identity, checked again on every invocation (resume included).
+  // Returns a stop reason, or null; `terminal` marks a mismatch with what was recorded.
   const resolved = {};
-  for (const id of spec.instances) {
+  const checkInstance = (id) => {
     let r;
-    try { r = env.instance(id); } catch (e) { return stop(`instance ${id}: ${e.message}`); }
+    try { r = env.instance(id); } catch (e) { return { reason: `instance ${id}: ${e.message}`, terminal: !!manifest.instances[id] }; }
     const imageId = env.imageId(r.spec.image);
-    if (!imageId) return stop(`image ${r.spec.image} is not present locally (no pulls)`);
+    if (!imageId) return { reason: `image ${r.spec.image} is not present locally (no pulls)`, terminal: false };
     const rec = { specSha256: r.spec.specSha256, imageId, image: r.spec.image, base_commit: r.spec.base_commit, snapshotTree: r.spec.snapshotTree };
     const prev = manifest.instances[id];
-    if (prev && (prev.specSha256 !== rec.specSha256 || prev.imageId !== rec.imageId)) return stop(`instance ${id} changed since the pilot started (spec or image)`);
+    if (prev && (prev.specSha256 !== rec.specSha256 || prev.imageId !== rec.imageId)) return { reason: `instance ${id} changed since the pilot started (spec or image)`, terminal: true };
     manifest.instances[id] = rec;
     resolved[id] = r;
+    return null;
+  };
+  for (const id of spec.instances) {
+    const bad = checkInstance(id);
+    if (bad) return stop(bad.reason, !bad.terminal);
   }
   if (mode === "live") {
     const pf = await env.preflight();
     manifest.preflights.push({ at: now(), reportable: !!pf?.reportable, blocking: pf?.blocking ?? null });
-    if (!pf?.reportable) return stop("serving preflight not REPORTABLE");
+    if (!pf?.reportable) return stop("serving preflight not REPORTABLE (no attempt started)", true);
   }
   save();
 
   for (const id of manifest.schedule) {
     const a = manifest.attempts[id];
     if (a.state !== "pending") continue;
-    if (leaseEndsAt != null && now() + spec.resources.attemptTimeoutSec * 1000 > leaseEndsAt) return stop("queue lease would end during the next attempt", true);
+    if (leaseEndsAt != null && now() + spec.resources.attemptReserveSec * 1000 > leaseEndsAt) return stop("queue lease would end during the next attempt", true);
+    // the snapshot and image again, right before use (a session lasts hours)
+    const bad = checkInstance(a.instance);
+    if (bad) return stop(`before ${id}: ${bad.reason}`, false);
     const armSpec = spec.arms[a.arm];
     const { instance, spec: ispec } = resolved[a.instance];
     const task = env.makeTask(armSpec, instance, ispec);
@@ -180,6 +195,8 @@ export async function runPilot({ spec, specSha256, out, mode, env, leaseEndsAt =
     const problems = verifyRunAgainstTask(run, task, ispec);
     const h = run.provenance?.agentHarness;
     if (!h?.pinned) problems.push("agent harness not pinned");
+    // Config vs config (provenance.model comes from local-models.mjs): catches a
+    // wrong --model wiring; the serving preflight is the real identity check.
     const model = run.provenance?.model;
     if (model?.hfRepo !== env.expectedModel.hfRepo || model?.revision !== env.expectedModel.revision) problems.push(`model ${model?.hfRepo}@${model?.revision}`);
     if (!Array.isArray(run.trace?.modelCalls) && run.status !== "error") problems.push("no per-call records (trace.modelCalls)");
@@ -209,6 +226,11 @@ export async function runPilot({ spec, specSha256, out, mode, env, leaseEndsAt =
  */
 export async function evaluatePilot({ out, evaluate }) {
   const manifest = JSON.parse(readFileSync(join(out, "manifest.json"), "utf8"));
+  if (!manifest.completedAt && !manifest.stopped) throw new Error("pilot still in progress (neither completed nor stopped); not evaluated");
+  for (const a of Object.values(manifest.attempts)) {
+    if (a.state === "started") throw new Error(`${a.id} is still marked started; resume (it becomes interrupted) before evaluating`);
+    if (a.runFile && fileSha(join(out, a.runFile)) !== a.runSha256) throw new Error(`run record ${a.runFile} changed since it was written`);
+  }
   const groups = {};
   for (const id of manifest.schedule) {
     const a = manifest.attempts[id];

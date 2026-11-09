@@ -531,7 +531,8 @@ by digest, `max_model_len` 16,384, sampling from `local-models.mjs`, preflight
 REPORTABLE at the start of each session; served through `kserve-session.sh`
 under `gpuq`. The same instance specification for every harness
 (`instanceSpec`: instance id, base commit, verified snapshot tree, image,
-issue text, scoring input; checked before and after every attempt), same KAB
+issue text, scoring input; re-verified right before every attempt, and the run
+record checked against the task after it), same KAB
 DockerSandbox flags, same wall clock (2,700 s), memory and CPUs; official
 evaluator; every scheduled attempt is in the denominator.
 
@@ -597,7 +598,7 @@ run record; unavailable measurements are `null`, never estimated):
 | Quantity | Definition |
 |---|---|
 | logical calls | model calls made by the harness's own loop: upstage-cli `adapter.complete()`, mini `model.query()`; including format errors and calls that failed without a response (`trace.modelCalls`, `metrics.modelCalls`, `failedModelCalls`) |
-| transport attempts | HTTP requests to `/chat/completions`, client retries included (`metrics.transportAttempts`). upstage-cli: counted at `fetch` (≤ 3 per call: `maxRetries` 2); mini: counted at litellm's per-attempt call (tenacity, ≤ 10 per call). Verified equal to the requests a scripted server received, retries included (h33, h36); `null` when not observable |
+| transport attempts | HTTP requests to `/chat/completions`, client retries included (`metrics.transportAttempts`). upstage-cli: counted at `fetch` (≤ 3 per call: `maxRetries` 2). mini: one per litellm `_query` call, i.e. per tenacity attempt (≤ 10 per call); in the installed litellm that is one HTTP request (no handler-level retries for hosted_vllm; code reading). Verified equal to the requests a scripted server received, retries included (h33, h36); `null` when not observable |
 | tool actions | commands/tools executed in the sandbox (`trace.toolCalls`), failed ones counted; each call's slice is `firstToolCall`/`toolCallsExecuted` |
 | loop steps | each harness's own step count (`metrics.turns`), reported, never compared as a common unit |
 | tokens | server-reported prompt, completion, reasoning, summed over answered calls (`null` if any is missing); peak prompt tokens; re-sent reasoning tokens (mini: replay audit; upstage-cli: 0 by construction) |
@@ -612,18 +613,20 @@ every state change with the spec hash, KAB commit, instance specs and local
 image ids, run-record hashes, per-arm `harnessId`/`budgetId`; fail-closed
 checks after each attempt (task identity against the run record, pinned
 harness, model identity, per-call records present, harness/budget identity
-constant within an arm). Stops: *resumable* only when the queue lease would end
-before the next attempt could finish (checked before starting it); *terminal*
-for an infrastructure error, a provenance failure, an attempt found
-interrupted on resume (never re-run), a changed instance or image, or a failed
-preflight. Evaluation: one predictions file per (arm, repeat), the official
+constant within an arm). Stops: *resumable* when no attempt is touched (the
+lease would not cover the next attempt's 3,900 s reserve, or a check before
+the first attempt failed, e.g. preflight); *terminal* for an infrastructure
+error, a provenance failure, an attempt found interrupted on resume (never
+re-run), an instance snapshot or image that differs from the one recorded, or
+the session ceiling (6). Evaluation: one predictions file per (arm, repeat), the official
 evaluator, `results.json` with every scheduled attempt and `SHA256SUMS`.
 
 **Resources (estimates).** GPU: one queue session on 1 GPU; ~4 min to
 healthy. Arm A: v1 EXAONE median 149 s per attempt, max 918 s (50 main
 attempts; contended). Arms B/B30: unknown; hard ceiling 2,700 s each. Expected
-total about 1.5–3 h of GPU time; worst case 18 × 45 min = 13.5 h. Session lease
-4 h; a second session may continue a lease-stopped pilot. Docker: the 1142
+total about 1.5–3 h of GPU time. Worst case 18 × 65 min (2,700 s budget,
+mini's 900 s hard-deadline slack, setup and capture) = 19.5 h: sessions of 4 h,
+at most 6, each continuing a lease-stopped pilot. Docker: the 1142
 image if approved; one container per attempt (upstage-cli) or per action
 (mini); run records ~0.1–1 MB each. Evaluation: 6 predictions files on CPU.
 

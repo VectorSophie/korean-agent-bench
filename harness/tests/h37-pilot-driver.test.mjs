@@ -17,6 +17,7 @@ import { MiniSweAgent, MINI } from "../src/agent/adapters/mini-swe-agent.mjs";
 import { getLocalModelConfig } from "../src/agent/local-models.mjs";
 import { instanceSpec, TASK_FOR_HARNESS, verifyTaskIdentity, taskIdentity, buildTask, buildTaskV2 } from "../src/benchmarks/swebench.mjs";
 import { schedule, validatePilotSpec, runPilot, evaluatePilot } from "../src/pilot/pilot.mjs";
+import { checkOut } from "../src/cli/commands/pilot.mjs";
 
 const SUBMIT = "COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT";
 const haveMini = existsSync(MINI.python);
@@ -78,7 +79,7 @@ function synthInstance(id) {
 const SPEC = () => validatePilotSpec({
   schema: "kab.harness-pilot/v1", model: "exaone", instances: ["synthetic__calc-1", "synthetic__calc-2"],
   arms: { A: { harness: "upstage-cli" }, B: { harness: "mini-swe-agent", maxTurns: 250 }, B30: { harness: "mini-swe-agent", maxTurns: 30 } },
-  repeats: 2, orderSeed: "h37", resources: { leaseSec: 3600, attemptTimeoutSec: 600, maxAttempts: 12 }
+  repeats: 2, orderSeed: "h37", resources: { leaseSec: 3600, attemptTimeoutSec: 600, attemptReserveSec: 600, maxSessions: 6, maxAttempts: 12 }
 });
 
 const INSTANCES = {}; // one snapshot per id, shared by every test
@@ -87,7 +88,8 @@ function env({ images = {}, commit = "c0ffee", dirty = false } = {}) {
   const cfg = getLocalModelConfig("exaone");
   return {
     kab: { commit, dirty },
-    instance: (id) => (inst[id] ??= synthInstance(`${id}`)),
+    // like the CLI: the snapshot is verified again on every call
+    instance: (id) => { const r = (inst[id] ??= synthInstance(`${id}`)); return { instance: r.instance, spec: instanceSpec(r.instance, { repoDir: r.spec.repoDir }) }; },
     imageId: (image) => images[image] ?? `sha256:${image}`,
     makeTask: (armSpec, instance, ispec) => TASK_FOR_HARNESS[armSpec.harness](instance, ispec),
     makeAdapter: (_arm, armSpec) => (armSpec.harness === "upstage-cli"
@@ -122,7 +124,8 @@ describe("pilot schedule and spec", () => {
   it("rejects malformed specs", () => {
     assert.throws(() => validatePilotSpec({ ...SPEC(), repeats: 0 }), /repeats/);
     assert.throws(() => validatePilotSpec({ ...SPEC(), arms: { A: { harness: "aider" } } }), /harness/);
-    assert.throws(() => validatePilotSpec({ ...SPEC(), resources: { leaseSec: 1, attemptTimeoutSec: 1, maxAttempts: 5 } }), /maxAttempts/);
+    assert.throws(() => validatePilotSpec({ ...SPEC(), resources: { leaseSec: 1, attemptTimeoutSec: 1, attemptReserveSec: 1, maxSessions: 1, maxAttempts: 5 } }), /maxAttempts/);
+    assert.throws(() => validatePilotSpec({ ...SPEC(), resources: { leaseSec: 1, attemptTimeoutSec: 10, attemptReserveSec: 5, maxSessions: 1, maxAttempts: 12 } }), /attemptReserveSec/);
   });
 });
 
@@ -217,7 +220,7 @@ describe("pilot driver (validation mode, fake model)", { skip: haveMini ? false 
 
   it("resume: an attempt left 'started' becomes interrupted (not re-run) and stops the pilot; changed spec, commit, image or mode refuse", async () => {
     const out = outDir("resume");
-    const spec = { ...SPEC(), repeats: 1, resources: { leaseSec: 3600, attemptTimeoutSec: 600, maxAttempts: 6 } };
+    const spec = { ...SPEC(), repeats: 1, resources: { leaseSec: 3600, attemptTimeoutSec: 600, attemptReserveSec: 600, maxSessions: 6, maxAttempts: 6 } };
     let t = 1_000_000;
     const m = await runPilot({ spec, specSha256: "spec-2", out, mode: "validation", env: env(), leaseEndsAt: 1_000_000 + 600_000 + 8_000, now: () => (t += 1000) });
     const pending = m.schedule.find((id) => m.attempts[id].state === "pending");
@@ -238,11 +241,62 @@ describe("pilot driver (validation mode, fake model)", { skip: haveMini ? false 
 
   it("a changed local image between sessions is a terminal stop; live mode refuses a dirty checkout", async () => {
     const out = outDir("image");
-    const spec = { ...SPEC(), repeats: 1, resources: { leaseSec: 3600, attemptTimeoutSec: 600, maxAttempts: 6 } };
+    const spec = { ...SPEC(), repeats: 1, resources: { leaseSec: 3600, attemptTimeoutSec: 600, attemptReserveSec: 600, maxSessions: 6, maxAttempts: 6 } };
     let t = 1_000_000;
     await runPilot({ spec, specSha256: "spec-3", out, mode: "validation", env: env(), leaseEndsAt: 1_000_000 + 600_000 + 8_000, now: () => (t += 1000) });
     const r = await runPilot({ spec, specSha256: "spec-3", out, mode: "validation", env: env({ images: { "fake-image-synthetic__calc-1": "sha256:rebuilt" } }) });
     assert.match(r.stopped.reason, /changed since the pilot started/);
     await assert.rejects(runPilot({ spec, specSha256: "spec-4", out: outDir("dirty"), mode: "live", env: env({ dirty: true }) }), /dirty/);
+  });
+
+  it("live: a failed preflight before any attempt is a resumable stop; the session ceiling is terminal", async () => {
+    const out = outDir("live");
+    const spec = { ...SPEC(), repeats: 1, resources: { leaseSec: 3600, attemptTimeoutSec: 600, attemptReserveSec: 600, maxSessions: 2, maxAttempts: 6 } };
+    const live = (reportable) => ({ ...env(), preflight: async () => ({ reportable, blocking: reportable ? [] : ["servedModelId"] }) });
+    const m1 = await runPilot({ spec, specSha256: "spec-live", out, mode: "live", env: live(false) });
+    assert.deepEqual([m1.stopped.resumable, Object.values(m1.attempts).every((a) => a.state === "pending")], [true, true]);
+    let t = 1_000_000;
+    const m2 = await runPilot({ spec, specSha256: "spec-live", out, mode: "live", env: live(true), leaseEndsAt: 1_000_000 + 600_000 + 8_000, now: () => (t += 1000) });
+    assert.equal(m2.stopped.resumable, true, "lease");
+    const m3 = await runPilot({ spec, specSha256: "spec-live", out, mode: "live", env: live(true) });
+    assert.match(m3.stopped.reason, /session ceiling/);
+    assert.equal(m3.stopped.resumable, false);
+  });
+
+  it("a snapshot changed during the pilot is caught before the next attempt (terminal)", async () => {
+    const out = outDir("snapshot");
+    const spec = { ...SPEC(), instances: ["synthetic__snap-1"], repeats: 2, resources: { leaseSec: 3600, attemptTimeoutSec: 600, attemptReserveSec: 600, maxSessions: 6, maxAttempts: 6 } };
+    const e = env();
+    let n = 0;
+    const makeAdapter = e.makeAdapter;
+    e.makeAdapter = (arm, armSpec) => {
+      if (++n === 2) writeFileSync(join(INSTANCES["synthetic__snap-1"].spec.repoDir, "calc.py"), "changed\n");
+      return makeAdapter(arm, armSpec);
+    };
+    const m = await runPilot({ spec, specSha256: "spec-snap", out, mode: "validation", env: e });
+    assert.equal(m.stopped.resumable, false);
+    assert.match(m.stopped.reason, /uncommitted changes/);
+    assert.equal(Object.values(m.attempts).filter((a) => a.state === "done").length, 2, "the attempt already running finishes; the next one does not start");
+  });
+
+  it("evaluation refuses a pilot in progress or a changed run record; --out must not put SWE-bench content in the repository", async () => {
+    const out = outDir("lease");
+    const ev = async () => ({});
+    const path = join(out, "manifest.json");
+    const saved = readFileSync(path, "utf8");
+    const raw = JSON.parse(saved);
+    delete raw.completedAt;
+    raw.stopped = null;
+    writeFileSync(path, JSON.stringify(raw));
+    await assert.rejects(evaluatePilot({ out, evaluate: ev }), /still in progress/);
+    writeFileSync(path, saved);
+    const run = join(out, JSON.parse(saved).attempts[JSON.parse(saved).schedule[0]].runFile);
+    writeFileSync(run, readFileSync(run, "utf8").replace("{", "{ "));
+    await assert.rejects(evaluatePilot({ out, evaluate: ev }), /changed since it was written/);
+    const repo = new URL("../..", import.meta.url).pathname.replace(/\/$/, "");
+    assert.throws(() => checkOut(repo), /not under \.cache/);
+    assert.throws(() => checkOut(join(repo, "results", "x")), /not under \.cache/);
+    assert.equal(checkOut(join(repo, ".cache", "pilot-x")), join(repo, ".cache", "pilot-x"));
+    assert.equal(checkOut(join(tmpdir(), "pilot-x")), join(tmpdir(), "pilot-x"));
   });
 });
