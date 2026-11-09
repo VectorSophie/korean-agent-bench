@@ -390,16 +390,22 @@ session (thinking on, 16K) through the shared GPU queue (`gpuq` job 55,
 `kserve-session.sh`, GPU 0, healthy after ~220 s, released and the container
 removed). Serving preflight REPORTABLE (15 verified, 0 mismatches). One
 synthetic two-function repository (no SWE-bench content) through mini 2.4.6
-and the KAB DockerSandbox, budget 30 calls / 900 s. Raw records:
-`.cache/live-smoke-2026-11-09/` (not committed).
+and the KAB DockerSandbox, budget 30 calls / 900 s. Counts-only evidence:
+`results/live-smoke-2026-11-09/` (raw record under `.cache/`, not committed).
+The smoke ran **before** the per-call instrumentation below existed; its
+per-call figures come from mini's native trajectory, and the new
+`trace.modelCalls` path has been tested offline only, not against a real
+model.
 
 [measured] 15 model calls, 15 tool calls (one per call), 0 format errors;
 two failed commands (`git diff --calc.py`) that the model corrected itself;
 stop reason `done` (upstream `Submitted`) after 66 s; the submission is the
 one-line fix, applies to the base and is the prediction. Model, harness and
 budget identities recorded. Prompt tokens grew from 1,024 to 4,097. Run
-totals in `metrics`: 37,616 prompt + 2,020 completion = 39,636 tokens,
-exactly the sum of the 15 provider-reported values.
+totals in `metrics`: 37,616 prompt + 2,020 completion = 39,636 tokens. Every
+one of the 15 responses carried usage, so these equal the sums of the
+provider-reported values (the old bridge would have counted a missing value
+as 0; none was missing).
 
 One task on one trivial repository says nothing about EXAONE's capability
 with mini or about any other model.
@@ -418,7 +424,10 @@ records use it) and is not a per-call record for either harness.
 **`trace.modelCalls` (new, `kab.model-call/v1`).** The bridge wraps
 `model.query` for observation only (arguments, return value and exceptions
 pass through; prompts, sampling, termination and command execution are
-unchanged, h33). One record per mini model call:
+unchanged, h33). Each record is streamed to the adapter as the call ends,
+so calls made before a later failure (bridge killed at the deadline, an
+infrastructure error) stay in the run record. One record per mini model call
+(upstream's HTTP retries of one call are inside it):
 
 | Field | Meaning |
 |---|---|
@@ -432,7 +441,11 @@ unchanged, h33). One record per mini model call:
 `metrics.promptTokens/completionTokens/totalTokens/reasoningTokens` are now
 exact sums over the calls that returned a response, or `null` when any of
 them lacks the value (never 0 for unknown); `metrics.modelCalls` counts every
-call, and `usage.failedCalls` those without a response. mini's native
+call and `metrics.failedModelCalls` those without a response, whose prompt
+(e.g. a rejected 16K+ prompt) is therefore **not** in the token totals. A
+cost estimate with unknown usage is now `null`, not 0. Limit: litellm also
+fills a *partly* missing usage block with 0s, which cannot be told apart from
+a real 0; vLLM always sends complete usage. mini's native
 trajectory stays in `trace.agentTrajectory`, unchanged. The adapter sources
 are part of `adapterSha256`, so mini's `harnessId` changes with this
 instrumentation even though its behaviour does not; runs before and after
@@ -463,7 +476,7 @@ within one user query; it is not a mini bug. **upstage-cli differs**:
 [derived from code, `802cddd` `src/agent/loop.mjs`] it appends assistant turns
 to history as `{role, content, tool_calls}`, so earlier reasoning is not
 sent back. The two harnesses therefore spend the same 16K differently by
-construction; the pilot records it rather than equalizing it (§8).
+construction (§8).
 Rendering was done with transformers, not vLLM's own code; the exact match on
 every call is the evidence that it is the same rendering.
 
@@ -526,9 +539,22 @@ while a mini step is exactly one model call. So no arm is "30 turns in both".
 |---|---|---|---|
 | A | upstage-cli `802cddd`, v1 envelope (7 tools, English prompt) | 30 turns, 60 tool calls, 2,700 s, 8,192 output reservation | as v1 |
 | B | mini 2.4.6, upstream `swebench.yaml`, full history | 250 calls (upstream), 2,700 s | new |
-| B30 | as B | 30 calls, 2,700 s | new (separates budget from harness) |
+| B30 | as B | 30 calls, 2,700 s | new (a sensitivity arm matched by call count, not a turn-matched control) |
 
 3 instances × 3 arms × 2 repeats (no seed control on the server) = 18 attempts.
+
+**Differs by construction (the native policies are what Track A compares;
+each is recorded, none is equalized).**
+- *Input budget.* upstage-cli reserves 8,192 tokens for output in its context
+  budget (ADR 0011), so its input budget is 7,372 tokens (§5); mini sends
+  `max_tokens` 8,192 but vLLM clamps it, so mini's prompt can grow to the
+  full 16,384. mini gets roughly twice the input context. Recorded as peak
+  prompt tokens per attempt. A mini arm capped at an 8K input would need a
+  KAB-side guard, i.e. a new `harnessId`; it is not in this pilot.
+- *Reasoning in history.* mini re-sends earlier reasoning (15.2% of the
+  smoke's prompt tokens); upstage-cli does not.
+- *Prompts, tools and parsers.* Each harness's own system prompt, tool
+  surface and output parser (§5, Track A confounds).
 
 **Common accounting per attempt** (all from the run record):
 
@@ -557,7 +583,10 @@ healthy. Arm A: v1 EXAONE median 149 s per attempt, max 918 s (50 main
 attempts; contended). Arms B/B30: unknown; hard ceiling 2,700 s each. Expected
 total about 1.5–3 h of GPU time; worst case 18 × 45 min = 13.5 h, so the
 session lease should be 4 h with a stop rule (any infrastructure error or an
-unexpected queue/server event stops the pilot, no automatic retry). Docker: no
+unexpected queue/server event stops the pilot, no automatic retry). An
+attempt cut off by the lease ending is recorded as an infrastructure error and
+stays in the denominator; attempts not started are listed as not executed, and
+the pilot is reported as incomplete rather than resumed silently. Docker: no
 new images; one container per attempt (upstage-cli) or per action (mini); run
 records with trajectories are ~0.1–1 MB each. Evaluation: 18 predictions on
 CPU with local images.

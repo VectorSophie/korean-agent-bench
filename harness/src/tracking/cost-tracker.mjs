@@ -27,6 +27,7 @@ export class CostTracker {
    */
   estimate(usage) {
     if (!usage) return null;
+    if (usage.promptTokens === null || usage.completionTokens === null) return null; // unknown, not free
     const hasTokens = (usage.promptTokens || 0) + (usage.completionTokens || 0) > 0;
     if (!hasTokens) return 0;
     const p = this._pricing();

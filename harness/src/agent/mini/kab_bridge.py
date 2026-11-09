@@ -91,7 +91,6 @@ def call_record(index: int, response: Any) -> dict:
         # unlike reasoning_tokens (Kanana's deepseek_r1 parser always reports 0).
         "reasoningChars": len(rt) if isinstance(rt := message.get("reasoning_content") or message.get("reasoning"), str) and rt else None,
         "finishReason": choice.get("finish_reason"), "toolCallsRequested": len(message.get("tool_calls") or []),
-        "firstToolCall": None, "toolCallsExecuted": 0,
     }
 
 
@@ -99,7 +98,8 @@ def observed(query, calls: list):
     """Wraps model.query to record each call. Observation only: arguments,
     return value and exceptions pass through unchanged. One record per
     DefaultAgent model call (upstream's retries of one call are inside it,
-    so durationMs includes their backoff)."""
+    so durationMs includes their backoff). Each record is sent to Node as it
+    happens, so a run that dies later still has its calls."""
     import time
 
     from minisweagent.exceptions import FormatError
@@ -123,6 +123,7 @@ def observed(query, calls: list):
         finally:
             rec["startedAt"], rec["durationMs"] = int(started * 1000), int((time.monotonic() - t0) * 1000)
             calls.append(rec)
+            send({"type": "call", "record": rec})
 
     return wrapper
 
@@ -190,10 +191,6 @@ def main() -> int:
 
         def execute(self, action: dict, cwd: str = "", *, timeout: int | None = None) -> dict[str, Any]:
             self._n += 1
-            if calls:  # the model call whose response asked for this action
-                calls[-1]["toolCallsExecuted"] += 1
-                if calls[-1]["firstToolCall"] is None:
-                    calls[-1]["firstToolCall"] = self._n - 1
             send({
                 "type": "exec", "id": self._n, "command": action.get("command", ""),
                 "cwd": cwd or self.config.cwd, "timeout": timeout or self.config.timeout,
@@ -238,7 +235,6 @@ def main() -> int:
         "nCalls": agent.n_calls,
         "nActions": env._n,
         "installVerifiedFiles": verified_files,
-        "modelCalls": calls,
         "finishReasons": [c["finishReason"] for c in calls if c["outcome"] != "error"],
         "miniVersion": minisweagent.__version__,
         "modelClass": f"{type(model).__module__}.{type(model).__name__}",

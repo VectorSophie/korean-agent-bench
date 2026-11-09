@@ -1,0 +1,230 @@
+{
+ "kind": "live-integration-smoke",
+ "note": "Integration validation on ONE synthetic task (no SWE-bench content); NOT a benchmark result. Counts only: no transcript, commands or reasoning text.",
+ "date": "2026-11-09",
+ "sourceRecordSha256": "4a23813b5f7ccab38897d134c0b52111172b9786b5a9b63c02862cc573375bc1",
+ "instrumentation": "run before trace.modelCalls existed (commit f745341); per-call rows below are derived from mini's native trajectory (provider usage as litellm returned it)",
+ "serving": {
+  "queue": "gpuq job 55, -G 1, GPU 0",
+  "launcher": "models/serving/kserve-session.sh exaone 16384",
+  "healthyAfterSec": 220,
+  "preflight": {
+   "result": "REPORTABLE",
+   "verified": 15,
+   "declared_only": 3,
+   "mismatch": 0
+  },
+  "release": "release file; job exit 0; container removed"
+ },
+ "model": {
+  "id": "EXAONE-4.5",
+  "hfRepo": "LGAI-EXAONE/EXAONE-4.5-33B-FP8",
+  "revision": "69570ad5d9a5159816ef267f2f4d37e36447f1be",
+  "quantization": "fp8",
+  "servingImage": "vllm/vllm-openai@sha256:6ee133356d49ed24cee03dd0cda3d3980279a11c107ce3e752c89e76540f41c9",
+  "tensorParallel": 1,
+  "sampling": {
+   "temperature": 0.6,
+   "topP": 0.95,
+   "topK": 20,
+   "presencePenalty": 1.5,
+   "seed": null
+  },
+  "chatTemplateKwargs": {
+   "enable_thinking": true
+  },
+  "maxOutputTokens": 8192,
+  "contextLimit": 16384
+ },
+ "agentHarness": {
+  "name": "mini-swe-agent",
+  "version": "2.4.6",
+  "revision": "a83fcae82d2a08f0ee0c688f9d137b3566c097f8",
+  "adapterSha256": "d01ad9f68769348e554fd58e3334f108101bd35457070503585f1b2471572a05",
+  "harnessId": "9ce340410585d719423ae33081d51f3751d09b6278d5f42a566e5b5a4bcf6ccc",
+  "budgetId": "b8fc1876d52e4aae75f96264319192730403d55c2ec73e0198e2764d3b843f00",
+  "budget": {
+   "maxTurns": 30,
+   "maxToolCalls": null,
+   "timeoutSec": 900,
+   "maxOutputTokens": 8192,
+   "contextLimit": 16384,
+   "outputReservation": null,
+   "safetyMarginRatio": null
+  },
+  "pinned": true
+ },
+ "outcome": {
+  "stopReason": "done",
+  "upstreamExitStatus": "Submitted",
+  "predictionSource": "agent_submission",
+  "submissionLines": {
+   "added": 1,
+   "removed": 1
+  },
+  "agentDurationMs": 66300
+ },
+ "toolCalls": {
+  "count": 15,
+  "nonZeroExit": 2
+ },
+ "metrics": {
+  "turns": 15,
+  "toolCalls": 15,
+  "promptTokens": 37616,
+  "completionTokens": 2020,
+  "totalTokens": 39636
+ },
+ "modelCalls": [
+  {
+   "index": 0,
+   "promptTokens": 1024,
+   "completionTokens": 157,
+   "totalTokens": 1181,
+   "reasoningTokens": 51,
+   "reasoningChars": 266,
+   "finishReason": "tool_calls",
+   "toolCallsRequested": 1
+  },
+  {
+   "index": 1,
+   "promptTokens": 1335,
+   "completionTokens": 57,
+   "totalTokens": 1392,
+   "reasoningTokens": 15,
+   "reasoningChars": 58,
+   "finishReason": "tool_calls",
+   "toolCallsRequested": 1
+  },
+  {
+   "index": 2,
+   "promptTokens": 1442,
+   "completionTokens": 141,
+   "totalTokens": 1583,
+   "reasoningTokens": 98,
+   "reasoningChars": 416,
+   "finishReason": "tool_calls",
+   "toolCallsRequested": 1
+  },
+  {
+   "index": 3,
+   "promptTokens": 1615,
+   "completionTokens": 248,
+   "totalTokens": 1863,
+   "reasoningTokens": 144,
+   "reasoningChars": 773,
+   "finishReason": "tool_calls",
+   "toolCallsRequested": 1
+  },
+  {
+   "index": 4,
+   "promptTokens": 1891,
+   "completionTokens": 123,
+   "totalTokens": 2014,
+   "reasoningTokens": 6,
+   "reasoningChars": 35,
+   "finishReason": "tool_calls",
+   "toolCallsRequested": 1
+  },
+  {
+   "index": 5,
+   "promptTokens": 2070,
+   "completionTokens": 148,
+   "totalTokens": 2218,
+   "reasoningTokens": 68,
+   "reasoningChars": 290,
+   "finishReason": "tool_calls",
+   "toolCallsRequested": 1
+  },
+  {
+   "index": 6,
+   "promptTokens": 2244,
+   "completionTokens": 54,
+   "totalTokens": 2298,
+   "reasoningTokens": 8,
+   "reasoningChars": 43,
+   "finishReason": "tool_calls",
+   "toolCallsRequested": 1
+  },
+  {
+   "index": 7,
+   "promptTokens": 2348,
+   "completionTokens": 36,
+   "totalTokens": 2384,
+   "reasoningTokens": 14,
+   "reasoningChars": 68,
+   "finishReason": "tool_calls",
+   "toolCallsRequested": 1
+  },
+  {
+   "index": 8,
+   "promptTokens": 2442,
+   "completionTokens": 419,
+   "totalTokens": 2861,
+   "reasoningTokens": 60,
+   "reasoningChars": 285,
+   "finishReason": "tool_calls",
+   "toolCallsRequested": 1
+  },
+  {
+   "index": 9,
+   "promptTokens": 2888,
+   "completionTokens": 28,
+   "totalTokens": 2916,
+   "reasoningTokens": 6,
+   "reasoningChars": 26,
+   "finishReason": "tool_calls",
+   "toolCallsRequested": 1
+  },
+  {
+   "index": 10,
+   "promptTokens": 3109,
+   "completionTokens": 163,
+   "totalTokens": 3272,
+   "reasoningTokens": 137,
+   "reasoningChars": 663,
+   "finishReason": "tool_calls",
+   "toolCallsRequested": 1
+  },
+  {
+   "index": 11,
+   "promptTokens": 3311,
+   "completionTokens": 78,
+   "totalTokens": 3389,
+   "reasoningTokens": 51,
+   "reasoningChars": 178,
+   "finishReason": "tool_calls",
+   "toolCallsRequested": 1
+  },
+  {
+   "index": 12,
+   "promptTokens": 3851,
+   "completionTokens": 70,
+   "totalTokens": 3921,
+   "reasoningTokens": 45,
+   "reasoningChars": 176,
+   "finishReason": "tool_calls",
+   "toolCallsRequested": 1
+  },
+  {
+   "index": 13,
+   "promptTokens": 3949,
+   "completionTokens": 38,
+   "totalTokens": 3987,
+   "reasoningTokens": 15,
+   "reasoningChars": 68,
+   "finishReason": "tool_calls",
+   "toolCallsRequested": 1
+  },
+  {
+   "index": 14,
+   "promptTokens": 4097,
+   "completionTokens": 260,
+   "totalTokens": 4357,
+   "reasoningTokens": 226,
+   "reasoningChars": 1172,
+   "finishReason": "tool_calls",
+   "toolCallsRequested": 1
+  }
+ ]
+}

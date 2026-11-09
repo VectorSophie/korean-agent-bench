@@ -75,7 +75,7 @@ def capture(run_path: str, out: str) -> None:
     o.mkdir(parents=True, exist_ok=True)
     with (o / "bodies.jsonl").open("w") as f:
         for (pos, resp), body in zip(calls, bodies, strict=True):
-            f.write(json.dumps({"prompt_tokens": resp["usage"]["prompt_tokens"], "body": body}) + "\n")
+            f.write(json.dumps({"prompt_tokens": (resp.get("usage") or {}).get("prompt_tokens"), "body": body}) + "\n")
     print(f"captured {len(bodies)} request bodies for {len(calls)} recorded calls")
 
 

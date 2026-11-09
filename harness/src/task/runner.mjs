@@ -192,6 +192,7 @@ export class TaskRunner {
       let agentResult;
       let agentError = null;
       let agentHarness = null;
+      let failedRunCalls = null;
       const agentStart = Date.now();
       try {
         agentResult = await adapter.run(task, agentContext);
@@ -202,10 +203,12 @@ export class TaskRunner {
         if (!agentError && taskV2 && !agentHarness?.pinned) agentError = "kab.task/v2 requires a pinned agent-harness descriptor (provenance.agentHarness)";
       } catch (err) {
         agentError = `adapter threw: ${err instanceof Error ? err.message : String(err)}`;
+        // calls made before the failure (mini streams them); kept, never invented
+        if (Array.isArray(err?.modelCalls)) failedRunCalls = err.modelCalls;
       }
       const agentDurationMs = Date.now() - agentStart;
       if (agentError) {
-        agentResult = { ok: false, error: agentError, turns: null, toolCalls: null, usage: null, events: [] };
+        agentResult = { ok: false, error: agentError, turns: null, toolCalls: null, usage: null, events: [], modelCalls: failedRunCalls ?? (Array.isArray(agentResult?.modelCalls) ? agentResult.modelCalls : null) };
       }
       if (auditLog.events().length === 0 && Array.isArray(agentResult.events)) {
         auditLog.recordEvents(agentResult.events);
@@ -267,6 +270,8 @@ export class TaskRunner {
         totalTokens: usage?.totalTokens ?? null,
         reasoningTokens: usage?.reasoningTokens ?? null,
         modelCalls: isCount(usage?.modelCalls) ? usage.modelCalls : null,
+        // calls without a response (no usage; their tokens are not in the totals)
+        failedModelCalls: isCount(usage?.failedCalls) ? usage.failedCalls : null,
         estimatedCostUsd,
         costPerSuccessfulFix: status === "pass" ? estimatedCostUsd : null,
         agentDurationMs,

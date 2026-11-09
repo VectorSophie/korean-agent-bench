@@ -15,6 +15,7 @@ import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { MiniSweAgent, MINI, WORKDIR, loadUpstreamConfig, readLock } from "../src/agent/adapters/mini-swe-agent.mjs";
 import { TaskRunner } from "../src/task/runner.mjs";
+import { CostTracker } from "../src/tracking/cost-tracker.mjs";
 import { MockAgent } from "../src/agent/adapters/mock.mjs";
 import { CodingAgent } from "../src/agent/interface.mjs";
 import { NativeSandbox } from "../src/sandbox/native.mjs";
@@ -399,6 +400,45 @@ describe("mini-swe-agent per-call trace (trace.modelCalls) and context limit", {
     assert.deepEqual([run.metrics.modelCalls, run.metrics.promptTokens, run.metrics.toolCalls], [2, 1900, 1]);
   });
 
+  it("a submit in the middle of a multi-action reply: two requested, one executed, slices still line up", async () => {
+    const repo = synthRepo();
+    script = [withUsage(bash(`echo ${SUBMIT}`, "cat calc.py"), 700, 20)];
+    const { run, fake } = await runMini(repo);
+    assert.equal(run.trace.stopReason, "done");
+    const [c] = run.trace.modelCalls;
+    assert.deepEqual([c.toolCallsRequested, c.toolCallsExecuted, c.firstToolCall], [2, 1, 0]);
+    assert.equal(fake.calls.length, 1);
+    assert.equal(run.trace.toolCalls.length, 1);
+  });
+
+  it("upstream's retry of one call (HTTP 500, then 200) is one record whose duration includes the backoff", async () => {
+    const repo = synthRepo();
+    requests = [];
+    script = [{ httpStatus: 500, body: { error: { message: "transient", type: "InternalServerError", code: 500 } } }, withUsage(bash(`echo ${SUBMIT}`), 600, 10)];
+    const { run } = await runMini(repo);
+    assert.equal(run.trace.stopReason, "done", run.trace.agentError ?? "");
+    assert.equal(requests.length, 2, "two HTTP requests");
+    assert.equal(run.trace.modelCalls.length, 1, "one model call");
+    assert.deepEqual([run.trace.modelCalls[0].outcome, run.trace.modelCalls[0].promptTokens], ["response", 600]);
+    assert.ok(run.trace.modelCalls[0].durationMs >= 3000, "upstream waits at least 4 s before retrying");
+  });
+
+  it("calls made before an adapter failure are kept in the run record (infrastructure error), and cost is unknown, not 0", async () => {
+    const rec = { index: 0, outcome: "response", promptTokens: 500, completionTokens: 5, totalTokens: 505 };
+    class DiesAfterACall extends CodingAgent {
+      get id() { return "dies"; }
+      get taskSchema() { return "kab.task/v2"; }
+      get supportsSandbox() { return true; }
+      async run() { throw Object.assign(new Error("server went away"), { modelCalls: [rec] }); }
+    }
+    const repo = synthRepo();
+    const run = await new TaskRunner({ selectSandbox: () => new FakeDocker() }).run(v2task(repo), new DiesAfterACall());
+    assert.equal(run.status, "error");
+    assert.deepEqual(run.trace.modelCalls, [rec]);
+    // unknown usage has an unknown cost, even for a priced model (was 0)
+    assert.equal(new CostTracker(1, "solar-pro2").estimate({ promptTokens: null, completionTokens: null, totalTokens: null }), null);
+  });
+
   it("approaching then exceeding 16K: a cut-off reply is a format error, vLLM's rejection ends as context_exhausted once, with no submission", async () => {
     const repo = synthRepo();
     requests = [];
@@ -416,7 +456,8 @@ describe("mini-swe-agent per-call trace (trace.modelCalls) and context limit", {
     assert.deepEqual(mc.map((c) => [c.outcome, c.promptTokens, c.finishReason]),
       [["response", 9000, "tool_calls"], ["response", 12000, "tool_calls"], ["format_error", 16000, "length"], ["error", null, null]]);
     assert.match(mc[3].error, /^ContextWindowExceededError: /);
-    assert.deepEqual([run.metrics.modelCalls, run.metrics.promptTokens, run.metrics.completionTokens], [4, 37000, 584]);
+    assert.deepEqual([run.metrics.modelCalls, run.metrics.failedModelCalls, run.metrics.promptTokens, run.metrics.completionTokens], [4, 1, 37000, 584],
+      "the rejected prompt is counted as a call but has no usage, so its tokens are not in the totals");
     // no false submission: patch.txt exists, but nothing was submitted
     assert.equal(run.patch.agent_submission, "");
     assert.equal(toPrediction(run, "m").model_patch, "");
