@@ -265,6 +265,8 @@ export class TaskRunner {
         promptTokens: usage?.promptTokens ?? null,
         completionTokens: usage?.completionTokens ?? null,
         totalTokens: usage?.totalTokens ?? null,
+        reasoningTokens: usage?.reasoningTokens ?? null,
+        modelCalls: isCount(usage?.modelCalls) ? usage.modelCalls : null,
         estimatedCostUsd,
         costPerSuccessfulFix: status === "pass" ? estimatedCostUsd : null,
         agentDurationMs,
@@ -296,6 +298,9 @@ export class TaskRunner {
         metrics,
         trace: {
           turns: auditLog.turns(),
+          // One record per model call (kab.model-call/v1), when the adapter
+          // observes calls individually (mini-swe-agent); null otherwise.
+          modelCalls: Array.isArray(agentResult.modelCalls) ? agentResult.modelCalls : null,
           toolCalls: auditLog.toolCalls(),
           compactions: auditLog.compactions(),
           contextStrategyUsed: task.context?.strategy || "default",

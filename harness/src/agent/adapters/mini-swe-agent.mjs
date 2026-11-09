@@ -105,6 +105,21 @@ export function loadUpstreamConfig(path = MINI.configPath) {
   return yaml.load(raw.toString("utf8"));
 }
 
+/** Run totals from per-call records (trace.modelCalls). Over the calls that
+ *  returned a response (a call that failed without one, e.g. a context-length
+ *  rejection, has no usage and is counted in failedCalls), each total is the
+ *  exact sum of provider-reported values, or null when any of them lacks
+ *  that value: an unknown is never counted as 0. */
+export function aggregateUsage(calls) {
+  if (!calls.length) return null;
+  const answered = calls.filter((c) => c.outcome !== "error");
+  const sum = (k) => (answered.every((c) => Number.isInteger(c[k])) ? answered.reduce((s, c) => s + c[k], 0) : null);
+  return {
+    promptTokens: sum("promptTokens"), completionTokens: sum("completionTokens"), totalTokens: sum("totalTokens"),
+    reasoningTokens: sum("reasoningTokens"), modelCalls: calls.length, failedCalls: calls.length - answered.length
+  };
+}
+
 // Upstream's TimeoutExpired path reports returncode -1 and this message shape.
 const timeoutInfo = (cmd, s) => `An error occurred while executing the command: Command '${cmd}' timed out after ${s} seconds`;
 
@@ -266,13 +281,14 @@ export class MiniSweAgent extends CodingAgent {
     const stopReason = STOP[result.exitStatus];
     if (!stopReason) throw new Error(`mini-swe-agent ended with ${result.exitStatus || "no exit status"}: ${result.error ?? ""}`);
 
-    const u = result.usage;
+    const modelCalls = Array.isArray(result.modelCalls) ? result.modelCalls : [];
     return {
       ok: result.exitStatus === "Submitted",
       error: result.exitStatus === "Submitted" ? undefined : result.exitStatus,
       turns: result.nCalls,
       toolCalls: result.nActions,
-      usage: u.modelCalls ? { promptTokens: u.promptTokens, completionTokens: u.completionTokens, totalTokens: u.promptTokens + u.completionTokens, modelCalls: u.modelCalls } : null,
+      usage: aggregateUsage(modelCalls),
+      modelCalls,
       events,
       stopReason,
       // mini's own output is the prediction (as `mini-extra swebench` writes
