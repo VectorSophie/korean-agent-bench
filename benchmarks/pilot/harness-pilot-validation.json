@@ -1,0 +1,16 @@
+{
+ "schema": "kab.harness-pilot/v1",
+ "name": "harness-pilot-validation",
+ "purpose": "CPU-only validation of the pilot driver with a scripted fake model on the two development instances whose images are local. NOT a pilot result.",
+ "model": "exaone",
+ "instances": ["psf__requests-1724", "psf__requests-2931"],
+ "arms": {
+  "A": { "harness": "upstage-cli" },
+  "B": { "harness": "mini-swe-agent", "maxTurns": 250 },
+  "B30": { "harness": "mini-swe-agent", "maxTurns": 30 }
+ },
+ "repeats": 2,
+ "orderSeed": "kab/harness-pilot-validation",
+ "resources": { "gpus": 0, "leaseSec": 3600, "attemptTimeoutSec": 2700, "maxAttempts": 12, "imagePulls": "none" },
+ "evaluation": "official SWE-bench evaluator on the scripted predictions"
+}
