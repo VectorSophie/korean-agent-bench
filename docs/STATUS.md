@@ -29,11 +29,23 @@ real upstream tool or data) · **not executed** · **planned** · **unsupported*
 | Live serving preflight | verified (REPORTABLE before every BFCL round and SWE-bench attempt) | campaign runtime records |
 | Harness v2: agent-harness identity contract (`provenance.agentHarness`, `kab.agent-harness/v1`) | tested (`h32`, `h30`); no model run | `harness/src/agent/harness-config.mjs`; HARNESS_V2 §6 |
 | mini-swe-agent 2.4.6 as agent harness (`--agent mini-swe-agent --model <key>`, `kab.task/v2`, bridge into the KAB Docker sandbox) | tested offline: h33 (fake model + fake container), h34 (fake model, **real** DockerSandbox, official image); **verified offline** into the official evaluator with a scripted model (gold resolved / empty / wrong unresolved); **one supervised live integration smoke** (EXAONE, one synthetic task, 2026-11-09; not a benchmark); no real SWE-bench instance run with a model | HARNESS_V2 §7; `benchmarks/swebench/validate_mini_offline.py` |
-| Per-call trace for mini (`trace.modelCalls`, provider usage or `null`, tool calls mapped to calls, streamed so failed runs keep them); context-limit handling | tested offline (h33: exact sums, retries, vLLM 0.32's own 400 text); **not yet exercised with a real model** (the live smoke predates it); upstage-cli has no per-call record yet | HARNESS_V2 §7 "Observability and context audit" |
+| Per-call records for both harnesses (`trace.modelCalls`, `kab.model-call/v1`): logical calls, transport attempts (client retries), provider usage or `null`, tool-call slices; failed runs keep them | tested offline against the real client libraries with scripted servers that count HTTP requests: mini/litellm (h33), upstage-cli loop and adapter observed by KAB, no submodule change (h36); observation changes no request, tool call or patch (h33, h36); **not yet exercised with a real model** | `harness/src/agent/model-calls.mjs`; HARNESS_V2 §7–8 |
+| One instance specification → each harness's native task (v1 task for upstage-cli, `kab.task/v2` for mini): same instance, base commit, snapshot tree, image, issue text and scoring input, verified before and after each attempt | tested (h37) | `instanceSpec`, `TASK_FOR_HARNESS` in `harness/src/benchmarks/swebench.mjs` |
+| Harness v2 pilot driver (`harness pilot plan/run/evaluate`): fixed order, repeats, manifest hashes, fail-closed provenance, resumable/terminal stops, official evaluation | tested (h37); **validated offline** end to end on 1724 and 2931 (real CLI, real Docker sandboxes, official evaluator, scripted model; 12/12) | `benchmarks/pilot/validate_pilot_offline.py` |
+| Harness v2 feasibility pilot (upstage-cli vs mini, EXAONE, 3 development instances × 3 arms × 2) | **proposed, not run** (ADR 0012); awaits owner decisions (1142 image pull; 1724 gold patch unresolved here) | `docs/adr/0012-harness-pilot-v1.md`, `benchmarks/pilot/harness-pilot-v1.json` |
 | Request-history audit: EXAONE's earlier reasoning is re-sent and re-tokenized under mini (15.2% of the smoke's prompt tokens); not under upstage-cli (code reading) | measured on the smoke's 15 calls (exact `prompt_tokens` match, 15/15), no inference | `results/live-smoke-2026-11-09/`; `benchmarks/mini-swe-agent/audit_request_history.py`; HARNESS_V2 §7 |
 | Host-side patch capture uses a harness-owned git dir (agent-planted git config/hooks can no longer run on the host; pre-existing hole, found by review) | tested (`h4` fails on the old tracker); v1 records audited: no tool call touched git config/hooks; landed separately (PR #16) | HARNESS_V2 §7 "Security fix" |
 | Queue-held serving session (`models/serving/kserve-session.sh`) | tested with fake docker/nvidia-smi/curl (h35); audited read-only against the queue's source; **verified once under the real queue** (2026-11-09, `gpuq` job 55, EXAONE, released, container removed) | `docs/ops/MODEL_OPERATIONS.md` |
 | v1 retrieval query uses only SWE-bench wrapper words; Docker `run_shell` splits argv without quotes | characterized offline (`h32`); effect on v1 outcomes **unknown** | HARNESS_V2 §3A–B |
+
+## Verified on 2026-11-09 (measurement parity and pilot readiness)
+
+CPU only, no inference: harness unit **495/495** (new h36 upstage-cli per-call
+records 10/10, h37 pilot driver 10/10, h33 26/26), lint, check, evidence
+guard. Pilot offline validation PASS (`validate_pilot_offline.py`, 12/12
+attempts). [measured] The official evaluator scores the bare gold patch of
+`psf__requests-1724` `unresolved` here (a PASS_TO_PASS test needs httpbin);
+`psf__requests-2931` resolved.
 
 ## Verified on 2026-11-09 (observability and context audit)
 
@@ -118,9 +130,13 @@ limitations: `docs/research/FOUR_MODEL_COMPARISON.md`.
    their cache paths and the hub path in `benchmarks/campaign/campaign.py` are
    still constants.
 6. Harness v2 milestones 3–8 (`docs/ROADMAP.md`).
-7. **Before the first harness comparison pilot** (HARNESS_V2 §8, proposed,
-   not run): per-call records for upstage-cli, a v2 pilot driver, and a
-   preregistration ADR.
+7. **Harness v2 pilot (ADR 0012, proposed, not run).** Measurement parity,
+   task mapping and the driver are in place and validated offline. Owner
+   decisions: accept the ADR; pull the `psf__requests-1142` image; keep or
+   replace `psf__requests-1724` (gold patch unresolved here). Track A
+   differences (input budget 7,372 vs up to 16,384; reasoning re-sent under
+   mini) are not isolated harness effects; a matched-input condition
+   (`B-in7372`) is defined for later.
 
 ## Known limits
 
